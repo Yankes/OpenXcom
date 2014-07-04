@@ -537,9 +537,9 @@ void FlcMain(void (*frameCallBack)())
       SDLWaitFrame();
       /* TODO: Track which rectangles have really changed */
       //SDL_UpdateRect(flc.mainscreen, 0, 0, 0, 0);
+      flc.realscreen->resetDisplay(false);
       if (flc.mainscreen != flc.realscreen->getSurface()->getSurface())
         SDL_BlitSurface(flc.mainscreen, 0, flc.realscreen->getSurface()->getSurface(), 0);
-      flc.realscreen->resetDisplay();
       flc.realscreen->flip();
     }
 
