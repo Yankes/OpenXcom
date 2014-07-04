@@ -16,40 +16,35 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef OPENXCOM_VICTORYSTATE_H
-#define OPENXCOM_VICTORYSTATE_H
 
-#include "../Engine/State.h"
+#ifndef OPENXCOM_ARTICLESTATETFTD_H
+#define OPENXCOM_ARTICLESTATETFTD_H
+
+#include "ArticleState.h"
 
 namespace OpenXcom
 {
+	class Game;
+	class Text;
+	class TextButton;
+	class ArticleStateTextImage;
+	class ArticleDefinitionTFTD;
 
-class InteractiveSurface;
-class Text;
-class Timer;
+	/**
+	 * ArticleStateTextImage has a title, text block and a background image.
+	 */
 
-/**
- * Game Over Screens.
- */
-class VictoryState : public State
-{
-private:
-	static const int SCREENS = 5;
-	InteractiveSurface *_bg[SCREENS];
-	Text *_text[SCREENS];
-	int _screen;
-	Timer *_timer;
-public:
-	/// Creates the Victory state.
-	VictoryState();
-	/// Cleans up the Victory state.
-	~VictoryState();
-	/// Handle timers.
-	void think();
-	/// Handler for clicking the screen.
-	void screenClick(Action *action);
-};
+	class ArticleStateTFTD : public ArticleState
+	{
+	public:
+		ArticleStateTFTD(ArticleDefinitionTFTD *defs);
+		virtual ~ArticleStateTFTD();
 
+	protected:
+		Text *_txtTitle;
+		Text *_txtInfo;
+		TextButton *_btnTitle;
+	};
 }
 
 #endif

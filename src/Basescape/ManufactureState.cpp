@@ -45,7 +45,7 @@ namespace OpenXcom
  * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  */
-ManufactureState::ManufactureState(Game *game, Base *base) : State(game), _base(base)
+ManufactureState::ManufactureState(Base *base) : _base(base)
 {
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -179,7 +179,7 @@ void ManufactureState::btnOkClick(Action *)
  */
 void ManufactureState::btnNewProductionClick(Action *)
 {
-	_game->pushState(new NewManufactureListState(_game, _base));
+	_game->pushState(new NewManufactureListState(_base));
 }
 
 /**
@@ -201,12 +201,13 @@ void ManufactureState::fillProductionList()
 		std::wostringstream s3;
 		s3 << Text::formatFunding((*iter)->getRules()->getManufactureCost());
 		std::wostringstream s4;
-		if ((*iter)->getAssignedEngineers() > 0)
+		if ((*iter)->getInfiniteAmount())
 		{
-			int timeLeft;
-			if ((*iter)->getSellItems())
-				timeLeft = ((*iter)->getAmountProduced()+1) * (*iter)->getRules()->getManufactureTime() - (*iter)->getTimeSpent();
-			else timeLeft = (*iter)->getAmountTotal() * (*iter)->getRules()->getManufactureTime() - (*iter)->getTimeSpent();
+			s4 << Language::utf8ToWstr("∞");
+		}
+		else if ((*iter)->getAssignedEngineers() > 0)
+		{
+			int timeLeft = (*iter)->getAmountTotal() * (*iter)->getRules()->getManufactureTime() - (*iter)->getTimeSpent();
 			timeLeft /= (*iter)->getAssignedEngineers();
 			float dayLeft = timeLeft / 24.0f;
 			int hours = (dayLeft - static_cast<int>(dayLeft)) * 24;
@@ -231,7 +232,7 @@ void ManufactureState::fillProductionList()
 void ManufactureState::lstManufactureClick(Action *)
 {
 	const std::vector<Production*> productions(_base->getProductions());
-	_game->pushState(new ManufactureInfoState(_game, _base, productions[_lstManufacture->getSelectedRow()]));
+	_game->pushState(new ManufactureInfoState(_base, productions[_lstManufacture->getSelectedRow()]));
 }
 
 }

@@ -71,7 +71,7 @@ namespace OpenXcom
  * Initializes all the elements in the Debriefing screen.
  * @param game Pointer to the core game.
  */
-DebriefingState::DebriefingState(Game *game) : State(game), _region(0), _country(0), _noContainment(false), _manageContainment(false), _destroyBase(false)
+DebriefingState::DebriefingState() : _region(0), _country(0), _noContainment(false), _manageContainment(false), _destroyBase(false)
 {
 	Options::baseXResolution = Options::baseXGeoscape;
 	Options::baseYResolution = Options::baseYGeoscape;
@@ -267,31 +267,31 @@ void DebriefingState::btnOkClick(Action *)
 	_game->popState();
 	if (_game->getSavedGame()->getMonthsPassed() == -1)
 	{
-		_game->setState(new MainMenuState(_game));
+		_game->setState(new MainMenuState);
 	}
 	else if (!_destroyBase)
 	{
 		if (_game->getSavedGame()->handlePromotions(participants))
 		{
-			_game->pushState(new PromotionsState(_game));
+			_game->pushState(new PromotionsState);
 		}
 		if (!_missingItems.empty())
 		{
-			_game->pushState(new CannotReequipState(_game, _missingItems));
+			_game->pushState(new CannotReequipState(_missingItems));
 		}
 		if (_noContainment)
 		{
-			_game->pushState(new NoContainmentState(_game));
+			_game->pushState(new NoContainmentState);
 		}
 		else if (_manageContainment)
 		{
-			_game->pushState(new ManageAlienContainmentState(_game, _base, OPT_BATTLESCAPE));
-			_game->pushState(new ErrorMessageState(_game, tr("STR_CONTAINMENT_EXCEEDED").arg(_base->getName()).c_str(), _palette, Palette::blockOffset(8)+5, "BACK01.SCR", 0));
+			_game->pushState(new ManageAlienContainmentState(_base, OPT_BATTLESCAPE));
+			_game->pushState(new ErrorMessageState(tr("STR_CONTAINMENT_EXCEEDED").arg(_base->getName()).c_str(), _palette, Palette::blockOffset(8)+5, "BACK01.SCR", 0));
 		}
 		if (!_manageContainment && Options::storageLimitsEnforced && _base->storesOverfull())
 		{
-			_game->pushState(new SellState(_game, _base, OPT_BATTLESCAPE));
-			_game->pushState(new ErrorMessageState(_game, tr("STR_STORAGE_EXCEEDED").arg(_base->getName()).c_str(), _palette, Palette::blockOffset(8)+5, "BACK01.SCR", 0));
+			_game->pushState(new SellState(_base, OPT_BATTLESCAPE));
+			_game->pushState(new ErrorMessageState(tr("STR_STORAGE_EXCEEDED").arg(_base->getName()).c_str(), _palette, Palette::blockOffset(8)+5, "BACK01.SCR", 0));
 		}
 	}
 }
@@ -372,7 +372,7 @@ void DebriefingState::prepareDebriefing()
 	_stats.push_back(new DebriefingStat("STR_ALIEN_SURGERY", true));
 	_stats.push_back(new DebriefingStat("STR_EXAMINATION_ROOM", true));
 	_stats.push_back(new DebriefingStat("STR_ALIEN_ALLOYS", true));
-	_stats.push_back(new DebriefingStat("STR_ELERIUM_115", true));
+	_stats.push_back(new DebriefingStat(_game->getRuleset()->getAlienFuel(), true));
 
 	SavedGame *save = _game->getSavedGame();
 	SavedBattleGame *battle = save->getSavedBattle();
@@ -1066,10 +1066,10 @@ void DebriefingState::recoverItems(std::vector<BattleItem*> *from, Base *base)
 {
 	for (std::vector<BattleItem*>::iterator it = from->begin(); it != from->end(); ++it)
 	{
-		if ((*it)->getRules()->getName() == "STR_ELERIUM_115")
+		if ((*it)->getRules()->getName() == _game->getRuleset()->getAlienFuel())
 		{
 			// special case of an item counted as a stat
-			addStat("STR_ELERIUM_115", 50, 5);
+			addStat(_game->getRuleset()->getAlienFuel(), 50, 5);
 		}
 		else
 		{

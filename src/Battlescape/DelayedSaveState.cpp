@@ -53,14 +53,14 @@ void DelayedSaveState::init()
  */
 void DelayedSaveState::think()
 {
-	if (!_firstRun)
+	if (_firstRun)
 	{
 		_firstRun = false;
 	}
 	else
 	{
 		_parent->popState();
-		_game->pushState(new SaveGameState(_game, OPT_BATTLESCAPE, _type));
+		_game->pushState(new SaveGameState(OPT_BATTLESCAPE, _type));
 	}
 }
 

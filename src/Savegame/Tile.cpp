@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "Tile.h"
+#include <algorithm>
 #include "../Ruleset/MapData.h"
 #include "../Ruleset/MapDataSet.h"
 #include "../Engine/SurfaceSet.h"
@@ -47,7 +48,7 @@ Tile::SerializationKey Tile::serializationKey =
 * constructor
 * @param pos Position.
 */
-Tile::Tile(const Position& pos): _smoke(0), _fire(0), _explosive(0), _pos(pos), _unit(0), _animationOffset(0), _markerColor(0), _visible(false), _preview(-1), _TUMarker(0), _overlaps(0), _danger(false)
+Tile::Tile(const Position& pos): _smoke(0), _fire(0), _explosive(0), _pos(pos), _unit(0), _animationOffset(0), _markerColor(0), _visible(false), _preview(-1), _TUMarker(-1), _overlaps(0), _danger(false)
 {
 	for (int i = 0; i < 4; ++i)
 	{
@@ -431,7 +432,7 @@ int Tile::getShade() const
 			light = _light[layer];
 	}
 
-	return 15 - light;
+	return std::max(0, 15 - light);
 }
 
 /**
@@ -561,7 +562,7 @@ void Tile::ignite(int power)
 		{
 			power = 0;
 		}
-		if (RNG::percent(power))
+		if (RNG::percent(power) && getFuel())
 		{
 			if (_fire == 0)
 			{

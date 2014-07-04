@@ -1026,6 +1026,10 @@ void Map::drawTerrain(Surface *surface)
 	}
 	if (pathfinderTurnedOn)
 	{
+		if (_numWaypid)
+		{
+			_numWaypid->setBordered(true); // give it a border for the pathfinding display, makes it more visible on snow, etc.
+		}
 		for (int itZ = beginZ; itZ <= endZ; itZ++)
 		{
 			for (int itX = beginX; itX <= endX; itX++)
@@ -1063,18 +1067,35 @@ void Map::drawTerrain(Surface *surface)
 							}
 						}
 
-						if (_previewSetting & PATH_TU_COST)
+						if (_previewSetting & PATH_TU_COST && tile->getTUMarker() > -1)
 						{
-							int tuMarker = std::max(0, tile->getTUMarker());
-
-							_numWaypid->setValue(tuMarker);
+							int off = tile->getTUMarker() > 9 ? 5 : 3;
+							if (_save->getSelectedUnit() && _save->getSelectedUnit()->getArmor()->getSize() > 1)
+							{
+								adjustment += 1;
+								if (!(_previewSetting & PATH_ARROWS))
+								{
+									adjustment += 7;
+								}
+							}
+							_numWaypid->setValue(tile->getTUMarker());
 							_numWaypid->draw();
-							int off = tile->getTUMarker() > 9 ? 4 : 2;
-							_numWaypid->blitNShade(surface, screenPosition.x + 16 - off, screenPosition.y + (30-adjustment), 0);
+							if ( !(_previewSetting & PATH_ARROWS) )
+							{
+								_numWaypid->blitNShade(surface, screenPosition.x + 16 - off, screenPosition.y + (29-adjustment), 0, false, tile->getMarkerColor() );
+							}
+							else
+							{
+								_numWaypid->blitNShade(surface, screenPosition.x + 16 - off, screenPosition.y + (22-adjustment), 0);
+							}
 						}
 					}
 				}
 			}
+		}
+		if (_numWaypid)
+		{
+			_numWaypid->setBordered(false); // make sure we remove the border in case it's being used for missile waypoints.
 		}
 	}
 	unit = (BattleUnit*)_save->getSelectedUnit();

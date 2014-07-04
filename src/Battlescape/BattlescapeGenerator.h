@@ -62,7 +62,7 @@ private:
 	Tile *_craftInventoryTile;
 	std::string _alienRace;
 	int _alienItemLevel;
-	bool _allowAutoLoadout, _baseInventory;
+	bool _allowAutoLoadout, _baseInventory, _generateFuel;
 	int _craftX, _craftY, _craftZ;
 
 	/// Generates a new battlescape map.
@@ -83,7 +83,7 @@ private:
 	int loadMAP(MapBlock *mapblock, int xoff, int yoff, RuleTerrain *terrain, int objectIDOffset, bool discovered = false, bool craft = false);
 	/// Loads an XCom RMP file.
 	void loadRMP(MapBlock *mapblock, int xoff, int yoff, int segment);
-	/// Fills power sources with an elerium-115 object.
+	/// Fills power sources with an alien fuel object.
 	void fuelPowerSources();
 	/// Possibly explodes ufo powersources.
 	void explodePowerSources();
@@ -99,7 +99,7 @@ private:
 	RuleTerrain *getTerrain(int tex, double lat);
 public:
 	/// Creates a new BattlescapeGenerator class
-	BattlescapeGenerator(Game *game);
+	BattlescapeGenerator(Game* game);
 	/// Cleans up the BattlescapeGenerator.
 	~BattlescapeGenerator();
 	/// Sets the XCom craft.
