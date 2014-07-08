@@ -671,7 +671,7 @@ XcomResourcePack::XcomResourcePack(std::vector<std::pair<std::string, ExtraSprit
 	std::map<int, Surface*> *handob = _sets["HANDOB.PCK"]->getFrames();
 	for (std::map<int, Surface*>::const_iterator i = handob->begin(); i != handob->end(); ++i)
 	{
-		Surface *surface1 = _sets["HANDOB2.PCK"]->addFrame(i->first);
+		Surface *surface1 = _sets["HANDOB2.PCK"]->addFrame(i->first, i->second->getSurface()->format->BitsPerPixel);
 		Surface *surface2 = i->second;
 		surface1->setPalette(surface2->getPalette());
 		surface2->blit(surface1);
