@@ -40,20 +40,24 @@ struct BattleAction;
 class TileEngine
 {
 private:
-	int _maxViewDistance;          // 20
-	int _maxViewDistanceAtDark;    // 9
-	int _maxVoxelViewDistance;     // MAX_VIEW_DISTANCE * 16
-	int _maxDarknessToSeeUnits;    // 9
+	const int _maxViewDistance;          // 20
+	const int _maxViewDistanceSqr;       // 20 * 20
+	const int _maxViewDistanceAtDark;    // 9
+	const int _maxViewDistanceAtDarkSqr; // 9 * 9
+	const int _maxVoxelViewDistance;     // MAX_VIEW_DISTANCE * 16
+	const int _maxDarknessToSeeUnits;    // 9
 	SavedBattleGame *_save;
 	std::vector<Uint16> *_voxelData;
 	static const int heightFromCenter[11];
 	void addLight(const Position &center, int power, int layer);
 	int blockage(Tile *tile, const int part, ItemDamageType type, int direction = -1, bool checkingFromOrigin = false);
 	bool _personalLighting;
-	inline int getMaxViewDistance() const {return _maxViewDistance;}
-	inline int getMaxViewDistanceAtDark() const {return _maxViewDistanceAtDark;}
-	inline int getMaxVoxelViewDistance() const {return _maxVoxelViewDistance;}
-	inline int getMaxDarknessToSeeUnits() const {return _maxDarknessToSeeUnits;}
+	inline int getMaxViewDistance() const          {return _maxViewDistance;}
+	inline int getMaxViewDistanceSqr() const       {return _maxViewDistanceSqr;}
+	inline int getMaxViewDistanceAtDark() const    {return _maxViewDistanceAtDark;}
+	inline int getMaxViewDistanceAtDarkSqr() const {return _maxViewDistanceAtDarkSqr;}
+	inline int getMaxVoxelViewDistance() const     {return _maxVoxelViewDistance;}
+	inline int getMaxDarknessToSeeUnits() const    {return _maxDarknessToSeeUnits;}
 public:
 	/// Creates a new TileEngine class.
 	TileEngine(SavedBattleGame *save, std::vector<Uint16> *voxelData, int maxViewDistance, int maxViewDistanceAtDark, int maxDarknessToSeeUnits);

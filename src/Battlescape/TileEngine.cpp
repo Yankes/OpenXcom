@@ -63,7 +63,8 @@ const int TileEngine::heightFromCenter[11] = {0,-2,+2,-4,+4,-6,+6,-8,+8,-12,+12}
  */
 TileEngine::TileEngine(SavedBattleGame *save, std::vector<Uint16> *voxelData, int maxViewDistance, int maxDarknessToSeeUnits, int maxViewDistanceAtDark) :
 	_save(save), _voxelData(voxelData), _personalLighting(true),
-	_maxViewDistance(maxViewDistance), _maxViewDistanceAtDark(maxViewDistanceAtDark),
+	_maxViewDistance(maxViewDistance), _maxViewDistanceSqr(maxViewDistance * maxViewDistance),
+	_maxViewDistanceAtDark(maxViewDistanceAtDark), _maxViewDistanceAtDarkSqr(maxViewDistanceAtDark * maxViewDistanceAtDark),
 	_maxVoxelViewDistance(maxViewDistance * 16), _maxDarknessToSeeUnits(maxDarknessToSeeUnits)
 {
 }
@@ -276,7 +277,7 @@ bool TileEngine::calculateFOV(BattleUnit *unit)
 			{
 				const int distanceSqr = x*x + y*y;
 				test.z = z;
-				if (distanceSqr <= getMaxViewDistance() * getMaxViewDistance())
+				if (distanceSqr <= getMaxViewDistanceSqr())
 				{
 					test.x = center.x + signX[direction]*(swap?y:x);
 					test.y = center.y + signY[direction]*(swap?x:y);
@@ -396,24 +397,21 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 		return false;
 	}
 
-	if (currentUnit->getFaction() == tile->getUnit()->getFaction()) return true; // friendlies are always seen
+	// friendlies are always seen
+	if (currentUnit->getFaction() == tile->getUnit()->getFaction()) return true;
 
 	// aliens can see in the dark, xcom can see at a distance of 9 (MaxViewDistanceAtDark) or less, further if there's enough light.
 	if (currentUnit->getFaction() == FACTION_PLAYER &&
-		distance(currentUnit->getPosition(), tile->getPosition()) > getMaxViewDistanceAtDark() &&
+		distanceSq(currentUnit->getPosition(), tile->getPosition(), false) > getMaxViewDistanceAtDarkSqr() &&
 		tile->getShade() > getMaxDarknessToSeeUnits())
 	{
 		return false;
 	}
 
 	Position originVoxel = getSightOriginVoxel(currentUnit);
-
-	bool unitSeen = false;
-	// for large units origin voxel is in the middle
-
 	Position scanVoxel;
 	std::vector<Position> _trajectory;
-	unitSeen = canTargetUnit(&originVoxel, tile, &scanVoxel, currentUnit);
+	bool unitSeen = canTargetUnit(&originVoxel, tile, &scanVoxel, currentUnit);
 
 	if (unitSeen)
 	{
@@ -427,18 +425,20 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 		int visibleDistance = _trajectory.size();
 		int densityOfSmoke = 0;
 		Position pos16(16, 16, 24);
-		Position posTile(_trajectory.at(0) / pos16);
-		Tile *t = _save->getTile(posTile);
+		Position& posTile = _trajectory.at(0);
+		Tile *t = _save->getTile(posTile / pos16);
 
 		for (int i = 0; i < visibleDistance; i++)
 		{
-			if (posTile != _trajectory.at(i) / pos16)
+			_trajectory.at(i) /= pos16;
+			if (posTile != _trajectory.at(i))
 			{
+				// even if MaxViewDistance will be increased via ruleset, smoke will keep effect
 				if (visibleDistance > getMaxVoxelViewDistance() - densityOfSmoke * getMaxViewDistance()/(3 * 20))
 				{
 					return false;
 				}
-				posTile = _trajectory.at(i) / pos16;
+				posTile = _trajectory.at(i);
 				t = _save->getTile(posTile);
 			}
 			if (t->getFire() == 0)
