@@ -424,16 +424,18 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 		calculateLine(originVoxel, scanVoxel, true, &_trajectory, currentUnit);
 		int visibleDistance = _trajectory.size();
 		int densityOfSmoke = 0;
-		Position pos16(16, 16, 24);
+		Position voxelToTile(16, 16, 24);
 		Position& posTile = _trajectory.at(0);
-		Tile *t = _save->getTile(posTile / pos16);
+		Tile *t = _save->getTile(posTile / voxelToTile);
 
 		for (int i = 0; i < visibleDistance; i++)
 		{
-			_trajectory.at(i) /= pos16;
+			_trajectory.at(i) /= voxelToTile;
 			if (posTile != _trajectory.at(i))
 			{
-				// even if MaxViewDistance will be increased via ruleset, smoke will keep effect
+				// 3  - coefficient of a density calculation (see above).
+				// 20 - maximum view distance in vanilla Xcom.
+				// Even if MaxViewDistance will be increased via ruleset, smoke will keep effect.
 				if (visibleDistance > getMaxVoxelViewDistance() - densityOfSmoke * getMaxViewDistance()/(3 * 20))
 				{
 					return false;
@@ -446,7 +448,6 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 				densityOfSmoke += t->getSmoke();
 			}
 		}
-		// even if MaxViewDistance will be increased via ruleset, smoke will keep effect
 		unitSeen = visibleDistance <= getMaxVoxelViewDistance() - densityOfSmoke * getMaxViewDistance()/(3 * 20);
 	}
 	return unitSeen;
@@ -2417,8 +2418,13 @@ int TileEngine::distanceSq(const Position &pos1, const Position &pos2, bool cons
 {
 	int x = pos1.x - pos2.x;
 	int y = pos1.y - pos2.y;
-	int z = considerZ ? (pos1.z - pos2.z) : 0;
-	return x*x + y*y + z*z;
+	int sq = x*x + y*y;
+	if (considerZ)
+	{
+		int z = pos1.z - pos2.z;
+		sq += z*z;
+	}
+	return sq;
 }
 
 /**
