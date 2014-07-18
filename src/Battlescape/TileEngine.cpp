@@ -425,15 +425,15 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 		int visibleDistance = _trajectory.size();
 		int densityOfSmoke = 0;
 		Position voxelToTile(16, 16, 24);
-		Position& posTile = _trajectory.at(0);
-		Tile *t = _save->getTile(posTile / voxelToTile);
+		Position posTile(-1, -1, -1);
+		Tile *t;
 
 		for (int i = 0; i < visibleDistance; i++)
 		{
 			_trajectory.at(i) /= voxelToTile;
 			if (posTile != _trajectory.at(i))
 			{
-				// 3  - coefficient of a density calculation (see above).
+				// 3  - coefficient of calculation (see above).
 				// 20 - maximum view distance in vanilla Xcom.
 				// Even if MaxViewDistance will be increased via ruleset, smoke will keep effect.
 				if (visibleDistance > getMaxVoxelViewDistance() - densityOfSmoke * getMaxViewDistance()/(3 * 20))
