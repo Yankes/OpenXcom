@@ -866,14 +866,18 @@ struct StandartShade
 		else
 			return curr;
 	}
-	static inline void func(SDL_Color& dest, const SDL_Color& src, const int& shade, const SDL_Color& colorKey)
+	static inline void func(SDL_Color& dest, const SDL_Color& colorKeyDest, const SDL_Color& src, const SDL_Color& colorKeySrc, const int& shade)
 	{
-		if(src.r == colorKey.r && src.g == colorKey.g && src.b == colorKey.b)
+		if(src.r == colorKeySrc.r && src.g == colorKeySrc.g && src.b == colorKeySrc.b)
 			return;
 
 		dest.r = offset(src.r, shade, 15);
 		dest.g = offset(src.g, shade, 16);
 		dest.b = offset(src.b, shade, 15);
+
+		//avoid transparent color
+		if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
+			dest.r ^= 1;
 	}
 };
 
@@ -903,12 +907,17 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 			g.beg_x = g.end_x/2;
 			src.setDomain(g);
 		}
-		SDL_Color colorKey = { 0, 0, 0, 255 };
-		SDL_GetRGB(surface->getSurface()->format->colorkey, surface->getSurface()->format, &colorKey.r, &colorKey.g, &colorKey.b);
+
+		SDL_Color colorKeyDest = { 0, 0, 0, 255 };
+		SDL_GetRGB(surface->getSurface()->format->colorkey, surface->getSurface()->format, &colorKeyDest.r, &colorKeyDest.g, &colorKeyDest.b);
+
+		SDL_Color colorKeySrc = { 0, 0, 0, 255 };
+		SDL_GetRGB(this->getSurface()->format->colorkey, this->getSurface()->format, &colorKeySrc.r, &colorKeySrc.g, &colorKeySrc.b);
+
 		if(dest8)
 			throw Exception("Cannot blit 32bit to 8bit");
 		else
-			ShaderDraw<StandartShade>(ShaderMove<SDL_Color>(surface), src, ShaderScalar(off), ShaderScalar(colorKey));
+			ShaderDraw<StandartShade>(ShaderMove<SDL_Color>(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(off));
 	}
 	else
 	{
