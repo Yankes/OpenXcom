@@ -871,9 +871,9 @@ struct StandartShade
 		if(src.r == colorKeySrc.r && src.g == colorKeySrc.g && src.b == colorKeySrc.b)
 			return;
 
-		dest.r = offset(src.r, shade, 15);
-		dest.g = offset(src.g, shade, 16);
-		dest.b = offset(src.b, shade, 15);
+		dest.r = offset(src.r, shade, 16);
+		dest.g = offset(src.g, shade, 17);
+		dest.b = offset(src.b, shade, 16);
 
 		//avoid transparent color
 		if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
