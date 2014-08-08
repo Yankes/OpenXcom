@@ -95,7 +95,7 @@ protected:
 	std::vector<std::pair<std::string, ExtraSounds *> > _extraSounds;
 	std::map<std::string, ExtraStrings *> _extraStrings;
 	std::vector<StatString*> _statStrings;
-	int _maxViewDistance, _maxViewDistanceAtDark, _maxDarknessToSeeUnits;
+	int _maxViewDistance, _maxDarknessToSeeUnits;
 	int _costSoldier, _costEngineer, _costScientist, _timePersonnel, _initialFunding;
 	std::string _alienFuel;
 	YAML::Node _startingBase;
@@ -226,9 +226,7 @@ public:
 	void sortLists();
 	/// Gets max view distance in BattleScape.
 	inline int getMaxViewDistance() const {return _maxViewDistance;}
-	/// Gets max view distance at dark in BattleScape.
-	inline int getMaxViewDistanceAtDark() const {return _maxViewDistanceAtDark;}
-	/// Gets max darkness to see units in BattleScape.
+	/// Gets threshold of darkness for LoS calculation.
 	inline int getMaxDarknessToSeeUnits() const {return _maxDarknessToSeeUnits;}
 	/// Gets the research-requirements for Psi-Lab (it's a cache for psiStrengthEval)
 	std::vector<std::string> getPsiRequirements() const;

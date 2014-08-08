@@ -57,7 +57,7 @@ private:
 	std::string _armor;
 	int _standHeight, _kneelHeight, _floatHeight;
 	int _value, _deathSound, _aggroSound, _moveSound;
-	int _intelligence, _aggression, _energyRecovery;
+	int _intelligence, _aggression, _energyRecovery, _visibilityAtDark;
 	SpecialAbility _specab;
 	std::string _spawnUnit;
 	bool _livingWeapon;
@@ -103,6 +103,8 @@ public:
 	/// Checks if this unit has a built in weapon.
 	bool isLivingWeapon() const;
 	int getEnergyRecovery() const;
+	/// Gets max view distance at dark in BattleScape.
+	int getVisibilityAtDark() const;
 };
 
 }

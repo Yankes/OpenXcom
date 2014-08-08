@@ -4427,6 +4427,7 @@ units:
     deathSound: 23
     moveSound: 14
     energyRecovery: 50
+    visibilityAtDark: 9
   - type: STR_TANK_ROCKET_LAUNCHER
     race: STR_TANK_ROCKET_LAUNCHER
     stats:
@@ -4448,6 +4449,7 @@ units:
     deathSound: 23
     moveSound: 14
     energyRecovery: 50
+    visibilityAtDark: 9
   - type: STR_TANK_LASER_CANNON
     race: STR_TANK_LASER_CANNON
     stats:
@@ -4469,6 +4471,7 @@ units:
     deathSound: 23
     moveSound: 14
     energyRecovery: 50
+    visibilityAtDark: 9
   - type: STR_HOVERTANK_PLASMA
     race: STR_HOVERTANK_PLASMA
     stats:
@@ -4491,6 +4494,7 @@ units:
     deathSound: 23
     moveSound: 40
     energyRecovery: 50
+    visibilityAtDark: 9
   - type: STR_HOVERTANK_LAUNCHER
     race: STR_HOVERTANK_LAUNCHER
     stats:
@@ -4513,6 +4517,7 @@ units:
     deathSound: 23
     moveSound: 40
     energyRecovery: 50
+    visibilityAtDark: 9
   - type: MALE_CIVILIAN
     race: STR_CIVILIAN
     stats:
@@ -8705,7 +8710,6 @@ startingTime:
   month: 1
   year: 1999
 maxViewDistance: 20
-maxViewDistanceAtDark: 9
 maxDarknessToSeeUnits: 9
 costSoldier: 20000
 costEngineer: 25000

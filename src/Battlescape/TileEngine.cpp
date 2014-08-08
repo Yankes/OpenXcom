@@ -60,11 +60,12 @@ const int TileEngine::heightFromCenter[11] = {0,-2,+2,-4,+4,-6,+6,-8,+8,-12,+12}
  * Sets up a TileEngine.
  * @param save Pointer to SavedBattleGame object.
  * @param voxelData List of voxel data.
+ * @param maxViewDistance Max view distance in tiles.
+ * @param maxDarknessToSeeUnits Threshold of darkness for LoS calculation.
  */
-TileEngine::TileEngine(SavedBattleGame *save, std::vector<Uint16> *voxelData, int maxViewDistance, int maxDarknessToSeeUnits, int maxViewDistanceAtDark) :
+TileEngine::TileEngine(SavedBattleGame *save, std::vector<Uint16> *voxelData, int maxViewDistance, int maxDarknessToSeeUnits) :
 	_save(save), _voxelData(voxelData), _personalLighting(true),
-	_maxViewDistance(maxViewDistance), _maxViewDistanceSqr(maxViewDistance * maxViewDistance),
-	_maxViewDistanceAtDark(maxViewDistanceAtDark), _maxViewDistanceAtDarkSqr(maxViewDistanceAtDark * maxViewDistanceAtDark),
+	_maxViewDistance(maxViewDistance), _maxViewDistanceSq(maxViewDistance * maxViewDistance),
 	_maxVoxelViewDistance(maxViewDistance * 16), _maxDarknessToSeeUnits(maxDarknessToSeeUnits)
 {
 }
@@ -277,7 +278,7 @@ bool TileEngine::calculateFOV(BattleUnit *unit)
 			{
 				const int distanceSqr = x*x + y*y;
 				test.z = z;
-				if (distanceSqr <= getMaxViewDistanceSqr())
+				if (distanceSqr <= getMaxViewDistanceSq())
 				{
 					test.x = center.x + signX[direction]*(swap?y:x);
 					test.y = center.y + signY[direction]*(swap?x:y);
@@ -400,9 +401,9 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 	// friendlies are always seen
 	if (currentUnit->getFaction() == tile->getUnit()->getFaction()) return true;
 
-	// aliens can see in the dark, xcom can see at a distance of 9 (MaxViewDistanceAtDark) or less, further if there's enough light.
-	if (currentUnit->getFaction() == FACTION_PLAYER &&
-		distanceSq(currentUnit->getPosition(), tile->getPosition(), false) > getMaxViewDistanceAtDarkSqr() &&
+	// aliens can see in the dark at least 20 tiles, xcom can see at a distance of 9 (MaxViewDistanceAtDark) or less, further if there's enough light.
+	if (getMaxViewDistanceSq() > currentUnit->getMaxViewDistanceAtDarkSq() &&
+		distanceSq(currentUnit->getPosition(), tile->getPosition(), false) > currentUnit->getMaxViewDistanceAtDarkSq() &&
 		tile->getShade() > getMaxDarknessToSeeUnits())
 	{
 		return false;
@@ -425,13 +426,13 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 		int visibleDistance = _trajectory.size();
 		int densityOfSmoke = 0;
 		Position voxelToTile(16, 16, 24);
-		Position posTile(-1, -1, -1);
+		Position trackTile(-1, -1, -1);
 		Tile *t;
 
 		for (int i = 0; i < visibleDistance; i++)
 		{
 			_trajectory.at(i) /= voxelToTile;
-			if (posTile != _trajectory.at(i))
+			if (trackTile != _trajectory.at(i))
 			{
 				// 3  - coefficient of calculation (see above).
 				// 20 - maximum view distance in vanilla Xcom.
@@ -440,8 +441,8 @@ bool TileEngine::visible(BattleUnit *currentUnit, Tile *tile)
 				{
 					return false;
 				}
-				posTile = _trajectory.at(i);
-				t = _save->getTile(posTile);
+				trackTile = _trajectory.at(i);
+				t = _save->getTile(trackTile);
 			}
 			if (t->getFire() == 0)
 			{
@@ -769,7 +770,7 @@ void TileEngine::calculateFOV(const Position &position)
 {
 	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
-		if (distance(position, (*i)->getPosition()) < getMaxViewDistance())
+		if (distanceSq(position, (*i)->getPosition(), false) < getMaxViewDistanceSq())
 		{
 			calculateFOV(*i);
 		}
@@ -845,7 +846,7 @@ std::vector<BattleUnit *> TileEngine::getSpottingUnits(BattleUnit* unit)
 			// not a friend
 			(*i)->getFaction() != _save->getSide() &&
 			// closer than 20 tiles
-			distance(unit->getPosition(), (*i)->getPosition()) <= getMaxViewDistance())
+			distanceSq(unit->getPosition(), (*i)->getPosition(), false) <= getMaxViewDistanceSq())
 		{
 			Position originVoxel = _save->getTileEngine()->getSightOriginVoxel(*i);
 			originVoxel.z -= 2;

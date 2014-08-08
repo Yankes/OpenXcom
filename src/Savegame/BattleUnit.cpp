@@ -32,6 +32,7 @@
 #include "../Battlescape/BattleAIState.h"
 #include "Soldier.h"
 #include "../Ruleset/Armor.h"
+#include "../Ruleset/Ruleset.h"
 #include "../Ruleset/Unit.h"
 #include "../Engine/RNG.h"
 #include "../Ruleset/RuleInventory.h"
@@ -47,13 +48,14 @@ namespace OpenXcom
  * @param soldier Pointer to the Soldier.
  * @param faction Which faction the units belongs to.
  */
-BattleUnit::BattleUnit(Soldier *soldier, UnitFaction faction) : _faction(faction), _originalFaction(faction), _killedBy(faction), _id(0), _pos(Position()), _tile(0),
-																_lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0), _toDirectionTurret(0),
-																_verticalDirection(0), _status(STATUS_STANDING), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
-																_dontReselect(false), _fire(0), _currentAIState(0), _visible(false), _cacheInvalid(true),
-																_expBravery(0), _expReactions(0), _expFiring(0), _expThrowing(0), _expPsiSkill(0), _expPsiStrength(0), _expMelee(0),
-																_motionPoints(0), _kills(0), _hitByFire(false), _moraleRestored(0), _coverReserve(0), _charging(0),
-																_turnsSinceSpotted(255), _geoscapeSoldier(soldier), _unitRules(0), _rankInt(-1), _turretType(-1), _hidingForTurn(false)
+BattleUnit::BattleUnit(Soldier *soldier, UnitFaction faction) :
+		_faction(faction), _originalFaction(faction), _killedBy(faction), _id(0), _pos(Position()), _tile(0),
+		_lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0), _toDirectionTurret(0),
+		_verticalDirection(0), _status(STATUS_STANDING), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
+		_dontReselect(false), _fire(0), _currentAIState(0), _visible(false), _cacheInvalid(true),
+		_expBravery(0), _expReactions(0), _expFiring(0), _expThrowing(0), _expPsiSkill(0), _expPsiStrength(0), _expMelee(0),
+		_motionPoints(0), _kills(0), _hitByFire(false), _moraleRestored(0), _coverReserve(0), _charging(0),
+		_turnsSinceSpotted(255), _geoscapeSoldier(soldier), _unitRules(0), _rankInt(-1), _turretType(-1), _hidingForTurn(false)
 {
 	_name = soldier->getName(true);
 	_id = soldier->getId();
@@ -71,6 +73,8 @@ BattleUnit::BattleUnit(Soldier *soldier, UnitFaction faction) : _faction(faction
 	_specab = SPECAB_NONE;
 	_armor = soldier->getArmor();
 	_stats += *_armor->getStats();	// armors may modify effective stats
+	_maxViewDistanceAtDarkSq = soldier->getRules()->getVisibilityAtDark();
+	_maxViewDistanceAtDarkSq *= _maxViewDistanceAtDarkSq;
 	_loftempsSet = _armor->getLoftempsSet();
 	_gender = soldier->getGender();
 	_faceDirection = -1;
@@ -116,15 +120,15 @@ BattleUnit::BattleUnit(Soldier *soldier, UnitFaction faction) : _faction(faction
  * @param armor Pointer to unit Armor.
  * @param diff difficulty level (for stat adjustement).
  */
-BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, int diff) : _faction(faction), _originalFaction(faction), _killedBy(faction), _id(id), _pos(Position()),
-																						_tile(0), _lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0),
-																						_toDirectionTurret(0),  _verticalDirection(0), _status(STATUS_STANDING), _walkPhase(0),
-																						_fallPhase(0), _kneeled(false), _floating(false), _dontReselect(false), _fire(0), _currentAIState(0),
-																						_visible(false), _cacheInvalid(true), _expBravery(0), _expReactions(0), _expFiring(0),
-																						_expThrowing(0), _expPsiSkill(0), _expPsiStrength(0), _expMelee(0), _motionPoints(0), _kills(0), _hitByFire(false),
-																						_moraleRestored(0), _coverReserve(0), _charging(0), _turnsSinceSpotted(255),
-																						_armor(armor), _geoscapeSoldier(0),  _unitRules(unit), _rankInt(-1),
-																						_turretType(-1), _hidingForTurn(false)
+BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, int diff) :
+		_faction(faction), _originalFaction(faction), _killedBy(faction), _id(id), _pos(Position()),
+		_tile(0), _lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0),
+		_toDirectionTurret(0), _verticalDirection(0), _status(STATUS_STANDING), _walkPhase(0),
+		_fallPhase(0), _kneeled(false), _floating(false), _dontReselect(false), _fire(0), _currentAIState(0),
+		_visible(false), _cacheInvalid(true), _expBravery(0), _expReactions(0), _expFiring(0),
+		_expThrowing(0), _expPsiSkill(0), _expPsiStrength(0), _expMelee(0), _motionPoints(0), _kills(0), _hitByFire(false),
+		_moraleRestored(0), _coverReserve(0), _charging(0), _turnsSinceSpotted(255),
+		_armor(armor), _geoscapeSoldier(0), _unitRules(unit), _rankInt(-1), _turretType(-1), _hidingForTurn(false)
 {
 	_type = unit->getType();
 	_rank = unit->getRank();
@@ -149,6 +153,8 @@ BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, in
 	{
 		adjustStats(diff);
 	}
+	_maxViewDistanceAtDarkSq = unit->getVisibilityAtDark();
+	_maxViewDistanceAtDarkSq *= _maxViewDistanceAtDarkSq;
 
 	_tu = _stats.tu;
 	_energy = _stats.stamina;

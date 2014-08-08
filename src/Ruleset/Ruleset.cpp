@@ -408,7 +408,6 @@ void Ruleset::loadFile(const std::string &filename)
 	}
  	_startingTime.load(doc["startingTime"]);
 	_maxViewDistance = doc["maxViewDistance"].as<int>(_maxViewDistance);
-	_maxViewDistanceAtDark = doc["maxViewDistanceAtDark"].as<int>(_maxViewDistanceAtDark);
 	_maxDarknessToSeeUnits = doc["maxDarknessToSeeUnits"].as<int>(_maxDarknessToSeeUnits);
  	_costSoldier = doc["costSoldier"].as<int>(_costSoldier);
  	_costEngineer = doc["costEngineer"].as<int>(_costEngineer);
