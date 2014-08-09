@@ -4404,6 +4404,7 @@ soldiers:
     armor: STR_NONE_UC
     standHeight: 22
     kneelHeight: 14
+    visibilityAtDark: 9
     genderRatio: [3, 1]
 units:
   - type: STR_TANK_CANNON
