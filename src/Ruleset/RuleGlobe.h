@@ -16,36 +16,42 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef OPENXCOM_SOUND_H
-#define OPENXCOM_SOUND_H
+#ifndef OPENXCOM_RULEGLOBE_H
+#define OPENXCOM_RULEGLOBE_H
 
-#include <SDL_mixer.h>
+#include <list>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 namespace OpenXcom
 {
 
+class Polygon;
+class Polyline;
+
 /**
- * Container for sound effects.
- * Handles loading and playing various formats through SDL_mixer.
+ * Represents the contents of the Geoscape globe,
+ * such as world polygons, polylines, etc.
+ * @sa Globe
  */
-class Sound
+class RuleGlobe
 {
 private:
-	Mix_Chunk *_sound;
+	std::list<Polygon*> _polygons;
+	std::list<Polyline*> _polylines;
 public:
-	/// Creates a blank sound effect.
-	Sound();
-	/// Cleans up the sound effect.
-	~Sound();
-	/// Loads sound from the specified file.
-	void load(const std::string &filename);
-	/// Loads sound from a chunk of memory.
-	void load(const void *data, unsigned int size);
-	/// Plays the sound.
-	void play(int channel = -1, int angle = 0, int distance = 0) const;
-	/// Stops all sounds.
-	static void stop();
+	/// Creates a blank globe ruleset.
+	RuleGlobe();
+	/// Cleans up the globe ruleset.
+	~RuleGlobe();
+	/// Loads the globe from YAML.
+	void load(const YAML::Node& node);
+	/// Gets the list of world polygons.
+	std::list<Polygon*> *getPolygons();
+	/// Gets the list of world polylines.
+	std::list<Polyline*> *getPolylines();
+	/// Loads a set of polygons from a DAT file.
+	void loadDat(const std::string &filename);
 };
 
 }

@@ -41,7 +41,9 @@
 #include "../Savegame/Tile.h"
 #include "../Savegame/BattleUnit.h"
 #include "../Savegame/BattleItem.h"
+#include "../Ruleset/Ruleset.h"
 #include "../Ruleset/RuleItem.h"
+#include "../Ruleset/RuleInterface.h"
 #include "../Ruleset/MapDataSet.h"
 #include "../Ruleset/MapData.h"
 #include "../Ruleset/Armor.h"
@@ -79,6 +81,10 @@ namespace OpenXcom
  */
 Map::Map(Game *game, int width, int height, int x, int y, int visibleMapHeight) : InteractiveSurface(width, height, x, y), _game(game), _arrow(0), _selectorX(0), _selectorY(0), _mouseX(0), _mouseY(0), _cursorType(CT_NORMAL), _cursorSize(1), _animFrame(0), _projectile(0), _projectileInFOV(false), _explosionInFOV(false), _launch(false), _visibleMapHeight(visibleMapHeight), _unitDying(false), _smoothingEngaged(false)
 {
+	_iconHeight = _game->getRuleset()->getInterface("battlescape")->getElement("icons")->h;
+	_iconWidth = _game->getRuleset()->getInterface("battlescape")->getElement("icons")->w;
+	_messageColor = _game->getRuleset()->getInterface("battlescape")->getElement("messageWindows")->color;
+
 	_previewSetting = Options::battleNewPreviewPath;
 	_smoothCamera = Options::battleSmoothCamera;
 	if (Options::traceAI)
@@ -93,6 +99,7 @@ Map::Map(Game *game, int width, int height, int x, int y, int visibleMapHeight) 
 	_message = new BattlescapeMessage(320, (visibleMapHeight < 200)? visibleMapHeight : 200, 0, 0);
 	_message->setX(_game->getScreen()->getDX());
 	_message->setY((visibleMapHeight - _message->getHeight()) / 2);
+	_message->setTextColor(_messageColor);
 	_camera = new Camera(_spriteWidth, _spriteHeight, _save->getMapSizeX(), _save->getMapSizeY(), _save->getMapSizeZ(), this, visibleMapHeight);
 	_scrollMouseTimer = new Timer(SCROLL_INTERVAL);
 	_scrollMouseTimer->onTimer((SurfaceHandler)&Map::scrollMouse);
@@ -373,7 +380,7 @@ void Map::drawTerrain(Surface *surface)
 	{
 		_numWaypid = new NumberText(15, 15, 20, 30);
 		_numWaypid->setPalette(getPalette());
-		_numWaypid->setColor(Palette::blockOffset(pathfinderTurnedOn ? 0 : 1));
+		_numWaypid->setColor(pathfinderTurnedOn ? _messageColor + 1 : Palette::blockOffset(1));
 	}
 
 	surface->lock();
@@ -638,9 +645,11 @@ void Map::drawTerrain(Surface *surface)
 								if (tileWest->getSmoke() && tileWest->isDiscovered(2))
 								{
 									frameNumber = 0;
+									int shade = 0;
 									if (!tileWest->getFire())
 									{
 										frameNumber = 8 + int(floor((tileWest->getSmoke() / 6.0) - 0.1)); // see http://www.ufopaedia.org/images/c/cb/Smoke.gif
+										shade = tileWestShade;
 									}
 
 									if ((_animFrame / 2) + tileWest->getAnimationOffset() > 3)
@@ -652,7 +661,7 @@ void Map::drawTerrain(Surface *surface)
 										frameNumber += (_animFrame / 2) + tileWest->getAnimationOffset();
 									}
 									tmpSurface = _res->getSurfaceSet("SMOKE.PCK")->getFrame(frameNumber);
-									tmpSurface->blitNShade(surface, screenPosition.x - tileOffset.x, screenPosition.y + tileOffset.y, 0, true);
+									tmpSurface->blitNShade(surface, screenPosition.x - tileOffset.x, screenPosition.y + tileOffset.y, shade, true);
 								}
 								// Draw object
 								if (tileWest->getMapData(MapData::O_OBJECT) && tileWest->getMapData(MapData::O_OBJECT)->getBigWall() >= 6)
@@ -821,6 +830,14 @@ void Map::drawTerrain(Surface *surface)
 								tmpSurface = _res->getSurfaceSet("SMOKE.PCK")->getFrame(frameNumber);
 								tmpSurface->blitNShade(surface, screenPosition.x + offset.x, screenPosition.y + offset.y, 0);
 							}
+							if (unit->getBreathFrame() > 0)
+							{
+								tmpSurface = _res->getSurfaceSet("BREATH-1.PCK")->getFrame(unit->getBreathFrame() - 1);
+								if (tmpSurface)
+								{
+									tmpSurface->blitNShade(surface, screenPosition.x + offset.x, screenPosition.y + offset.y - 30, tileShade);
+								}
+							}
 						}
 					}
 					// if we can see through the floor, draw the soldier below it if it is on stairs
@@ -860,9 +877,11 @@ void Map::drawTerrain(Surface *surface)
 					if (tile->getSmoke() && tile->isDiscovered(2))
 					{
 						frameNumber = 0;
+						int shade = 0;
 						if (!tile->getFire())
 						{
 							frameNumber = 8 + int(floor((tile->getSmoke() / 6.0) - 0.1)); // see http://www.ufopaedia.org/images/c/cb/Smoke.gif
+							shade = tileShade;
 						}
 
 						if ((_animFrame / 2) + tile->getAnimationOffset() > 3)
@@ -874,7 +893,7 @@ void Map::drawTerrain(Surface *surface)
 							frameNumber += (_animFrame / 2) + tile->getAnimationOffset();
 						}
 						tmpSurface = _res->getSurfaceSet("SMOKE.PCK")->getFrame(frameNumber);
-						tmpSurface->blitNShade(surface, screenPosition.x, screenPosition.y, 0);
+						tmpSurface->blitNShade(surface, screenPosition.x, screenPosition.y, shade);
 					}
 
 					// Draw Path Preview
@@ -1248,6 +1267,29 @@ void Map::animate(bool redraw)
 	// animate certain units (large flying units have a propultion animation)
 	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
+		if (_save->getDepth() > 0)
+		{
+			(*i)->setFloorAbove(false);
+			Position pos = (*i)->getPosition();
+
+			// make sure this unit isn't obscured by the floor above him, otherwise it looks weird.
+			if ((*i)->getTile() && _camera->getViewLevel() > pos.z)
+			{
+				for (int z = _camera->getViewLevel(); z != pos.z; --z)
+				{
+					if (!_save->getTile(Position(pos.x, pos.y, z))->hasNoFloor(0))
+					{
+						(*i)->setFloorAbove(true);
+						break;
+					}
+				}
+			}
+
+			if (!(*i)->getFloorAbove())
+			{
+				(*i)->breathe();
+			}
+		}
 		if ((*i)->getArmor()->getConstantAnimation())
 		{
 			(*i)->setCache(0);
@@ -1571,18 +1613,18 @@ void Map::refreshSelectorPosition()
 	setSelectorPosition(_mouseX, _mouseY);
 }
 
-/*
+/**
  * Special handling for setting the height of the map viewport.
  * @param height the new base screen height.
  */
 void Map::setHeight(int height)
 {
 	Surface::setHeight(height);
-	_visibleMapHeight = height - ICON_HEIGHT;
+	_visibleMapHeight = height - _iconHeight;
 	_message->setHeight((_visibleMapHeight < 200)? _visibleMapHeight : 200);
 	_message->setY((_visibleMapHeight - _message->getHeight()) / 2);
 }
-/*
+/**
  * Special handling for setting the width of the map viewport.
  * @param width the new base screen width.
  */
@@ -1593,12 +1635,29 @@ void Map::setWidth(int width)
 	_message->setX(_message->getX() + dX / 2);
 }
 
-/*
+/**
  * Get the hidden movement screen's vertical position.
  * @return the vertical position of the hidden movement window.
  */
-int Map::getMessageY()
+const int Map::getMessageY()
 {
 	return _message->getY();
 }
+
+/**
+ * Get the icon height.
+ */
+const int Map::getIconHeight()
+{
+	return _iconWidth;
+}
+
+/**
+ * Get the icon width.
+ */
+const int Map::getIconWidth()
+{
+	return _iconHeight;
+}
+
 }

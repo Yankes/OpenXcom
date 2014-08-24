@@ -59,6 +59,8 @@ class ExtraSprites;
 class ExtraSounds;
 class ExtraStrings;
 class StatString;
+class RuleInterface;
+class RuleGlobe;
 
 /**
  * Set of rules and stats for a game.
@@ -90,11 +92,13 @@ protected:
 	std::map<std::string, RuleManufacture *> _manufacture;
 	std::map<std::string, UfoTrajectory *> _ufoTrajectories;
 	std::map<std::string, RuleAlienMission *> _alienMissions;
+	std::map<std::string, RuleInterface *> _interfaces;
 	std::map<std::string, MCDPatch *> _MCDPatches;
 	std::vector<std::pair<std::string, ExtraSprites *> > _extraSprites;
 	std::vector<std::pair<std::string, ExtraSounds *> > _extraSounds;
 	std::map<std::string, ExtraStrings *> _extraStrings;
 	std::vector<StatString*> _statStrings;
+	RuleGlobe *_globe;
 	int _maxViewDistance, _maxDarknessToSeeUnits;
 	int _costSoldier, _costEngineer, _costScientist, _timePersonnel, _initialFunding;
 	std::string _alienFuel;
@@ -234,7 +238,12 @@ public:
 	const std::vector<std::string> &getInvsList () const;
 	/// Generates a new soldier.
 	Soldier *genSoldier(SavedGame *save) const;
+	/// Gets the item to be used as fuel for ships.
 	const std::string getAlienFuel() const;
+	/// Gets information on an interface element.
+	RuleInterface *getInterface(const std::string id) const;
+	/// Gets the ruleset for the globe
+	RuleGlobe *getGlobe() const;
 };
 
 }

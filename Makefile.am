@@ -343,10 +343,6 @@ openxcom_SOURCES = \
 	src/Geoscape/NewPossibleManufactureState.h \
 	src/Geoscape/NewPossibleResearchState.cpp \
 	src/Geoscape/NewPossibleResearchState.h \
-	src/Geoscape/Polygon.cpp \
-	src/Geoscape/Polygon.h \
-	src/Geoscape/Polyline.cpp \
-	src/Geoscape/Polyline.h \
 	src/Geoscape/ProductionCompleteState.cpp \
 	src/Geoscape/ProductionCompleteState.h \
 	src/Geoscape/PsiTrainingState.cpp \
@@ -367,6 +363,8 @@ openxcom_SOURCES = \
 	src/Geoscape/VictoryState.h \
 	src/Interface/ArrowButton.cpp \
 	src/Interface/ArrowButton.h \
+	src/Interface/BattlescapeButton.cpp \
+	src/Interface/BattlescapeButton.h \
 	src/Interface/Bar.cpp \
 	src/Interface/Bar.h \
 	src/Interface/ComboBox.cpp \
@@ -477,6 +475,10 @@ openxcom_SOURCES = \
 	src/Ruleset/ExtraSounds.h \
 	src/Ruleset/ExtraStrings.cpp \
 	src/Ruleset/ExtraStrings.h \
+	src/Ruleset/Polygon.cpp \
+	src/Ruleset/Polygon.h \
+	src/Ruleset/Polyline.cpp \
+	src/Ruleset/Polyline.h \
 	src/Ruleset/MapBlock.cpp \
 	src/Ruleset/MapBlock.h \
 	src/Ruleset/MapData.cpp \
@@ -495,6 +497,10 @@ openxcom_SOURCES = \
 	src/Ruleset/RuleCraft.h \
 	src/Ruleset/RuleCraftWeapon.cpp \
 	src/Ruleset/RuleCraftWeapon.h \
+	src/Ruleset/RuleGlobe.cpp \
+	src/Ruleset/RuleGlobe.h \
+	src/Ruleset/RuleInterface.cpp \
+	src/Ruleset/RuleInterface.h \
 	src/Ruleset/RuleInventory.cpp \
 	src/Ruleset/RuleInventory.h \
 	src/Ruleset/RuleItem.cpp \

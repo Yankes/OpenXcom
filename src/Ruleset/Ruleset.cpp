@@ -45,6 +45,7 @@
 #include "ExtraSprites.h"
 #include "ExtraSounds.h"
 #include "ExtraStrings.h"
+#include "RuleInterface.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Region.h"
 #include "../Savegame/Base.h"
@@ -60,9 +61,9 @@
 #include "City.h"
 #include "MCDPatch.h"
 #include "../Engine/Logger.h"
-#include <algorithm>
 #include "../Ufopaedia/Ufopaedia.h"
 #include "StatString.h"
+#include "RuleGlobe.h"
 
 namespace OpenXcom
 {
@@ -75,6 +76,8 @@ Ruleset::Ruleset() :
 	_alienFuel(""), _startingTime(6, 1, 1, 1999, 12, 0, 0), _modIndex(0), _facilityListOrder(0), _craftListOrder(0), _itemListOrder(0),
 	_researchListOrder(0), _manufactureListOrder(0), _ufopaediaListOrder(0), _invListOrder(0)
 {
+	_globe = new RuleGlobe();
+
     // Check in which data dir the folder is stored
     std::string path = CrossPlatform::getDataFolder("SoldierName/");
 	// Add soldier names
@@ -94,6 +97,7 @@ Ruleset::Ruleset() :
  */
 Ruleset::~Ruleset()
 {
+	delete _globe;
 	for (std::vector<SoldierNamePool*>::iterator i = _names.begin(); i != _names.end(); ++i)
 	{
 		delete *i;
@@ -191,6 +195,10 @@ Ruleset::~Ruleset()
 		delete i->second;
 	}
 	for (std::map<std::string, ExtraStrings *>::const_iterator i = _extraStrings.begin (); i != _extraStrings.end (); ++i)
+	{
+		delete i->second;
+	}
+	for (std::map<std::string, RuleInterface *>::const_iterator i = _interfaces.begin (); i != _interfaces.end (); ++i)
 	{
 		delete i->second;
 	}
@@ -409,7 +417,10 @@ void Ruleset::loadFile(const std::string &filename)
 			_startingBase[i->first.as<std::string>()] = YAML::Node(i->second);
 		}
 	}
- 	_startingTime.load(doc["startingTime"]);
+	if (doc["startingTime"])
+	{
+		_startingTime.load(doc["startingTime"]);
+	}
 	_maxViewDistance = doc["maxViewDistance"].as<int>(_maxViewDistance);
 	_maxDarknessToSeeUnits = doc["maxDarknessToSeeUnits"].as<int>(_maxDarknessToSeeUnits);
  	_costSoldier = doc["costSoldier"].as<int>(_costSoldier);
@@ -454,7 +465,11 @@ void Ruleset::loadFile(const std::string &filename)
 	{
 		std::string type = (*i)["type"].as<std::string>();
 		std::auto_ptr<ExtraSprites> extraSprites(new ExtraSprites());
-		extraSprites->load(*i, _modIndex);
+		// doesn't support modIndex
+		if (type != "TEXTURE.DAT")
+			extraSprites->load(*i, _modIndex);
+		else
+			extraSprites->load(*i, 0);
 		_extraSprites.push_back(std::make_pair(type, extraSprites.release()));
 		_extraSpritesIndex.push_back(type);
 	}
@@ -489,11 +504,24 @@ void Ruleset::loadFile(const std::string &filename)
 		_statStrings.push_back(statString);
 	}
 
-  // refresh _psiRequirements for psiStrengthEval
+	for (YAML::const_iterator i = doc["interfaces"].begin(); i != doc["interfaces"].end(); ++i)
+	{
+		RuleInterface *rule = loadRule(*i, &_interfaces);
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	if (doc["globe"])
+	{
+		_globe->load(doc["globe"]);
+	}
+
+	// refresh _psiRequirements for psiStrengthEval
 	for (std::vector<std::string>::const_iterator i = _facilitiesIndex.begin(); i != _facilitiesIndex.end(); ++i)
 	{
 		RuleBaseFacility *rule = getBaseFacility(*i);
-		if (0 < rule->getPsiLaboratories())
+		if (rule->getPsiLaboratories() > 0)
 		{
 			_psiRequirements = rule->getRequirements();
 			break;
@@ -1372,9 +1400,33 @@ Soldier *Ruleset::genSoldier(SavedGame *save) const
 	return soldier;
 }
 
+/**
+ * Gets the name of the item to be used as alien fuel.
+ * @return the name of the fuel.
+ */
 const std::string Ruleset::getAlienFuel() const
 {
 	return _alienFuel;
+}
+
+/**
+ * Gets information on an interface.
+ * @param id the interface we want info on.
+ * @return the interface.
+ */
+RuleInterface *Ruleset::getInterface(const std::string id) const
+{
+	std::map<std::string, RuleInterface*>::const_iterator i = _interfaces.find(id);
+	if (_interfaces.end() != i) return i->second; else return 0;
+}
+
+/**
+ * Gets the rules for the Geoscape globe.
+ * @return Pointer to globe rules.
+ */
+RuleGlobe *Ruleset::getGlobe() const
+{
+	return _globe;
 }
 
 }
