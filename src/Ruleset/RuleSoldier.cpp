@@ -26,7 +26,7 @@ namespace OpenXcom
  * type of soldier.
  * @param type String defining the type.
  */
-RuleSoldier::RuleSoldier(const std::string &type) : _type(type), _armor(""), _standHeight(0), _kneelHeight(0), _floatHeight(0), _visibilityAtDark(20)
+RuleSoldier::RuleSoldier(const std::string &type) : _type(type), _armor(""), _standHeight(0), _kneelHeight(0), _floatHeight(0)
 {
 }
 
@@ -52,7 +52,6 @@ void RuleSoldier::load(const YAML::Node &node)
 	_standHeight = node["standHeight"].as<int>(_standHeight);
 	_kneelHeight = node["kneelHeight"].as<int>(_kneelHeight);
 	_floatHeight = node["floatHeight"].as<int>(_floatHeight);
-	_visibilityAtDark = node["visibilityAtDark"].as<int>(_visibilityAtDark);
 }
 
 /**
@@ -117,15 +116,6 @@ int RuleSoldier::getKneelHeight() const
 int RuleSoldier::getFloatHeight() const
 {
 	return _floatHeight;
-}
-
-/**
- * Gets max view distance at dark in BattleScape.
- * @return The distance to see at dark.
- */
-int RuleSoldier::getVisibilityAtDark() const
-{
-	return _visibilityAtDark;
 }
 
 /**

@@ -3745,6 +3745,7 @@ armors:
     sideArmor: 8
     rearArmor: 5
     underArmor: 2
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -3767,6 +3768,7 @@ armors:
     sideArmor: 40
     rearArmor: 30
     underArmor: 30
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -3789,6 +3791,7 @@ armors:
     sideArmor: 80
     rearArmor: 70
     underArmor: 60
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -3812,6 +3815,7 @@ armors:
     rearArmor: 80
     underArmor: 70
     movementType: 1
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -4003,6 +4007,7 @@ armors:
     underArmor: 60
     drawingRoutine: 2
     size: 2
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -4030,6 +4035,7 @@ armors:
     constantAnimation: true
     movementType: 1
     size: 2
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -4051,6 +4057,7 @@ armors:
     rearArmor: 0
     underArmor: 0
     drawingRoutine: 4
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -4072,6 +4079,7 @@ armors:
     rearArmor: 0
     underArmor: 0
     drawingRoutine: 4
+    visibilityAtDark: 9
     damageModifier:
       - 1.0
       - 1.0
@@ -4404,7 +4412,6 @@ soldiers:
     armor: STR_NONE_UC
     standHeight: 22
     kneelHeight: 14
-    visibilityAtDark: 9
     genderRatio: [3, 1]
 units:
   - type: STR_TANK_CANNON
@@ -4428,7 +4435,6 @@ units:
     deathSound: 23
     moveSound: 14
     energyRecovery: 50
-    visibilityAtDark: 9
   - type: STR_TANK_ROCKET_LAUNCHER
     race: STR_TANK_ROCKET_LAUNCHER
     stats:
@@ -4450,7 +4456,6 @@ units:
     deathSound: 23
     moveSound: 14
     energyRecovery: 50
-    visibilityAtDark: 9
   - type: STR_TANK_LASER_CANNON
     race: STR_TANK_LASER_CANNON
     stats:
@@ -4472,7 +4477,6 @@ units:
     deathSound: 23
     moveSound: 14
     energyRecovery: 50
-    visibilityAtDark: 9
   - type: STR_HOVERTANK_PLASMA
     race: STR_HOVERTANK_PLASMA
     stats:
@@ -4495,7 +4499,6 @@ units:
     deathSound: 23
     moveSound: 40
     energyRecovery: 50
-    visibilityAtDark: 9
   - type: STR_HOVERTANK_LAUNCHER
     race: STR_HOVERTANK_LAUNCHER
     stats:
@@ -4518,7 +4521,6 @@ units:
     deathSound: 23
     moveSound: 40
     energyRecovery: 50
-    visibilityAtDark: 9
   - type: MALE_CIVILIAN
     race: STR_CIVILIAN
     stats:

@@ -32,7 +32,6 @@
 #include "../Battlescape/BattleAIState.h"
 #include "Soldier.h"
 #include "../Ruleset/Armor.h"
-#include "../Ruleset/Ruleset.h"
 #include "../Ruleset/Unit.h"
 #include "../Engine/RNG.h"
 #include "../Ruleset/RuleInventory.h"
@@ -73,7 +72,7 @@ BattleUnit::BattleUnit(Soldier *soldier, UnitFaction faction) :
 	_specab = SPECAB_NONE;
 	_armor = soldier->getArmor();
 	_stats += *_armor->getStats();	// armors may modify effective stats
-	_maxViewDistanceAtDarkSq = soldier->getRules()->getVisibilityAtDark();
+	_maxViewDistanceAtDarkSq = _armor->getVisibilityAtDark();
 	_maxViewDistanceAtDarkSq *= _maxViewDistanceAtDarkSq;
 	_loftempsSet = _armor->getLoftempsSet();
 	_gender = soldier->getGender();
@@ -153,7 +152,7 @@ BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, in
 	{
 		adjustStats(diff);
 	}
-	_maxViewDistanceAtDarkSq = unit->getVisibilityAtDark();
+	_maxViewDistanceAtDarkSq = _armor->getVisibilityAtDark();
 	_maxViewDistanceAtDarkSq *= _maxViewDistanceAtDarkSq;
 
 	_tu = _stats.tu;

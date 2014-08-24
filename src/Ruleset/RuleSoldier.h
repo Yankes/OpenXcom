@@ -36,7 +36,7 @@ private:
 	std::string _type;
 	UnitStats _minStats, _maxStats, _statCaps;
 	std::string _armor;
-	int _standHeight, _kneelHeight, _floatHeight, _visibilityAtDark;
+	int _standHeight, _kneelHeight, _floatHeight;
 public:
 	/// Creates a blank unit ruleset.
 	RuleSoldier(const std::string &type);
@@ -58,8 +58,6 @@ public:
 	int getKneelHeight() const;
 	/// Gets the elevation of the soldier when it's flying.
 	int getFloatHeight() const;
-	/// Gets max view distance at dark in BattleScape.
-	int getVisibilityAtDark() const;
 	/// Gets the armor name.
 	std::string getArmor() const;
 
