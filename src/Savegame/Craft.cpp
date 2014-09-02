@@ -312,6 +312,17 @@ void Craft::setName(const std::wstring &newName)
 }
 
 /**
+ * Returns the globe marker for the craft.
+ * @return Marker sprite, -1 if none.
+ */
+int Craft::getMarker() const
+{
+	if (_status != "STR_OUT")
+		return -1;
+	return 1;
+}
+
+/**
  * Returns the base the craft belongs to.
  * @return Pointer to base.
  */
@@ -791,7 +802,7 @@ std::string Craft::rearm(Ruleset *rules)
 			{
 				int used = (*i)->rearm(available, rules->getItem(clip)->getClipSize());
 
-				if (used > available)
+				if (used == available && (*i)->isRearming())
 				{
 					ammo = clip;
 					(*i)->setRearming(false);
