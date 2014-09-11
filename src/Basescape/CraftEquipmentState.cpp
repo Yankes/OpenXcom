@@ -372,24 +372,25 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 /**
  * Updates the displayed quantities of the
  * selected item on the list.
+ * @param the index of _items
  */
-void CraftEquipmentState::updateQuantity()
+void CraftEquipmentState::updateQuantity(size_t sel)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
-	RuleItem *item = _game->getRuleset()->getItem(_items[_sel]);
+	RuleItem *item = _game->getRuleset()->getItem(_items[sel]);
 	int cQty = 0;
 	if (item->isFixed())
 	{
-		cQty = c->getVehicleCount(_items[_sel]);
+		cQty = c->getVehicleCount(_items[sel]);
 	}
 	else
 	{
-		cQty = c->getItems()->getItem(_items[_sel]);
+		cQty = c->getItems()->getItem(_items[sel]);
 	}
 	std::wostringstream ss, ss2;
 	if (_game->getSavedGame()->getMonthsPassed() > -1)
 	{
-		ss << _base->getItems()->getItem(_items[_sel]);
+		ss << _base->getItems()->getItem(_items[sel]);
 	}
 	else
 	{
@@ -400,7 +401,7 @@ void CraftEquipmentState::updateQuantity()
 	Uint8 color;
 	if (cQty == 0)
 	{
-		RuleItem *rule = _game->getRuleset()->getItem(_items[_sel]);
+		RuleItem *rule = _game->getRuleset()->getItem(_items[sel]);
 		if (rule->getBattleType() == BT_AMMO)
 		{
 			color = Palette::blockOffset(15)+6;
@@ -414,9 +415,9 @@ void CraftEquipmentState::updateQuantity()
 	{
 		color = Palette::blockOffset(13);
 	}
-	_lstEquipment->setRowColor(_sel, color);
-	_lstEquipment->setCellText(_sel, 1, ss.str());
-	_lstEquipment->setCellText(_sel, 2, ss2.str());
+	_lstEquipment->setRowColor(sel, color);
+	_lstEquipment->setCellText(sel, 1, ss.str());
+	_lstEquipment->setCellText(sel, 2, ss2.str());
 
 	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
 	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
@@ -441,6 +442,8 @@ void CraftEquipmentState::moveLeftByValue(int change)
 	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getRuleset()->getItem(_items[_sel]);
 	int cQty = 0;
+	int ammoIdx = -1;
+
 	if (item->isFixed()) cQty = c->getVehicleCount(_items[_sel]);
 	else cQty = c->getItems()->getItem(_items[_sel]);
 	if (0 >= change || 0 >= cQty) return;
@@ -456,7 +459,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			{
 				if ((*i)->getRules() == item)
 				{
-					_base->getItems()->addItem(ammo->getType(), (*i)->getAmmo());
+					_base->getItems()->addItem(ammo->getType(), (*i)->getAmmo() / ammo->getClipSize());
 					delete (*i);
 					i = c->getVehicles()->erase(i);
 				}
@@ -465,6 +468,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			if (_game->getSavedGame()->getMonthsPassed() != -1)
 			{
 				_base->getItems()->addItem(_items[_sel], cQty);
+				ammoIdx = getIdxItems(ammo->getType());
 			}
 			// And now reAdd the count we want to keep in the craft (and redistribute the ammo among them)
 			if (cQty > change) moveRightByValue(cQty - change);
@@ -496,7 +500,9 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			_base->getItems()->addItem(_items[_sel], change);
 		}
 	}
-	updateQuantity();
+
+	updateQuantity(_sel);
+	if (ammoIdx >= 0) updateQuantity(ammoIdx);
 }
 
 /**
@@ -518,6 +524,8 @@ void CraftEquipmentState::moveRightByValue(int change)
 	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getRuleset()->getItem(_items[_sel]);
 	int bqty = _base->getItems()->getItem(_items[_sel]);
+	int ammoIdx = -1;
+
 	if (_game->getSavedGame()->getMonthsPassed() == -1)
 	{
 		if (change == INT_MAX)
@@ -546,7 +554,7 @@ void CraftEquipmentState::moveRightByValue(int change)
 			{
 				// And now let's see if we can add the total number of vehicles.
 				RuleItem *ammo = _game->getRuleset()->getItem(item->getCompatibleAmmo()->front());
-				int ammoPerVehicle = ammo->getClipSize();
+				int ammoPerVehicle = item->getClipSize() / ammo->getClipSize();
 				int baseQty = _base->getItems()->getItem(ammo->getType()) / ammoPerVehicle;
 				if (_game->getSavedGame()->getMonthsPassed() == -1)
 					baseQty = 1;
@@ -559,8 +567,9 @@ void CraftEquipmentState::moveRightByValue(int change)
 						{
 							_base->getItems()->removeItem(ammo->getType(), ammoPerVehicle);
 							_base->getItems()->removeItem(_items[_sel]);
+							ammoIdx = getIdxItems(ammo->getType());
 						}
-						c->getVehicles()->push_back(new Vehicle(item, ammoPerVehicle, size));
+						c->getVehicles()->push_back(new Vehicle(item, item->getClipSize(), size));
 					}
 				}
 				else
@@ -598,7 +607,9 @@ void CraftEquipmentState::moveRightByValue(int change)
 			_base->getItems()->removeItem(_items[_sel],change);
 		}
 	}
-	updateQuantity();
+
+	updateQuantity(_sel);
+	if (ammoIdx >= 0) updateQuantity(ammoIdx);
 }
 
 /**
@@ -635,6 +646,20 @@ void CraftEquipmentState::btnInventoryClick(Action *)
 		_game->getScreen()->clear();
 		_game->pushState(new InventoryState(false, 0));
 	}
+}
+
+/**
+ * Gets an index of item in _items list
+ * @param a string for search
+ * @return the index of the string in _items or -1 if not found
+ */
+int CraftEquipmentState::getIdxItems(const std::string &id) const
+{
+	std::vector<std::string>::const_iterator i = std::find(_items.begin(), _items.end(), id);
+	if (i != _items.end())
+		return std::distance(_items.begin(), i);
+	else
+		return -1;
 }
 
 }
