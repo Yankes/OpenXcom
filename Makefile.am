@@ -169,6 +169,8 @@ openxcom_SOURCES = \
 	src/Battlescape/NextTurnState.h \
 	src/Battlescape/NoContainmentState.cpp \
 	src/Battlescape/NoContainmentState.h \
+	src/Battlescape/Particle.cpp \
+	src/Battlescape/Particle.h \
 	src/Battlescape/Pathfinding.cpp \
 	src/Battlescape/Pathfinding.h \
 	src/Battlescape/PathfindingNode.cpp \
@@ -257,6 +259,7 @@ openxcom_SOURCES = \
 	src/Engine/RNG.cpp \
 	src/Engine/RNG.h \
 	src/Engine/Scalers/common.h \
+	src/Engine/Scalers/config.h \
 	src/Engine/Scalers/hqx.h \
 	src/Engine/Scalers/hq2x.cpp \
 	src/Engine/Scalers/hq3x.cpp \
@@ -268,6 +271,8 @@ openxcom_SOURCES = \
 	src/Engine/Scalers/scale2x.h \
 	src/Engine/Scalers/scale3x.cpp \
 	src/Engine/Scalers/scale3x.h \
+	src/Engine/Scalers/xbrz.cpp \
+	src/Engine/Scalers/xbrz.h \
 	src/Engine/Screen.cpp \
 	src/Engine/Screen.h \
 	src/Engine/ShaderDraw.h \

@@ -18,6 +18,7 @@
  */
 #include "XcomResourcePack.h"
 #include <sstream>
+#include <climits>
 #include "../Engine/CrossPlatform.h"
 #include "../Engine/Palette.h"
 #include "../Engine/Font.h"
@@ -44,6 +45,7 @@
 #include "../Ruleset/ExtraSprites.h"
 #include "../Ruleset/ExtraSounds.h"
 #include "../Engine/AdlibMusic.h"
+#include "../fmath.h"
 
 namespace OpenXcom
 {
@@ -53,14 +55,13 @@ namespace
 	
 struct HairBleach
 {
-	static const Uint8 ColorGroup = 15<<4;
 	static const Uint8 ColorShade = 15;
 
 	static const Uint8 Hair = 9 << 4;
 	static const Uint8 Face = 6 << 4;
 	static inline void func(Uint8& src, const Uint8& cutoff)
 	{
-		if(src > cutoff && src <= Face + 15)
+		if (src > cutoff && src <= Face + 15)
 		{
 			src = Hair + (src & ColorShade) - 6; //make hair color like male in xcom_0.pck
 		}
@@ -77,6 +78,7 @@ struct HairBleach
  */
 XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 {
+	_ruleset = rules;
 	// Load palettes
 	const char *pal[] = {"PAL_GEOSCAPE", "PAL_BASESCAPE", "PAL_GRAPHS", "PAL_UFOPAEDIA", "PAL_BATTLEPEDIA"};
 	for (size_t i = 0; i < sizeof(pal) / sizeof(pal[0]); ++i)
@@ -815,6 +817,11 @@ void XcomResourcePack::loadBattlescapeResources()
 						  "PAL_BATTLESCAPE_2",
 						  "PAL_BATTLESCAPE_3"};
 
+	SDL_Color backPal[] =  {{0, 5, 4, 255},
+							{0, 10, 34, 255},
+							{2, 9, 24, 255},
+							{2, 0, 24, 255}};
+
 	for (size_t i = 0; i < sizeof(lbms)/sizeof(lbms[0]); ++i)
 	{
 		std::ostringstream s;
@@ -828,7 +835,10 @@ void XcomResourcePack::loadBattlescapeResources()
 			Surface *tempSurface = new Surface(1, 1);
 			tempSurface->loadImage(CrossPlatform::getDataFile(s.str()));
 			_palettes[pals[i]] = new Palette();
-			_palettes[pals[i]]->setColors(tempSurface->getPalette(), 256);
+			SDL_Color *colors = tempSurface->getPalette();
+			colors[255] = backPal[i];
+			_palettes[pals[i]]->setColors(colors, 256);
+			createTransparencyLUT(_palettes[pals[i]]);
 			delete tempSurface;
 		}
 	}
@@ -1040,6 +1050,58 @@ Music *XcomResourcePack::loadMusic(MusicFormat fmt, const std::string &file, int
 		music = 0;
 	}
 	return music;
+}
+
+/**
+ * Preamble:
+ * this is the most horrible function i've ever written, and it makes me sad.
+ * this is, however, a necessary evil, in order to save massive amounts of time in the draw function.
+ * when used with the default TFTD ruleset, this function loops 4,194,304 times
+ * (4 palettes, 4 tints, 4 levels of opacity, 256 colors, 256 comparisons per)
+ * each additional tint in the rulesets will result in over a million iterations more.
+ * @param pal the palette to base the lookup table on.
+ */
+void XcomResourcePack::createTransparencyLUT(Palette *pal)
+{
+	SDL_Color desiredColor;
+	std::vector<Uint8> lookUpTable;
+	// start with the color sets
+	for (std::vector<SDL_Color>::const_iterator tint = _ruleset->getTransparencies()->begin(); tint != _ruleset->getTransparencies()->end(); ++tint)
+	{
+		// then the opacity levels, using the alpha channel as the step
+		for (int opacity = 1; opacity < 1 + tint->unused * 4; opacity += tint->unused)
+		{
+			// then the palette itself
+			for (int currentColor = 0; currentColor < 256; ++currentColor)
+			{
+				// add the RGB values from the ruleset to those of the colors contained in the palette
+				// in order to determine the desired color
+				// yes all this casting and clamping is required, we're dealing with Uint8s here, and there's
+				// a lot of potential for values to wrap around, which would be very bad indeed.
+				desiredColor.r = std::min(255, (int)(pal->getColors(currentColor)->r) + (tint->r * opacity));
+				desiredColor.g = std::min(255, (int)(pal->getColors(currentColor)->g) + (tint->g * opacity));
+				desiredColor.b = std::min(255, (int)(pal->getColors(currentColor)->b) + (tint->b * opacity));
+ 
+				Uint8 closest = 0;
+				int lowestDifference = INT_MAX;
+				// now compare each color in the palette to find the closest match to our desired one
+				for (int comparator = 0; comparator < 256; ++comparator)
+				{
+					int currentDifference = Sqr(desiredColor.r - pal->getColors(comparator)->r) +
+											Sqr(desiredColor.g-pal->getColors(comparator)->g) +
+											Sqr(desiredColor.b-pal->getColors(comparator)->b);
+ 
+					if (currentDifference < lowestDifference)
+					{
+						closest = comparator;
+						lowestDifference = currentDifference;
+					}
+				}
+				lookUpTable.push_back(closest);
+			}
+		}
+	}
+	_transparencyLUTs.push_back(lookUpTable);
 }
 
 }

@@ -181,7 +181,7 @@ Surface::Surface(int width, int height, int x, int y, int bpp) : _x(x), _y(y), _
 Surface::Surface(const Surface& other) : _palette(other._palette)
 {
 	//if is native OpenXcom aligned surface
-	if(other._alignedBuffer)
+	if (other._alignedBuffer)
 	{
 		Uint8 bpp = other._surface->format->BitsPerPixel;
 		int width = other.getWidth();
@@ -802,7 +802,7 @@ struct ColorReplace
 	*/
 	static inline void func(Uint8& dest, const Uint8& src, const int& shade, const int& newColor)
 	{
-		if(src)
+		if (src)
 		{
 			const int newShade = (src&15) + shade;
 			if (newShade > 15)
@@ -853,7 +853,7 @@ struct StandartShade
 	*/
 	static inline void func(Uint8& dest, const Uint8& src, const int& shade)
 	{
-		if(src)
+		if (src)
 		{
 			const int newShade = (src&15) + shade;
 			if (newShade > 15)

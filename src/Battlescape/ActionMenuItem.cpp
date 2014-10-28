@@ -47,7 +47,7 @@ ActionMenuItem::ActionMenuItem(int id, Game *game, int x, int y) : InteractiveSu
 	_frame = new Frame(getWidth(), getHeight(), 0, 0);
 	_frame->setHighContrast(true);
 	_frame->setColor(actionMenu->border);
-	_frame->setBackground(actionMenu->color2);
+	_frame->setSecondaryColor(actionMenu->color2);
 	_frame->setThickness(8);
 
 	_txtDescription = new Text(200, 20, 10, 13);
@@ -89,7 +89,7 @@ ActionMenuItem::~ActionMenuItem()
  * @param timeunits The timeunits string, including the TUs> prefix.
  * @param tu The timeunits value.
  */
-void ActionMenuItem::setAction(BattleActionType action, std::wstring description, std::wstring accuracy, std::wstring timeunits, int tu)
+void ActionMenuItem::setAction(BattleActionType action, const std::wstring &description, const std::wstring &accuracy, const std::wstring &timeunits, int tu)
 {
 	_action = action;
 	_txtDescription->setText(description);
@@ -151,7 +151,7 @@ void ActionMenuItem::draw()
 void ActionMenuItem::mouseIn(Action *action, State *state)
 {
 	_highlighted = true;
-	_frame->setBackground(_frame->getBackground() - _highlightModifier);
+	_frame->setSecondaryColor(_frame->getSecondaryColor() - _highlightModifier);
 	draw();
 	InteractiveSurface::mouseIn(action, state);
 }
@@ -165,7 +165,7 @@ void ActionMenuItem::mouseIn(Action *action, State *state)
 void ActionMenuItem::mouseOut(Action *action, State *state)
 {
 	_highlighted = false;
-	_frame->setBackground(_frame->getBackground() + _highlightModifier);
+	_frame->setSecondaryColor(_frame->getSecondaryColor() + _highlightModifier);
 	draw();
 	InteractiveSurface::mouseOut(action, state);
 }

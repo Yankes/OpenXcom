@@ -293,6 +293,7 @@
     <ClCompile Include="Battlescape\UnitSprite.cpp" />
     <ClCompile Include="Battlescape\UnitTurnBState.cpp" />
     <ClCompile Include="Battlescape\UnitWalkBState.cpp" />
+    <ClCompile Include="Battlescape\Particle.cpp" />
     <ClCompile Include="Battlescape\WarningMessage.cpp" />
     <ClCompile Include="Engine\Action.cpp" />
     <ClCompile Include="Engine\AdlibMusic.cpp" />
@@ -323,6 +324,7 @@
     <ClCompile Include="Engine\Scalers\scale2x.cpp" />
     <ClCompile Include="Engine\Scalers\scale3x.cpp" />
     <ClCompile Include="Engine\Scalers\scalebit.cpp" />
+    <ClCompile Include="Engine\Scalers\xbrz.cpp" />
     <ClCompile Include="Engine\Screen.cpp" />
     <ClCompile Include="Engine\Sound.cpp" />
     <ClCompile Include="Engine\SoundSet.cpp" />
@@ -589,6 +591,7 @@
     <ClInclude Include="Battlescape\UnitSprite.h" />
     <ClInclude Include="Battlescape\UnitTurnBState.h" />
     <ClInclude Include="Battlescape\UnitWalkBState.h" />
+    <ClInclude Include="Battlescape\Particle.h" />
     <ClInclude Include="Battlescape\WarningMessage.h" />
     <ClInclude Include="dirent.h" />
     <ClInclude Include="Engine\Action.h" />
@@ -618,10 +621,12 @@
     <ClInclude Include="Engine\Palette.h" />
     <ClInclude Include="Engine\RNG.h" />
     <ClInclude Include="Engine\Scalers\common.h" />
+    <ClInclude Include="Engine\Scalers\config.h" />
     <ClInclude Include="Engine\Scalers\hqx.h" />
     <ClInclude Include="Engine\Scalers\scale2x.h" />
     <ClInclude Include="Engine\Scalers\scale3x.h" />
     <ClInclude Include="Engine\Scalers\scalebit.h" />
+    <ClInclude Include="Engine\Scalers\xbrz.h" />
     <ClInclude Include="Engine\Screen.h" />
     <ClInclude Include="Engine\ShaderDraw.h" />
     <ClInclude Include="Engine\ShaderDrawHelper.h" />

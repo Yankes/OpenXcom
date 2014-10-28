@@ -285,7 +285,7 @@ static inline void ShaderDraw(
 	src7.mod_range(end_temp);
 	
 	const GraphSubset end = end_temp;
-	if(end.size_x() == 0 || end.size_y() == 0)
+	if (end.size_x() == 0 || end.size_y() == 0)
 		return;
 	//set final draw range in 2d space
 	src0.set_range(end);

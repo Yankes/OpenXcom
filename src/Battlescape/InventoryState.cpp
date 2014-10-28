@@ -234,9 +234,6 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 	_txtReact->setVisible(Options::showMoreStatsInInventoryView && !_tu);
 	_txtPSkill->setVisible(Options::showMoreStatsInInventoryView && !_tu);
 	_txtPStr->setVisible(Options::showMoreStatsInInventoryView && !_tu);
-
-	
-	_currentTooltip = "";
 }
 
 static void _clearInventoryTemplate(std::vector<EquipmentLayoutItem*> &inventoryTemplate)
@@ -415,7 +412,7 @@ void InventoryState::saveEquipmentLayout()
 	for (std::vector<BattleUnit*>::iterator i = _battleGame->getUnits()->begin(); i != _battleGame->getUnits()->end(); ++i)
 	{
 		// we need X-Com soldiers only
-		if (0 == (*i)->getGeoscapeSoldier()) continue;
+		if ((*i)->getGeoscapeSoldier() == 0) continue;
 
 		std::vector<EquipmentLayoutItem*> *layoutItems = (*i)->getGeoscapeSoldier()->getEquipmentLayout();
 
@@ -840,7 +837,7 @@ void InventoryState::invMouseOver(Action *)
 	}
 	else
 	{
-		if (_currentTooltip == "")
+		if (_currentTooltip.empty())
 		{
 			_txtItem->setText(L"");
 		}

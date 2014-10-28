@@ -76,6 +76,7 @@ private:
 	void drawTerrain(Surface *surface);
 	int getTerrainLevel(Position pos, int size);
 	int _iconHeight, _iconWidth, _messageColor;
+	const std::vector<Uint8> *_transparencies;
 public:
 	/// Creates a new map at the specified position and size.
 	Map(Game *game, int width, int height, int x, int y, int visibleMapHeight, int bpp);
@@ -145,6 +146,10 @@ public:
 	const int getIconHeight();
 	/// Get the icon width.
 	const int getIconWidth();
+	/// Convert a map position to a sound angle.
+	const int getSoundAngle(Position pos);
+	/// Reset the camera smoothing bool.
+	void resetCameraSmoothing();
 };
 
 }

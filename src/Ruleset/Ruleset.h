@@ -24,6 +24,7 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include "../Savegame/GameTime.h"
+#include <SDL.h>
 
 namespace OpenXcom
 {
@@ -109,6 +110,7 @@ protected:
 	std::vector<std::string> _aliensIndex, _deploymentsIndex, _armorsIndex, _ufopaediaIndex, _researchIndex, _manufactureIndex, _MCDPatchesIndex;
 	std::vector<std::string> _alienMissionsIndex, _terrainIndex, _extraSpritesIndex, _extraSoundsIndex, _extraStringsIndex;
 	std::vector<std::vector<int> > _alienItemLevels;
+	std::vector<SDL_Color> _transparencies;
 	int _modIndex, _facilityListOrder, _craftListOrder, _itemListOrder, _researchListOrder,  _manufactureListOrder, _ufopaediaListOrder, _invListOrder;
 	std::vector<std::string> _psiRequirements; // it's a cache for psiStrengthEval
 	/// Loads a ruleset from a YAML file.
@@ -198,11 +200,11 @@ public:
 	/// Gets the ruleset for a specific research project.
 	RuleResearch *getResearch (const std::string &id) const;
 	/// Gets the list of all research projects.
-	const std::vector<std::string> &getResearchList () const;
+	const std::vector<std::string> &getResearchList() const;
 	/// Gets the ruleset for a specific manufacture project.
 	RuleManufacture *getManufacture (const std::string &id) const;
 	/// Gets the list of all manufacture projects.
-	const std::vector<std::string> &getManufactureList () const;
+	const std::vector<std::string> &getManufactureList() const;
 	/// Gets facilities for custom bases.
 	std::vector<OpenXcom::RuleBaseFacility*> getCustomBaseFacilities() const;
 	/// Gets a specific UfoTrajectory.
@@ -232,17 +234,21 @@ public:
 	/// Gets the research-requirements for Psi-Lab (it's a cache for psiStrengthEval)
 	std::vector<std::string> getPsiRequirements() const;
 	/// Returns the sorted list of inventories.
-	const std::vector<std::string> &getInvsList () const;
+	const std::vector<std::string> &getInvsList() const;
 	/// Generates a new soldier.
 	Soldier *genSoldier(SavedGame *save) const;
 	/// Gets the item to be used as fuel for ships.
 	const std::string getAlienFuel() const;
+	/// Gets the minimum radar's range.
+	int getMinRadarRange() const;
 	/// Gets information on an interface element.
 	RuleInterface *getInterface(const std::string id) const;
 	/// Gets the ruleset for the globe
 	RuleGlobe *getGlobe() const;
 	/// Gets the list of selective files for insertion into our cat files.
 	const std::map<std::string, SoundDefinition *> *getSoundDefinitions() const;
+	/// Gets the list of transparency colors, 
+	const std::vector<SDL_Color> *getTransparencies() const;
 };
 
 }

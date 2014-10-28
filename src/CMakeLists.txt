@@ -117,6 +117,8 @@ set ( battlescape_src
   Battlescape/Camera.cpp
   Battlescape/Projectile.cpp
   Battlescape/Projectile.h
+  Battlescape/Particle.cpp
+  Battlescape/Particle.h
   Battlescape/UnitDieBState.h
   Battlescape/UnitDieBState.cpp
   Battlescape/Explosion.cpp
@@ -256,6 +258,9 @@ set ( engine_src
   Engine/Scalers/hq3x.cpp
   Engine/Scalers/hq4x.cpp
   Engine/Scalers/init.cpp
+  Engine/Scalers/config.h
+  Engine/Scalers/xbrz.h  
+  Engine/Scalers/xbrz.cpp
   Engine/Adlib/adlplayer.cpp
   Engine/Adlib/adlplayer.h
   Engine/Adlib/fmopl.cpp
