@@ -267,11 +267,11 @@ void UnitFallBState::think()
 			else
 			{
 				// if the unit burns floortiles, burn floortiles
-				if ((*unit)->getSpecialAbility() == SPECAB_BURNFLOOR)
+				if ((*unit)->getSpecialAbility() == SPECAB_BURNFLOOR || (*unit)->getSpecialAbility() == SPECAB_BURN_AND_EXPLODE)
 				{
 					(*unit)->getTile()->ignite(1);
 					Position here = ((*unit)->getPosition() * Position(16,16,24)) + Position(8,8,-((*unit)->getTile()->getTerrainLevel()));
-					_parent->getTileEngine()->hit(here, (*unit)->getStats()->strength, DT_IN, (*unit));
+					_parent->getTileEngine()->hit(here, (*unit)->getBaseStats()->strength, DT_IN, (*unit));
 				}
 				// move our personal lighting with us
 				_terrain->calculateUnitLighting();

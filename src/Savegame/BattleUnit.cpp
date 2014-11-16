@@ -53,7 +53,7 @@ BattleUnit::BattleUnit(Soldier *soldier, int depth) : _faction(FACTION_PLAYER), 
 											_dontReselect(false), _fire(0), _currentAIState(0), _visible(false), _cacheInvalid(true),
 											_expBravery(0), _expReactions(0), _expFiring(0), _expThrowing(0), _expPsiSkill(0), _expPsiStrength(0), _expMelee(0),
 											_motionPoints(0), _kills(0), _hitByFire(false), _moraleRestored(0), _coverReserve(0), _charging(0),
-											_turnsSinceSpotted(255), _geoscapeSoldier(soldier), _unitRules(0), _rankInt(-1), _turretType(-1), _hidingForTurn(false)
+											_turnsSinceSpotted(255), _geoscapeSoldier(soldier), _unitRules(0), _rankInt(-1), _turretType(-1), _hidingForTurn(false), _respawn(false)
 {
 	_name = soldier->getName(true);
 	_id = soldier->getId();
@@ -140,7 +140,7 @@ BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, in
 																											_expThrowing(0), _expPsiSkill(0), _expPsiStrength(0), _expMelee(0), _motionPoints(0), _kills(0), _hitByFire(false),
 																											_moraleRestored(0), _coverReserve(0), _charging(0), _turnsSinceSpotted(255),
 																											_armor(armor), _geoscapeSoldier(0),  _unitRules(unit), _rankInt(-1),
-																											_turretType(-1), _hidingForTurn(false)
+																											_turretType(-1), _hidingForTurn(false), _respawn(false)
 {
 	_type = unit->getType();
 	_rank = unit->getRank();
@@ -158,7 +158,14 @@ BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, in
 	_specab = (SpecialAbility) unit->getSpecialAbility();
 	_spawnUnit = unit->getSpawnUnit();
 	_value = unit->getValue();
-	_gender = GENDER_MALE;
+	if (unit->isFemale())
+	{
+		_gender = GENDER_FEMALE;
+	}
+	else
+	{
+		_gender = GENDER_MALE;
+	}
 	_faceDirection = -1;
 
 	_movementType = _armor->getMovementType();
@@ -265,7 +272,7 @@ void BattleUnit::load(const YAML::Node &node)
 	_specab = (SpecialAbility)node["specab"].as<int>(_specab);
 	_spawnUnit = node["spawnUnit"].as<std::string>(_spawnUnit);
 	_motionPoints = node["motionPoints"].as<int>(0);
-
+	_respawn = node["respawn"].as<bool>(_respawn);
 }
 
 /**
@@ -323,6 +330,7 @@ YAML::Node BattleUnit::save() const
 	if (!_spawnUnit.empty())
 		node["spawnUnit"] = _spawnUnit;
 	node["motionPoints"] = _motionPoints;
+	node["respawn"] = _respawn;
 
 	return node;
 }
@@ -1072,7 +1080,7 @@ void BattleUnit::knockOut(BattlescapeGame *battle)
 	}
 	else if (!_spawnUnit.empty())
 	{
-		setSpecialAbility(SPECAB_NONE);
+		setRespawn(false);
 		BattleUnit *newUnit = battle->convertUnit(this, _spawnUnit);
 		newUnit->knockOut(battle);
 	}
@@ -1187,7 +1195,7 @@ int BattleUnit::getActionTUs(BattleActionType actionType, RuleItem *item)
 	// if it's a percentage, apply it to unit TUs
 	if (!item->getFlatRate() || actionType == BA_THROW || actionType == BA_PRIME)
 	{
-		cost = (int)floor(getStats()->tu * cost / 100.0f);
+		cost = (int)floor(getBaseStats()->tu * cost / 100.0f);
 	}
 
 	return cost;
@@ -1341,12 +1349,12 @@ int BattleUnit::getFiringAccuracy(BattleActionType actionType, BattleItem *item)
 	{
 		if (item->getRules()->isSkillApplied())
 		{
-			return (getStats()->melee * item->getRules()->getAccuracyMelee() / 100) * getAccuracyModifier(item) / 100;
+			return (getBaseStats()->melee * item->getRules()->getAccuracyMelee() / 100) * getAccuracyModifier(item) / 100;
 		}
 		return item->getRules()->getAccuracyMelee() * getAccuracyModifier(item) / 100;
 	}
 
-	int result = getStats()->firing * weaponAcc / 100;
+	int result = getBaseStats()->firing * weaponAcc / 100;
 
 	if (_kneeled)
 	{
@@ -1393,7 +1401,7 @@ int BattleUnit::getAccuracyModifier(BattleItem *item)
 			}
 		}
 	}
-	return std::max(10, 25 * _health / getStats()->health + 75 + -10 * wounds);
+	return std::max(10, 25 * _health / getBaseStats()->health + 75 + -10 * wounds);
 }
 
 /**
@@ -1402,7 +1410,7 @@ int BattleUnit::getAccuracyModifier(BattleItem *item)
  */
 double BattleUnit::getThrowingAccuracy()
 {
-	return (double)(getStats()->throwing * getAccuracyModifier()) / 100.0;
+	return (double)(getBaseStats()->throwing * getAccuracyModifier()) / 100.0;
 }
 
 /**
@@ -1449,7 +1457,7 @@ int BattleUnit::getFatalWounds() const
 double BattleUnit::getReactionScore()
 {
 	//(Reactions Stat) x (Current Time Units / Max TUs)
-	double score = ((double)getStats()->reactions * (double)getTimeUnits()) / (double)getStats()->tu;
+	double score = ((double)getBaseStats()->reactions * (double)getTimeUnits()) / (double)getBaseStats()->tu;
 	return score;
 }
 
@@ -1465,8 +1473,8 @@ void BattleUnit::prepareNewTurn()
 	_unitsSpottedThisTurn.clear();
 
 	// recover TUs
-	int TURecovery = getStats()->tu;
-	float encumbrance = (float)getStats()->strength / (float)getCarriedWeight();
+	int TURecovery = getBaseStats()->tu;
+	float encumbrance = (float)getBaseStats()->strength / (float)getCarriedWeight();
 	if (encumbrance < 1)
 	{
 	  TURecovery = int(encumbrance * TURecovery);
@@ -1490,8 +1498,8 @@ void BattleUnit::prepareNewTurn()
 		// Each fatal wound to the body reduces the soldier's energy recovery by 10%.
 		ENRecovery -= (_energy * (_fatalWounds[BODYPART_TORSO] * 10))/100;
 		_energy += ENRecovery;
-		if (_energy > getStats()->stamina)
-			_energy = getStats()->stamina;
+		if (_energy > getBaseStats()->stamina)
+			_energy = getBaseStats()->stamina;
 	}
 
 	// suffer from fatal wounds
@@ -1589,7 +1597,7 @@ bool BattleUnit::reselectAllowed() const
  */
 void BattleUnit::setFire(int fire)
 {
-	if (_specab != SPECAB_BURNFLOOR)
+	if (_specab == SPECAB_BURNFLOOR || _specab == SPECAB_BURN_AND_EXPLODE)
 		_fire = fire;
 }
 
@@ -1895,7 +1903,7 @@ bool BattleUnit::isInExitArea(SpecialTileType stt) const
  */
 int BattleUnit::getHeight() const
 {
-	return std::min(24, isKneeled()?getKneelHeight():getStandHeight());
+	return isKneeled()?getKneelHeight():getStandHeight();
 }
 
 /**
@@ -2116,8 +2124,8 @@ void BattleUnit::heal(int part, int woundAmount, int healthAmount)
 		return;
 	_fatalWounds[part] -= woundAmount;
 	_health += healthAmount;
-	if (_health > getStats()->health)
-		_health = getStats()->health;
+	if (_health > getBaseStats()->health)
+		_health = getBaseStats()->health;
 }
 
 /**
@@ -2125,7 +2133,7 @@ void BattleUnit::heal(int part, int woundAmount, int healthAmount)
  */
 void BattleUnit::painKillers()
 {
-	int lostHealth = getStats()->health - _health;
+	int lostHealth = getBaseStats()->health - _health;
 	if (lostHealth > _moraleRestored)
 	{
         _morale = std::min(100, (lostHealth - _moraleRestored + _morale));
@@ -2141,8 +2149,8 @@ void BattleUnit::painKillers()
 void BattleUnit::stimulant (int energy, int s)
 {
 	_energy += energy;
-	if (_energy > getStats()->stamina)
-		_energy = getStats()->stamina;
+	if (_energy > getBaseStats()->stamina)
+		_energy = getBaseStats()->stamina;
 	healStun (s);
 }
 
@@ -2200,7 +2208,7 @@ std::wstring BattleUnit::getName(Language *lang, bool debugAppendId) const
   * Gets pointer to the unit's stats.
   * @return stats Pointer to the unit's stats.
   */
-UnitStats *BattleUnit::getStats()
+UnitStats *BattleUnit::getBaseStats()
 {
 	return &_stats;
 }
@@ -2318,12 +2326,20 @@ int BattleUnit::getSpecialAbility() const
 }
 
 /**
- * Changes the unit's special ability.
- * @param specab special ability.
+ * Sets this unit to respawn (or not).
+ * @param respawn whether it should respawn.
  */
-void BattleUnit::setSpecialAbility(SpecialAbility specab)
+void BattleUnit::setRespawn(bool respawn)
 {
-	_specab = specab;
+	_respawn = respawn;
+}
+
+/**
+ * Gets this unit's respawn flag.
+ */
+bool BattleUnit::getRespawn()
+{
+	return _respawn;
 }
 
 /**

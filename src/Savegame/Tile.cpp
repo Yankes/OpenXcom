@@ -108,6 +108,10 @@ void Tile::load(const YAML::Node &node)
 	{
 		_currentFrame[2] = 7;
 	}
+	if (_fire || _smoke)
+	{
+		_animationOffset = std::rand() % 4;
+	}
 }
 
 /**
@@ -135,6 +139,10 @@ void Tile::loadBinary(Uint8 *buffer, Tile::SerializationKey& serKey)
 	_discovered[2] = (boolFields & 4) ? true : false;
 	_currentFrame[1] = (boolFields & 8) ? 7 : 0;
 	_currentFrame[2] = (boolFields & 0x10) ? 7 : 0;
+	if (_fire || _smoke)
+	{
+		_animationOffset = std::rand() % 4;
+	}
 }
 
 
@@ -304,7 +312,7 @@ int Tile::getTerrainLevel() const
  */
 int Tile::getFootstepSound(Tile *tileBelow) const
 {
-	int sound = 0;
+	int sound = -1;
 
 	if (_objects[MapData::O_FLOOR])
 		sound = _objects[MapData::O_FLOOR]->getFootstepSound();

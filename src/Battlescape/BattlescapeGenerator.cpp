@@ -34,6 +34,10 @@
 #include "../Savegame/Ufo.h"
 #include "../Savegame/Craft.h"
 #include "../Savegame/Node.h"
+#include "../Engine/Game.h"
+#include "../Engine/Language.h"
+#include "../Engine/CrossPlatform.h"
+#include "../Engine/Options.h"
 #include "../Engine/RNG.h"
 #include "../Engine/Exception.h"
 #include "../Ruleset/MapBlock.h"
@@ -51,10 +55,6 @@
 #include "../Ruleset/AlienDeployment.h"
 #include "../Ruleset/RuleBaseFacility.h"
 #include "../Resource/XcomResourcePack.h"
-#include "../Engine/Game.h"
-#include "../Engine/Language.h"
-#include "../Engine/CrossPlatform.h"
-#include "../Engine/Options.h"
 #include "../Savegame/Vehicle.h"
 #include "../Savegame/TerrorSite.h"
 #include "../Savegame/AlienBase.h"
@@ -1081,7 +1081,7 @@ bool BattlescapeGenerator::addItem(BattleItem *item, BattleUnit *unit, bool allo
 
 		if (loaded && (unit->getGeoscapeSoldier() == 0 || _allowAutoLoadout))
 		{
-			if (!rightWeapon && unit->getStats()->strength * 0.66 >= weight) // weight is always considered 0 for aliens
+			if (!rightWeapon && unit->getBaseStats()->strength * 0.66 >= weight) // weight is always considered 0 for aliens
 			{
 				item->moveToOwner(unit);
 				item->setSlot(rightHand);
@@ -1147,7 +1147,7 @@ bool BattlescapeGenerator::addItem(BattleItem *item, BattleUnit *unit, bool allo
 	default:
 		if ((unit->getGeoscapeSoldier() == 0 || _allowAutoLoadout))
 		{
-			if (unit->getStats()->strength >= weight) // weight is always considered 0 for aliens
+			if (unit->getBaseStats()->strength >= weight) // weight is always considered 0 for aliens
 			{
 				for (std::vector<std::string>::const_iterator i = _game->getRuleset()->getInvsList().begin(); i != _game->getRuleset()->getInvsList().end() && !placed; ++i)
 				{

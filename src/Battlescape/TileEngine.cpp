@@ -1071,13 +1071,13 @@ BattleUnit *TileEngine::hit(const Position &center, int power, ItemDamageType ty
 			{
 				bu->killedBy(unit->getFaction());
 			}
-			const int bravery = (110 - bu->getStats()->bravery) / 10;
+			const int bravery = (110 - bu->getBaseStats()->bravery) / 10;
 			const int modifier = bu->getFaction() == FACTION_PLAYER ? _save->getMoraleModifier() : 100;
 			const int morale_loss = 100 * (adjustedDamage * bravery / 10) / modifier;
 
 			bu->moraleChange(-morale_loss);
 
-			if (bu->getSpecialAbility() == SPECAB_EXPLODEONDEATH && !bu->isOut() && (bu->getHealth() == 0 || bu->getStunlevel() >= bu->getHealth()))
+			if ((bu->getSpecialAbility() == SPECAB_EXPLODEONDEATH || bu->getSpecialAbility() == SPECAB_BURN_AND_EXPLODE) && !bu->isOut() && (bu->getHealth() == 0 || bu->getStunlevel() >= bu->getHealth()))
 			{
 				if (type != DT_STUN && type != DT_HE)
 				{
@@ -1544,6 +1544,7 @@ int TileEngine::horizontalBlockage(Tile *startTile, Tile *endTile, ItemDamageTyp
 	// safety check
 	if (startTile == 0 || endTile == 0) return 0;
 	if (startTile->getPosition().z != endTile->getPosition().z) return 0;
+	Tile *tmpTile;
 
 	int direction;
 	Pathfinding::vectorToDirection(endTile->getPosition() - startTile->getPosition(), direction);
@@ -1559,11 +1560,15 @@ int TileEngine::horizontalBlockage(Tile *startTile, Tile *endTile, ItemDamageTyp
 		if (type == DT_NONE) //this is two-way diagonal visiblity check, used in original game
 		{
 			block = blockage(startTile, MapData::O_NORTHWALL, type) + blockage(endTile, MapData::O_WESTWALL, type); //up+right
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileNorth), MapData::O_OBJECT, type, 3);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileNorth);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNESW)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 3);
 			if (block == 0) break; //this way is opened
 			block = blockage(_save->getTile(startTile->getPosition() + oneTileEast), MapData::O_NORTHWALL, type)
 				+ blockage(_save->getTile(startTile->getPosition() + oneTileEast), MapData::O_WESTWALL, type); //right+up
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileEast), MapData::O_OBJECT, type, 7);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileEast);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNESW)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 7);
 		}
 		else
 		{
@@ -1583,11 +1588,15 @@ int TileEngine::horizontalBlockage(Tile *startTile, Tile *endTile, ItemDamageTyp
 		{
 			block = blockage(_save->getTile(startTile->getPosition() + oneTileSouth), MapData::O_NORTHWALL, type)
 				+ blockage(endTile, MapData::O_WESTWALL, type); //down+right
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileSouth), MapData::O_OBJECT, type, 1);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileSouth);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNWSE)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 1);
 			if (block == 0) break; //this way is opened
 			block = blockage(_save->getTile(startTile->getPosition() + oneTileEast), MapData::O_WESTWALL, type)
 				+ blockage(endTile, MapData::O_NORTHWALL, type); //right+down
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileEast), MapData::O_OBJECT, type, 5);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileEast);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNWSE)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 5);
 		}
 		else
 		{
@@ -1606,10 +1615,14 @@ int TileEngine::horizontalBlockage(Tile *startTile, Tile *endTile, ItemDamageTyp
 		{
 			block = blockage(_save->getTile(startTile->getPosition() + oneTileSouth), MapData::O_NORTHWALL, type)
 				+ blockage(_save->getTile(startTile->getPosition() + oneTileSouth), MapData::O_WESTWALL, type); //down+left
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileSouth), MapData::O_OBJECT, type, 7);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileSouth);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNESW)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 7);
 			if (block == 0) break; //this way is opened
 			block = blockage(startTile, MapData::O_WESTWALL, type) + blockage(endTile, MapData::O_NORTHWALL, type); //left+down
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileWest), MapData::O_OBJECT, type, 3);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileWest);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNESW)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 3);
 		}
 		else
 		{
@@ -1629,11 +1642,15 @@ int TileEngine::horizontalBlockage(Tile *startTile, Tile *endTile, ItemDamageTyp
 		{
 			block = blockage(startTile, MapData::O_NORTHWALL, type)
 				+ blockage(_save->getTile(startTile->getPosition() + oneTileNorth), MapData::O_WESTWALL, type); //up+left
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileNorth), MapData::O_OBJECT, type, 5);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileNorth);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNWSE)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 5);
 			if (block == 0) break; //this way is opened
 			block = blockage(startTile, MapData::O_WESTWALL, type)
 				+ blockage(_save->getTile(startTile->getPosition() + oneTileWest), MapData::O_NORTHWALL, type); //left+up
-			block += blockage(_save->getTile(startTile->getPosition() + oneTileWest), MapData::O_OBJECT, type, 1);
+			tmpTile = _save->getTile(startTile->getPosition() + oneTileWest);
+			if (tmpTile && tmpTile->getMapData(MapData::O_OBJECT) && tmpTile->getMapData(MapData::O_OBJECT)->getBigWall() != Pathfinding::BIGWALLNWSE)
+				block += blockage(tmpTile, MapData::O_OBJECT, type, 1);
 		}
 		else
 		{
@@ -2438,9 +2455,9 @@ bool TileEngine::psiAttack(BattleAction *action)
 	BattleUnit *victim = _save->getTile(action->target)->getUnit();
 	if (!victim)
 		return false;
-	double attackStrength = action->actor->getStats()->psiStrength * action->actor->getStats()->psiSkill / 50.0;
-	double defenseStrength = victim->getStats()->psiStrength
-		+ ((victim->getStats()->psiSkill > 0) ? 10.0 + victim->getStats()->psiSkill / 5.0 : 10.0);
+	double attackStrength = action->actor->getBaseStats()->psiStrength * action->actor->getBaseStats()->psiSkill / 50.0;
+	double defenseStrength = victim->getBaseStats()->psiStrength
+		+ ((victim->getBaseStats()->psiSkill > 0) ? 10.0 + victim->getBaseStats()->psiSkill / 5.0 : 10.0);
 	double d = distance(action->actor->getPosition(), action->target);
 	attackStrength -= d;
 	attackStrength += RNG::generate(0,55);
@@ -2458,7 +2475,7 @@ bool TileEngine::psiAttack(BattleAction *action)
 		action->actor->addPsiSkillExp();
 		if (action->type == BA_PANIC)
 		{
-			int moraleLoss = (110-_save->getTile(action->target)->getUnit()->getStats()->bravery);
+			int moraleLoss = (110-_save->getTile(action->target)->getUnit()->getBaseStats()->bravery);
 			if (moraleLoss > 0)
 			_save->getTile(action->target)->getUnit()->moraleChange(-moraleLoss);
 		}
@@ -2467,7 +2484,7 @@ bool TileEngine::psiAttack(BattleAction *action)
 			victim->convertToFaction(action->actor->getFaction());
 			calculateFOV(victim->getPosition());
 			calculateUnitLighting();
-			victim->setTimeUnits(victim->getStats()->tu);
+			victim->setTimeUnits(victim->getBaseStats()->tu);
 			victim->allowReselect();
 			victim->abortTurn(); // resets unit status to STANDING
 			// if all units from either faction are mind controlled - auto-end the mission.
@@ -2490,7 +2507,6 @@ bool TileEngine::psiAttack(BattleAction *action)
 	{
 		if (Options::allowPsiStrengthImprovement)
 		{
-			victim->addPsiStrengthExp();
 			victim->addPsiStrengthExp();
 		}
 		return false;
@@ -2705,7 +2721,7 @@ bool TileEngine::validateThrow(BattleAction &action, Position originVoxel, Posit
 	double curvature = 0.5;
 	if (action.type == BA_THROW)
 	{
-		curvature = std::max(0.48, 1.73 / sqrt(sqrt((double)(action.actor->getStats()->strength) / (double)(action.weapon->getRules()->getWeight()))) + (action.actor->isKneeled()? 0.1 : 0.0));
+		curvature = std::max(0.48, 1.73 / sqrt(sqrt((double)(action.actor->getBaseStats()->strength) / (double)(action.weapon->getRules()->getWeight()))) + (action.actor->isKneeled()? 0.1 : 0.0));
 	}
 	else
 	{
