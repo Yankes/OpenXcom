@@ -87,6 +87,7 @@ void AlienDeployment::load(const YAML::Node &node)
 	_shade = node["shade"].as<int>(_shade);
 	_nextStage = node["nextStage"].as<std::string>(_nextStage);
 	_nextStageRace = node["nextStageRace"].as<std::string>(_nextStageRace);
+	_script = node["script"].as<std::string>(_script);
 }
 
 /**
@@ -157,8 +158,21 @@ std::string AlienDeployment::getNextStage() const
 	return _nextStage;
 }
 
+/**
+ * Gets the race to use on the next stage of the mission.
+ * @return The race for the next stage of the mission.
+ */
 std::string AlienDeployment::getNextStageRace() const
 {
 	return _nextStageRace;
+}
+
+/**
+ * Gets the script to use to generate a mission of this type.
+ * @return The script to use to generate a mission of this type.
+ */
+std::string AlienDeployment::getScript() const
+{
+	return _script;
 }
 }
