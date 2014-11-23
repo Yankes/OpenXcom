@@ -84,6 +84,26 @@ BattlescapeGenerator::~BattlescapeGenerator()
 }
 
 /**
+ * Sets up all our various arrays and whatnot according to the size of the map.
+ */
+void BattlescapeGenerator::init()
+{
+	_blocks.clear();
+	_landingzone.clear();
+	_segments.clear();
+	_drillMap.clear();
+
+	_blocks.resize((_mapsize_x / 10), std::vector<MapBlock*>((_mapsize_y / 10)));
+	_landingzone.resize((_mapsize_x / 10), std::vector<bool>((_mapsize_y / 10),false));
+	_segments.resize((_mapsize_x / 10), std::vector<int>((_mapsize_y / 10),0));
+	_drillMap.resize((_mapsize_x / 10), std::vector<int>((_mapsize_y / 10),MD_NONE));
+
+	_blocksToDo = (_mapsize_x / 10) * (_mapsize_y / 10);
+	// creates the tile objects
+	_save->initMap(_mapsize_x, _mapsize_y, _mapsize_z);
+	_save->initUtilities(_res);
+}
+/**
  * Sets the XCom craft involved in the battle.
  * @param craft Pointer to XCom craft.
  */
@@ -199,8 +219,6 @@ void BattlescapeGenerator::nextStage()
 	size_t pick = RNG::generate(0, ruleDeploy->getTerrains().size() -1);
 	_terrain = _game->getRuleset()->getTerrain(ruleDeploy->getTerrains().at(pick));
 	_worldShade = ruleDeploy->getShade();
-
-	_save->initMap(_mapsize_x, _mapsize_y, _mapsize_z);
 
 	const std::vector<MapScript*> *script = _game->getRuleset()->getMapScript(_terrain->getScript());
 	if (_game->getRuleset()->getMapScript(ruleDeploy->getScript()))
@@ -324,10 +342,6 @@ void BattlescapeGenerator::run()
 	{
 		_worldShade = ruleDeploy->getShade();
 	}
-
-	// creates the tile objects
-	_save->initMap(_mapsize_x, _mapsize_y, _mapsize_z);
-	_save->initUtilities(_res);
 	
 	const std::vector<MapScript*> *script = _game->getRuleset()->getMapScript(_terrain->getScript());
 	if (_game->getRuleset()->getMapScript(ruleDeploy->getScript()))
@@ -1643,15 +1657,8 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 
 	// set up our map generation vars
 	_dummy = new MapBlock("dummy");
-	_blocks.resize((_mapsize_x / 10), std::vector<MapBlock*>((_mapsize_y / 10)));
-	_landingzone.resize((_mapsize_x / 10), std::vector<bool>((_mapsize_y / 10),false));
-	_segments.resize((_mapsize_x / 10), std::vector<int>((_mapsize_y / 10),0));
-	_drillMap.resize((_mapsize_x / 10), std::vector<int>((_mapsize_y / 10),MD_NONE));
 
-	_blocksToDo = (_mapsize_x / 10) * (_mapsize_y / 10);
-
-	int x = 0, y = 0;
-	bool placed = false;
+	init();
 
 	MapBlock* craftMap = 0;
 	MapBlock* ufoMap = 0;
@@ -1661,7 +1668,7 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 
 	// create an array to track command success/failure
 	std::map<int, bool> conditionals;
-	
+
 	for (std::vector<MapDataSet*>::iterator i = _terrain->getMapDataSets()->begin(); i != _terrain->getMapDataSets()->end(); ++i)
 	{
 		(*i)->loadData();
@@ -1825,7 +1832,7 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 								{
 									for (std::vector<int>::const_iterator z = command->getBlocks()->begin(); z != command->getBlocks()->end() && !success; ++z)
 									{
-										if (*z < _terrain->getMapBlocks()->size())
+										if ((size_t)(*z) < _terrain->getMapBlocks()->size())
 										{
 											success = (_blocks[x][y] == _terrain->getMapBlocks()->at(*z));
 										}
@@ -1842,6 +1849,30 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 					break;
 				case MSC_REMOVE:
 					success = removeBlocks(command);
+					break;
+				case MSC_RESIZE:
+					if (_save->getMissionType() == "STR_BASE_DEFENSE")
+					{
+						throw Exception("Map Generator encountered an error: Base defense map cannot be resized.");
+					}
+					if (_blocksToDo < (_mapsize_x / 10) * (_mapsize_y / 10))
+					{
+						throw Exception("Map Generator encountered an error: One does not simply resize the map after adding blocks.");
+					}
+
+					if (command->getSizeX() > 0 && command->getSizeX() != _mapsize_x / 10)
+					{
+						_mapsize_x = command->getSizeX() * 10;
+					}
+					if (command->getSizeY() > 0 && command->getSizeY() != _mapsize_y / 10)
+					{
+						_mapsize_y = command->getSizeY() * 10;
+					}
+					if (command->getSizeZ() > 0 && command->getSizeZ() != _mapsize_z)
+					{
+						_mapsize_z = command->getSizeZ();
+					}
+					init();
 					break;
 				default:
 					break;
@@ -2306,7 +2337,7 @@ bool BattlescapeGenerator::addBlock(int x, int y, MapBlock *block)
 				return false;
 		}
 	}
-	int drillType = 0;
+
 	for (int xd = 0; xd <= xSize; ++xd)
 	{
 		for (int yd = 0; yd <= ySize; ++yd)
@@ -2504,7 +2535,7 @@ bool BattlescapeGenerator::removeBlocks(MapScript *command)
 					{
 						for (std::vector<int>::const_iterator z = command->getBlocks()->begin(); z != command->getBlocks()->end(); ++z)
 						{
-							if (*z < _terrain->getMapBlocks()->size())
+							if ((size_t)(*z) < _terrain->getMapBlocks()->size())
 							{
 								// the deleted vector should only contain unique entries
 								std::pair<int, int> pos = std::make_pair<int, int>(x, y);

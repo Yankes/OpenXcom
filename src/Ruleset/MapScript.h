@@ -46,7 +46,7 @@ struct TunnelData
 		return &replacements[type];
 	}
  };
-enum MapScriptCommand {MSC_UNDEFINED = -1, MSC_ADDBLOCK, MSC_ADDLINE, MSC_ADDCRAFT, MSC_ADDUFO, MSC_DIGTUNNEL, MSC_FILLAREA, MSC_CHECKBLOCK, MSC_REMOVE};
+enum MapScriptCommand {MSC_UNDEFINED = -1, MSC_ADDBLOCK, MSC_ADDLINE, MSC_ADDCRAFT, MSC_ADDUFO, MSC_DIGTUNNEL, MSC_FILLAREA, MSC_CHECKBLOCK, MSC_REMOVE, MSC_RESIZE};
 
 class MapBlock;
 class RuleTerrain;
@@ -58,9 +58,10 @@ private:
 	std::vector<SDL_Rect*> _rects;
 	std::vector<int> _groups, _blocks, _frequencies, _maxUses, _conditionals;
 	std::vector<int> _groupsTemp, _blocksTemp, _frequenciesTemp, _maxUsesTemp;
-	int _sizeX, _sizeY, _executionChances, _executions, _cumulativeFrequency, _label;
+	int _sizeX, _sizeY, _sizeZ, _executionChances, _executions, _cumulativeFrequency, _label;
 	MapDirection _direction;
-	TunnelData _tunnelData;
+	TunnelData *_tunnelData;
+
 	/// Randomly generate a group from within the array.
 	const int getGroupNumber();
 	/// Randomly generate a block number from within the array.
@@ -80,6 +81,8 @@ public:
 	const int getSizeX() const {return _sizeX;};
 	/// Gets the Y size for this command.
 	const int getSizeY() const {return _sizeY;};
+	/// Gets the Z size for this command.
+	const int getSizeZ() const {return _sizeZ;};
 	/// Get the chances of this command executing.
 	const int getChancesOfExecution() const {return _executionChances;};
 	/// Gets the label for this command.
@@ -95,7 +98,7 @@ public:
 	/// Gets the direction this command goes (for lines and tunnels).
    	const MapDirection getDirection() const {return _direction;};
 	/// Gets the mcd replacement data for tunnel replacements.
-	TunnelData *getTunnelData() {return &_tunnelData;};
+	TunnelData *getTunnelData() {return _tunnelData;};
 	/// Randomly generate a block from within either the array of groups or blocks.
 	MapBlock *getNextBlock(RuleTerrain *terrain);
 };

@@ -1322,7 +1322,7 @@ void Map::animate(bool redraw)
 		_save->getTiles()[i]->animate();
 	}
 
-	// animate certain units (large flying units have a propultion animation)
+	// animate certain units (large flying units have a propulsion animation)
 	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
 		if (_save->getDepth() > 0 && !(*i)->getFloorAbove())
@@ -1450,7 +1450,7 @@ void Map::calculateWalkingOffset(BattleUnit *unit, Position *offset)
 			// make sure this unit isn't obscured by the floor above him, otherwise it looks weird.
 			if (_camera->getViewLevel() > unit->getPosition().z)
 			{
-				for (int z = std::min(_camera->getViewLevel(), _save->getMapSizeZ()); z != unit->getPosition().z; --z)
+				for (int z = std::min(_camera->getViewLevel(), _save->getMapSizeZ() - 1); z != unit->getPosition().z; --z)
 				{
 					if (!_save->getTile(Position(unit->getPosition().x, unit->getPosition().y, z))->hasNoFloor(0))
 					{

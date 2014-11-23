@@ -840,7 +840,7 @@ struct ColorReplace
 /**
  * help class used for Surface::blitNShade
  */
-struct StandartShade
+struct StandardShade
 {
 	/**
 	* Function used by ShaderDraw in Surface::blitNShade
@@ -936,7 +936,7 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 		if(dest8)
 			throw Exception("Cannot blit 32bit to 8bit");
 		else
-			ShaderDraw<StandartShade>(ShaderMove<SDL_Color>(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(off));
+			ShaderDraw<StandardShade>(ShaderMove<SDL_Color>(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(off));
 	}
 	else
 	{
@@ -960,9 +960,9 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 		else
 		{
 			if(dest8)
-				ShaderDraw<StandartShade>(ShaderSurface(surface), src, ShaderScalar(off));
+				ShaderDraw<StandardShade>(ShaderSurface(surface), src, ShaderScalar(off));
 			else
-				ShaderDraw<StandartShade>(ShaderMove<SDL_Color>(surface), src, ShaderScalar(this->getPalette()), ShaderScalar(off));
+				ShaderDraw<StandardShade>(ShaderMove<SDL_Color>(surface), src, ShaderScalar(this->getPalette()), ShaderScalar(off));
 		}
 	}
 }

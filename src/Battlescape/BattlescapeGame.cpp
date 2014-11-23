@@ -288,6 +288,7 @@ void BattlescapeGame::handleAI(BattleUnit *unit)
 				ss << L"Attack type=" << action.type << " target="<< action.target << " weapon=" << action.weapon->getRules()->getName().c_str();
 				_parentState->debug(ss.str());
 				action.weapon = new BattleItem(_parentState->getGame()->getRuleset()->getItem(unit->getMeleeWeapon()), _save->getCurrentItemId());
+				action.weapon->setOwner(unit);
 				action.TU = unit->getActionTUs(action.type, action.weapon);
 				statePushBack(new ProjectileFlyBState(this, action));
 				_save->removeItem(action.weapon);
@@ -416,7 +417,6 @@ void BattlescapeGame::endTurn()
 	{
 		Position p = Position(t->getPosition().x * 16, t->getPosition().y * 16, t->getPosition().z * 24);
 		statePushNext(new ExplosionBState(this, p, 0, 0, t));
-		t = _save->getTileEngine()->checkForTerrainExplosions();
 		statePushBack(0);
 		return;
 	}
