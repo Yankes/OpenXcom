@@ -193,19 +193,22 @@ void BattlescapeGenerator::setTerrorSite(TerrorSite *terror)
 void BattlescapeGenerator::nextStage()
 {
 	// kill all enemy units, or those not in endpoint area (if aborted)
-	for (std::vector<BattleUnit*>::iterator j = _save->getUnits()->begin(); j != _save->getUnits()->end(); ++j)
+	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
-		if ((_game->getSavedGame()->getSavedBattle()->isAborted() && !(*j)->isInExitArea(END_POINT))
-			|| (*j)->getOriginalFaction() == FACTION_HOSTILE)
+		if ((*i)->getStatus() != STATUS_DEAD                              // if they're not dead
+			&& (((*i)->getOriginalFaction() == FACTION_PLAYER               // and they're a soldier
+			&& _game->getSavedGame()->getSavedBattle()->isAborted()           // and you aborted
+			&& !(*i)->isInExitArea(END_POINT))                                // and they're not on the exit
+			|| (*i)->getOriginalFaction() != FACTION_PLAYER))               // or they're not a soldier
 		{
-			(*j)->instaKill();
+			(*i)->goToTimeOut();
 		}
-		if ((*j)->getTile())
+		if ((*i)->getTile())
 		{
-			(*j)->getTile()->setUnit(0);
+			(*i)->getTile()->setUnit(0);
 		}
-		(*j)->setTile(0);
-		(*j)->setPosition(Position(-1,-1,-1), false);
+		(*i)->setTile(0);
+		(*i)->setPosition(Position(-1,-1,-1), false);
 	}
 
 	while (_game->getSavedGame()->getSavedBattle()->getSide() != FACTION_PLAYER)
@@ -286,7 +289,26 @@ void BattlescapeGenerator::nextStage()
 
 	size_t unitCount = _save->getUnits()->size();
 
-	deployAliens(_game->getRuleset()->getAlienRace(_alienRace), ruleDeploy);
+	// Let's figure out what race we're up against.
+	for (std::vector<TerrorSite*>::iterator i = _game->getSavedGame()->getTerrorSites()->begin();
+		_alienRace == "" && i != _game->getSavedGame()->getTerrorSites()->end(); ++i)
+	{
+		if ((*i)->isInBattlescape())
+		{
+			_alienRace = (*i)->getAlienRace();
+		}
+	}
+
+	for (std::vector<AlienBase*>::iterator i = _game->getSavedGame()->getAlienBases()->begin();
+		_alienRace == "" && i != _game->getSavedGame()->getAlienBases()->end(); ++i)
+	{
+		if ((*i)->isInBattlescape())
+		{
+			_alienRace = (*i)->getAlienRace();
+		}
+	}
+
+	deployAliens(ruleDeploy);
 
 	if (unitCount == _save->getUnits()->size())
 	{
@@ -295,19 +317,7 @@ void BattlescapeGenerator::nextStage()
 
 	deployCivilians(ruleDeploy->getCivilians());
 
-	for (int i = 0; i < _save->getMapSizeXYZ(); ++i)
-	{
-		if (_save->getTiles()[i]->getMapData(MapData::O_FLOOR) &&
-			(_save->getTiles()[i]->getMapData(MapData::O_FLOOR)->getSpecialType() == START_POINT
-			/*
-			||
-			(_save->getTiles()[i]->getPosition().z == 1 &&
-			_save->getTiles()[i]->getMapData(MapData::O_FLOOR)->isGravLift() &&
-			_save->getTiles()[i]->getMapData(MapData::O_OBJECT))
-			*/
-			))
-				_save->getTiles()[i]->setDiscovered(true, 2);
-	}
+	_save->setAborted(false);
 	_save->setGlobalShade(_worldShade);
 	_save->getTileEngine()->calculateSunShading();
 	_save->getTileEngine()->calculateTerrainLighting();
@@ -337,6 +347,11 @@ void BattlescapeGenerator::run()
 		size_t pick = RNG::generate(0, ruleDeploy->getTerrains().size() -1);
 		_terrain = _game->getRuleset()->getTerrain(ruleDeploy->getTerrains().at(pick));
 	}
+	// new battle menu will have set the depth already
+	if (_terrain->getMaxDepth() > 0 && _save->getDepth() == 0)
+	{
+		_save->setDepth(RNG::generate(_terrain->getMinDepth(), _terrain->getMaxDepth()));
+	}
 
 	if (ruleDeploy->getShade() != -1)
 	{
@@ -362,7 +377,7 @@ void BattlescapeGenerator::run()
 
 	size_t unitCount = _save->getUnits()->size();
 
-	deployAliens(_game->getRuleset()->getAlienRace(_alienRace), ruleDeploy);
+	deployAliens(ruleDeploy);
 
 	if (unitCount == _save->getUnits()->size())
 	{
@@ -379,21 +394,6 @@ void BattlescapeGenerator::run()
 	if (_ufo && _ufo->getStatus() == Ufo::CRASHED)
 	{
 		explodePowerSources();
-	}
-
-	if (!_craftDeployed)
-	{
-		for (int i = 0; i < _save->getMapSizeXYZ(); ++i)
-		{
-			if (_save->getTiles()[i]->getMapData(MapData::O_FLOOR) &&
-				(_save->getTiles()[i]->getMapData(MapData::O_FLOOR)->getSpecialType() == START_POINT
-				/*||
-				(_save->getTiles()[i]->getPosition().z == _mapsize_z - 1 &&
-				_save->getTiles()[i]->getMapData(MapData::O_FLOOR)->isGravLift() &&
-				_save->getTiles()[i]->getMapData(MapData::O_OBJECT))*/
-				))
-				_save->getTiles()[i]->setDiscovered(true, 2);
-		}
 	}
 
 	// set shade (alien bases are a little darker, sites depend on worldshade)
@@ -701,6 +701,7 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 			_save->getUnits()->push_back(unit);
 			_save->getTileEngine()->calculateFOV(unit);
 			unit->deriveRank();
+			unit->setSpecialWeapon(_save, _game->getRuleset());
 			return unit;
 		}
 		else if (_save->getMissionType() != "STR_BASE_DEFENSE")
@@ -712,6 +713,7 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 				_save->getUnits()->push_back(unit);
 				_save->getTileEngine()->calculateFOV(unit);
 				unit->deriveRank();
+				unit->setSpecialWeapon(_save, _game->getRuleset());
 				return unit;
 			}
 		}
@@ -737,6 +739,7 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 					_save->getUnits()->push_back(unit);
 					unit->setDirection(dir);
 					unit->deriveRank();
+					unit->setSpecialWeapon(_save, _game->getRuleset());
 					return unit;
 				}
 			}
@@ -752,6 +755,7 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 				{
 					_save->getUnits()->push_back(unit);
 					unit->deriveRank();
+					unit->setSpecialWeapon(_save, _game->getRuleset());
 					return unit;
 				}
 			}
@@ -788,17 +792,25 @@ bool BattlescapeGenerator::canPlaceXCOMUnit(Tile *tile)
  * @param race Pointer to the alien race.
  * @param deployment Pointer to the deployment rules.
  */
-void BattlescapeGenerator::deployAliens(AlienRace *race, AlienDeployment *deployment)
+void BattlescapeGenerator::deployAliens(AlienDeployment *deployment)
 {
+	if (deployment->getRace() != "" && _alienRace == "")
+	{
+		_alienRace = deployment->getRace();
+	}
+
 	if (_save->getDepth() > 0 && _alienRace.find("_UNDERWATER") == std::string::npos)
 	{
-		std::stringstream ss;
-		ss << _alienRace << "_UNDERWATER";
-		if (_game->getRuleset()->getAlienRace(ss.str()))
-		{
-			race = _game->getRuleset()->getAlienRace(ss.str());
-		}
+		_alienRace = _alienRace + "_UNDERWATER";
 	}
+
+	if (_game->getRuleset()->getAlienRace(_alienRace) == 0)
+	{
+		throw Exception("Map generator encountered an error: Unknown race: " + _alienRace + " defined in deployment: " + deployment->getType());
+	}
+
+	AlienRace *race = _game->getRuleset()->getAlienRace(_alienRace);
+
 	int month;
 	if (_game->getSavedGame()->getMonthsPassed() != -1)
 	{
@@ -823,6 +835,8 @@ void BattlescapeGenerator::deployAliens(AlienRace *race, AlienDeployment *deploy
 			quantity = (*d).lowQty+(((*d).highQty-(*d).lowQty)/2) + RNG::generate(0, (*d).dQty); // veteran/genius
 		else
 			quantity = (*d).highQty + RNG::generate(0, (*d).dQty); // super (and beyond?)
+
+		quantity += RNG::generate(0, (*d).extraQty);
 
 		for (int i = 0; i < quantity; i++)
 		{
@@ -920,6 +934,7 @@ BattleUnit *BattlescapeGenerator::addAlien(Unit *rules, int alienRank, bool outs
 	{
 		unit->setAIState(new AlienBAIState(_game->getSavedGame()->getSavedBattle(), unit, node));
 		unit->setRankInt(alienRank);
+		unit->setSpecialWeapon(_save, _game->getRuleset());
 		int dir = _save->getTileEngine()->faceWindow(node->getPosition());
 		Position craft = _game->getSavedGame()->getSavedBattle()->getUnits()->at(0)->getPosition();
 		if (_save->getTileEngine()->distance(node->getPosition(), craft) <= 20 && RNG::percent(20 * difficulty))
@@ -946,6 +961,7 @@ BattleUnit *BattlescapeGenerator::addAlien(Unit *rules, int alienRank, bool outs
 		{
 			unit->setAIState(new AlienBAIState(_game->getSavedGame()->getSavedBattle(), unit, 0));
 			unit->setRankInt(alienRank);
+			unit->setSpecialWeapon(_save, _game->getRuleset());
 			int dir = _save->getTileEngine()->faceWindow(unit->getPosition());
 			Position craft = _game->getSavedGame()->getSavedBattle()->getUnits()->at(0)->getPosition();
 			if (_save->getTileEngine()->distance(unit->getPosition(), craft) <= 20 && RNG::percent(20 * difficulty))
@@ -1320,23 +1336,15 @@ int BattlescapeGenerator::loadMAP(MapBlock *mapblock, int xoff, int yoff, RuleTe
 				int mapDataSetID = mapDataSetOffset;
 				unsigned int mapDataID = terrainObjectID;
 				MapData *md = terrain->getMapData(&mapDataID, &mapDataSetID);
+				if (mapDataSetOffset > 0) // ie: ufo or craft.
+				{
+					_save->getTile(Position(x, y, z))->setMapData(0, -1, -1, 3);
+				}
 				_save->getTile(Position(x, y, z))->setMapData(md, mapDataID, mapDataSetID, part);
 			}
-			// if the part is empty and it's not a floor, remove it
-			// it prevents growing grass in UFOs
-			if (terrainObjectID == 0 && part == 3)
-			{
-				_save->getTile(Position(x, y, z))->setMapData(0, -1, -1, part);
-			}
 		}
-		if (craft && _craftZ == z)
-		{
-			for (int z2 = _save->getMapSizeZ()-1; z2 >= _craftZ; --z2)
-			{
-				_save->getTile(Position(x, y, z2))->setDiscovered(true, 2);
-			}
-		}
-		_save->getTile(Position(x, y, z))->setDiscovered(discovered, 2);
+
+		_save->getTile(Position(x, y, z))->setDiscovered((discovered || mapblock->isFloorRevealed(z)), 2);
 
 		x++;
 
@@ -1537,7 +1545,7 @@ bool BattlescapeGenerator::placeUnitNearFriend(BattleUnit *unit)
 	while (entryPoint == Position(-1, -1, -1) && tries)
 	{
 		BattleUnit* k = _save->getUnits()->at(RNG::generate(0, _save->getUnits()->size()-1));
-		if (k->getFaction() == unit->getFaction() && k->getPosition() != Position(-1, -1, -1) && k->getArmor()->getSize() == 1)
+		if (k->getFaction() == unit->getFaction() && k->getPosition() != Position(-1, -1, -1) && k->getArmor()->getSize() >= unit->getArmor()->getSize())
 		{
 			entryPoint = k->getPosition();
 		}
@@ -1841,7 +1849,7 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 								else
 								{
 									// wildcard, we don't care what block it is, we just wanna know if there's a block here
-									success = _blocks[x][y];
+									success = (_blocks[x][y] != 0);
 								}
 							}
 						}
@@ -1948,8 +1956,19 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 		}
 	}
 
+	for (int i = 0; i < _save->getMapSizeXYZ(); ++i)
+	{
+		for (int j = 0; j != 4; ++j)
+		{
+			if (_save->getTiles()[i]->getMapData(j) && _save->getTiles()[i]->getMapData(j)->getSpecialType() == MUST_DESTROY)
+			{
+				_save->addToObjectiveCount();
+			}
+		}
+	}
+
 	delete _dummy;
-	
+
 	attachNodeLinks();
 }
 
@@ -2516,6 +2535,7 @@ bool BattlescapeGenerator::removeBlocks(MapScript *command)
 			{
 				if (_blocks[x][y] != 0 && _blocks[x][y] != _dummy)
 				{
+					std::pair<int, int> pos(x, y);
 					if (!command->getGroups()->empty())
 					{
 						for (std::vector<int>::const_iterator z = command->getGroups()->begin(); z != command->getGroups()->end(); ++z)
@@ -2523,10 +2543,9 @@ bool BattlescapeGenerator::removeBlocks(MapScript *command)
 							if (_blocks[x][y]->isInGroup((*z)))
 							{
 								// the deleted vector should only contain unique entries
-								std::pair<int, int> pos = std::make_pair<int, int>(x, y);
 								if (std::find(deleted.begin(), deleted.end(), pos) == deleted.end())
 								{
-									deleted.push_back(std::make_pair<int, int>(x,y));
+									deleted.push_back(pos);
 								}
 							}
 						}
@@ -2538,10 +2557,9 @@ bool BattlescapeGenerator::removeBlocks(MapScript *command)
 							if ((size_t)(*z) < _terrain->getMapBlocks()->size())
 							{
 								// the deleted vector should only contain unique entries
-								std::pair<int, int> pos = std::make_pair<int, int>(x, y);
 								if (std::find(deleted.begin(), deleted.end(), pos) == deleted.end())
 								{
-									deleted.push_back(std::make_pair<int, int>(x,y));
+									deleted.push_back(pos);
 								}
 							}
 						}
@@ -2549,10 +2567,9 @@ bool BattlescapeGenerator::removeBlocks(MapScript *command)
 					else
 					{
 						// the deleted vector should only contain unique entries
-						std::pair<int, int> pos = std::make_pair<int, int>(x, y);
 						if (std::find(deleted.begin(), deleted.end(), pos) == deleted.end())
 						{
-							deleted.push_back(std::make_pair<int, int>(x,y));
+							deleted.push_back(pos);
 						}
 					}
 				}
@@ -2565,9 +2582,12 @@ bool BattlescapeGenerator::removeBlocks(MapScript *command)
 		int y = (*z).second;
 		clearModule(x * 10, y * 10, _blocks[x][y]->getSizeX(), _blocks[x][y]->getSizeY());
 
-		for (int dx = x; dx != x + (_blocks[x][y]->getSizeX() / 10); ++dx)
+		int delx = (_blocks[x][y]->getSizeX() / 10);
+		int dely = (_blocks[x][y]->getSizeY() / 10);
+
+		for (int dx = x; dx != x + delx; ++dx)
 		{
-			for (int dy = y; dy != y + (_blocks[x][y]->getSizeY() / 10); ++dy)
+			for (int dy = y; dy != y + dely; ++dy)
 			{
 				_blocks[dx][dy] = 0;
 				_blocksToDo++;

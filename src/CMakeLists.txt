@@ -436,6 +436,8 @@ set ( menu_src
   Menu/LoadGameState.h
   Menu/SaveGameState.cpp
   Menu/SaveGameState.h
+  Menu/ListLoadOriginalState.cpp
+  Menu/ListLoadOriginalState.h
 )
 
 set ( resource_src
@@ -587,6 +589,9 @@ set ( savegame_src
   Savegame/SerializationHelper.h
   Savegame/SoldierDeath.h
   Savegame/SoldierDeath.cpp
+  Savegame/SaveConverter.cpp
+  Savegame/SaveConverter.h
+  Savegame/SaveConverterXcom1.h
 )
 
 set ( ufopedia_src
@@ -614,6 +619,20 @@ set ( ufopedia_src
   Ufopaedia/ArticleStateTextImage.h
   Ufopaedia/ArticleStateTFTD.cpp
   Ufopaedia/ArticleStateTFTD.h
+  Ufopaedia/ArticleStateTFTDArmor.cpp
+  Ufopaedia/ArticleStateTFTDArmor.h
+  Ufopaedia/ArticleStateTFTDCraft.cpp
+  Ufopaedia/ArticleStateTFTDCraft.h
+  Ufopaedia/ArticleStateTFTDCraftWeapon.cpp
+  Ufopaedia/ArticleStateTFTDCraftWeapon.h
+  Ufopaedia/ArticleStateTFTDFacility.cpp
+  Ufopaedia/ArticleStateTFTDFacility.h
+  Ufopaedia/ArticleStateTFTDItem.cpp
+  Ufopaedia/ArticleStateTFTDItem.h
+  Ufopaedia/ArticleStateTFTDUso.cpp
+  Ufopaedia/ArticleStateTFTDUso.h
+  Ufopaedia/ArticleStateTFTDVehicle.cpp
+  Ufopaedia/ArticleStateTFTDVehicle.h
   Ufopaedia/ArticleStateArmor.cpp
   Ufopaedia/ArticleStateArmor.h
   Ufopaedia/ArticleStateVehicle.cpp

@@ -411,6 +411,8 @@ openxcom_SOURCES = \
 	src/Menu/ErrorMessageState.h \
 	src/Menu/ListLoadState.cpp \
 	src/Menu/ListLoadState.h \
+	src/Menu/ListLoadOriginalState.cpp \
+	src/Menu/ListLoadOriginalState.h \
 	src/Menu/MainMenuState.cpp \
 	src/Menu/MainMenuState.h \
 	src/Menu/NewBattleState.cpp \
@@ -580,6 +582,9 @@ openxcom_SOURCES = \
 	src/Savegame/SavedBattleGame.h \
 	src/Savegame/SavedGame.cpp \
 	src/Savegame/SavedGame.h \
+	src/Savegame/SaveConverter.cpp \
+	src/Savegame/SaveConverter.h \
+	src/Savegame/SaveConverterXcom1.h \
 	src/Savegame/SerializationHelper.h \
 	src/Savegame/SerializationHelper.cpp \
 	src/Savegame/Soldier.cpp \
@@ -620,6 +625,20 @@ openxcom_SOURCES = \
 	src/Ufopaedia/ArticleStateTextImage.h \
 	src/Ufopaedia/ArticleStateTFTD.cpp \
 	src/Ufopaedia/ArticleStateTFTD.h \
+	src/Ufopaedia/ArticleStateTFTDArmor.cpp \
+	src/Ufopaedia/ArticleStateTFTDArmor.h \
+	src/Ufopaedia/ArticleStateTFTDCraft.cpp \
+	src/Ufopaedia/ArticleStateTFTDCraft.h \
+	src/Ufopaedia/ArticleStateTFTDCraftWeapon.cpp \
+	src/Ufopaedia/ArticleStateTFTDCraftWeapon.h \
+	src/Ufopaedia/ArticleStateTFTDFacility.cpp \
+	src/Ufopaedia/ArticleStateTFTDFacility.h \
+	src/Ufopaedia/ArticleStateTFTDItem.cpp \
+	src/Ufopaedia/ArticleStateTFTDItem.h \
+	src/Ufopaedia/ArticleStateTFTDUso.cpp \
+	src/Ufopaedia/ArticleStateTFTDUso.h \
+	src/Ufopaedia/ArticleStateTFTDVehicle.cpp \
+	src/Ufopaedia/ArticleStateTFTDVehicle.h \
 	src/Ufopaedia/ArticleStateUfo.cpp \
 	src/Ufopaedia/ArticleStateUfo.h \
 	src/Ufopaedia/ArticleStateVehicle.cpp \
