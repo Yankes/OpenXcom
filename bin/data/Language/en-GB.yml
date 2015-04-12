@@ -1186,6 +1186,8 @@ en-GB:
   STR_TFTDDAMAGE_DESC: "Weapons will do between 50% and 150% of their rated damage as opposed to UFO: Enemy Unknown's 0% to 200%"
   STR_BATTLESMOOTHCAMERA: "Smooth Bullet Camera"
   STR_BATTLESMOOTHCAMERA_DESC: "The Battlescape camera will remain centred on projectiles while in flight."
+  STR_BATTLEADVANCEDSCANNER: "Advanced motion scanner"
+  STR_BATTLEADVANCEDSCANNER_DESC: "Locations of enemies, uncovered by scanner, will be marked as red boxes on the battlefield."
   STR_BATTLECONFIRMFIREMODE: "Confirm Fire mode"
   STR_BATTLECONFIRMFIREMODE_DESC: "Require a second click on the same tile to confirm fire orders."
   STR_SELECT_BASE_1: "Select Base 1"

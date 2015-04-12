@@ -67,6 +67,7 @@ void ScannerView::draw()
 					int frame = (t->getUnit()->getMotionPoints() / 5);
 					if (frame >= 0)
 					{
+						t->getUnit()->setScannedTurn(_game->getSavedGame()->getSavedBattle()->getTurn());
 						if (frame > 5) frame = 5;
 						surface = set->getFrame(frame + _frame);
 						surface->blitNShade(this, Surface::getX()+((9+x)*8)-4, Surface::getY()+((9+y)*8)-4, 0);

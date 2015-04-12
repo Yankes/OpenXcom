@@ -979,6 +979,16 @@ void Map::drawTerrain(Surface *surface)
 								tmpSurface->blitNShade(surface, screenPosition.x, screenPosition.y - tile->getMapData(MapData::O_OBJECT)->getYOffset(), tileShade, false);
 						}
 					}
+					// Draw a box around scanned unit
+					if (Options::battleAdvancedScanner && unit && unit->getScannedTurn() == _save->getTurn() &&
+						_save->getSide() == FACTION_PLAYER && !unit->getVisible() &&
+						!(_selectorX == itX && _selectorY == itY && _camera->getViewLevel() >= itZ))
+					{
+							tmpSurface = _res->getSurfaceSet("CURSOR.PCK")->getFrame(0);	// back of red box
+							tmpSurface->blitNShade(surface, screenPosition.x, screenPosition.y, 0);
+							tmpSurface = _res->getSurfaceSet("CURSOR.PCK")->getFrame(3);	// front of red box
+							tmpSurface->blitNShade(surface, screenPosition.x, screenPosition.y, 0);
+					}
 					// Draw cursor front
 					if (_cursorType != CT_NONE && _selectorX > itX - _cursorSize && _selectorY > itY - _cursorSize && _selectorX < itX+1 && _selectorY < itY+1 && !_save->getBattleState()->getMouseOverIcons())
 					{
