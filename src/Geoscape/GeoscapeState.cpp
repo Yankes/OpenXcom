@@ -1020,6 +1020,7 @@ void GeoscapeState::time10Minutes()
 							if (RNG::percent(50-((*j)->getDistance(*b) / range) * 50) && !(*b)->isDiscovered())
 							{
 								(*b)->setDiscovered(true);
+								(*b)->setId(_game->getSavedGame()->getId("STR_ALIEN_BASE"));
 							}
 						}
 					}
@@ -1712,6 +1713,7 @@ void GeoscapeState::time1Month()
 			if (!(*b)->isDiscovered())
 			{
 				(*b)->setDiscovered(true);
+				(*b)->setId(_game->getSavedGame()->getId("STR_ALIEN_BASE"));
 				popup(new AlienBaseState(*b, this));
 				break;
 			}
