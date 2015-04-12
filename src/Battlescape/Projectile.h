@@ -61,7 +61,7 @@ public:
 	int calculateTrajectory(double accuracy);
 	int calculateTrajectory(double accuracy, Position originVoxel);
 	/// Calculates the trajectory for a curved path.
-	int calculateThrow(double accuracy);
+	int calculateThrow(double accuracy, bool doTestTrajectory = false);
 	/// Moves the projectile one step in its trajectory.
 	bool move();
 	/// Gets the current position in voxel space.

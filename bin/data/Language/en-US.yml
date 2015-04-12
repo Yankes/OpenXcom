@@ -1184,6 +1184,8 @@ en-US:
   STR_ALLOWPSISTRENGTHIMPROVEMENT_DESC: "Psionic strength of the soldiers can be improved by experience and training."
   STR_TFTDDAMAGE: "TFTD Damage Formula"
   STR_TFTDDAMAGE_DESC: "Weapons will do between 50% and 150% of their rated damage as opposed to X-COM: UFO Defense's 0% to 200%"
+  STR_BATTLESHOWTHROWCROSSHAIR: "Show crosshair when throwing"
+  STR_BATTLESHOWTHROWCROSSHAIR_DESC: "When use grenade will be shown an area, affected by explosion."
   STR_BATTLESMOOTHCAMERA: "Smooth Bullet Camera"
   STR_BATTLESMOOTHCAMERA_DESC: "The Battlescape camera will remain centered on projectiles while in flight."
   STR_BATTLECONFIRMFIREMODE: "Confirm Fire mode"

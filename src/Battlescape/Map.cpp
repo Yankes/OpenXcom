@@ -112,7 +112,12 @@ Map::Map(Game *game, int width, int height, int x, int y, int visibleMapHeight) 
 	_scrollKeyTimer = new Timer(SCROLL_INTERVAL);
 	_scrollKeyTimer->onTimer((SurfaceHandler)&Map::scrollKey);
 	_camera->setScrollTimer(_scrollMouseTimer, _scrollKeyTimer);
-	
+
+	_throwCrosshair = new Surface(width, height, x, y);
+	_throwFrame = new Surface(_spriteWidth, _spriteWidth / 2 - 1, 0, 0);	// _spriteHeight
+	_throwFrame->getCrop()->w = _spriteWidth;
+	_throwFrame->getCrop()->h = _spriteWidth / 2 - 1;	// _spriteHeight
+
 	_txtAccuracy = new Text(24, 9, 0, 0);
 	_txtAccuracy->setSmall();
 	_txtAccuracy->setPalette(_game->getScreen()->getPalette());
@@ -130,6 +135,8 @@ Map::~Map()
 	delete _arrow;
 	delete _message;
 	delete _camera;
+	delete _throwCrosshair;
+	delete _throwFrame;
 	delete _txtAccuracy;
 }
 
@@ -158,6 +165,9 @@ void Map::init()
 		for (int x = 0; x < 9; ++x)
 			_arrow->setPixel(x, y, pixels[x+(y*9)]);
 	_arrow->unlock();
+
+	_throwCrosshair->setPalette(getPalette());
+	_throwFrame->setPalette(getPalette());
 
 	_projectile = 0;
 	if (_save->getDepth() == 0)
@@ -393,6 +403,35 @@ void Map::drawTerrain(Surface *surface)
 		_numWaypid->setColor(pathfinderTurnedOn ? _messageColor + 1 : Palette::blockOffset(1));
 	}
 
+	// preparation for drawing the blast radius
+	bool needDrawBlastRadius = false;
+	BattleAction *action = 0;
+	if (_cursorType == CT_THROW && Options::battleShowThrowCrosshair)
+	{
+		Position selPosition;
+		getSelectorPosition(&selPosition);
+		action = _save->getBattleState()->getBattleGame()->getCurrentAction();
+		action->target = selPosition;
+		if (selPosition.x >= beginX && selPosition.x <  endX &&	// if <= endX or
+			selPosition.y >= beginY && selPosition.y <  endY &&	// if <= endY then will be exception by nullptr in calculateThrow() in getTile()
+			selPosition.z >= beginZ && selPosition.z <= endZ)
+		{
+			static int impact = V_OUTOFBOUNDS;
+			static Position oldPosition(-1,-1,-1);
+
+			if (oldPosition != selPosition)
+			{
+				oldPosition = selPosition;
+				Projectile p(_res, _save, *action, action->actor->getPosition(), action->target, 0);
+				impact = p.calculateThrow(1.0, true);
+			}
+			if (impact == V_FLOOR || impact == V_UNIT || impact == V_OBJECT)
+			{
+				needDrawBlastRadius = drawBlastRadius(*action);
+			}
+		}
+	}
+
 	surface->lock();
 	for (int itZ = beginZ; itZ <= endZ; itZ++)
 	{
@@ -429,6 +468,22 @@ void Map::drawTerrain(Surface *surface)
 					if (tmpSurface)
 						tmpSurface->blitNShade(surface, screenPosition.x, screenPosition.y - tile->getMapData(MapData::O_FLOOR)->getYOffset(), tileShade, false);
 					unit = tile->getUnit();
+
+					// Draw blast radius
+					if (needDrawBlastRadius && action->target.z == itZ && tileShade != 16 
+						&& !(tile->hasNoFloor(_save->getTile(mapPosition + Position(0, 0, -1))))
+						&& screenPosition.x > _throwCrosshair->getCrop()->x
+						&& screenPosition.x < _throwCrosshair->getCrop()->w
+						&& screenPosition.y > _throwCrosshair->getCrop()->y
+						&& screenPosition.y < _throwCrosshair->getCrop()->h)
+					{
+						_throwFrame->getCrop()->x = screenPosition.x;
+						_throwFrame->getCrop()->y = screenPosition.y + 25;	// 40-32/2+1 = 25px. Otherwise tiles crossing by previous tiles.
+						_throwFrame->clear();
+						SDL_BlitSurface(_throwCrosshair->getSurface(), _throwFrame->getCrop(), _throwFrame->getSurface(), 0);
+						clipCorners(_throwFrame);
+						_throwFrame->blitNShade(surface, screenPosition.x, screenPosition.y + 25, 0);
+					}
 
 					// Draw cursor back
 					if (_cursorType != CT_NONE && _selectorX > itX - _cursorSize && _selectorY > itY - _cursorSize && _selectorX < itX+1 && _selectorY < itY+1 && !_save->getBattleState()->getMouseOverIcons())
@@ -1744,4 +1799,121 @@ void Map::resetCameraSmoothing()
 {
 	_smoothingEngaged = false;
 }
+
+/**
+ * Drawing blast radius.
+ * @param Current action.
+ * @return False if nothing to draw. Else - True.
+ */
+bool Map::drawBlastRadius(const BattleAction& action)
+{
+	static Position oldBlastCenter(-1,-1,-1);
+	static int flashFrame = -1;
+
+	if (action.weapon->getFuseTimer() < 0)  return false;
+
+	int blastRadius = action.weapon->getRules()->getExplosionRadius();
+	if (blastRadius <= 0)  return false;
+
+	Sint16 rx = 24 * blastRadius;
+	Sint16 ry = 12 * blastRadius;
+
+	Position blastCenter;
+	_camera->convertMapToScreen(action.target, &blastCenter);
+	blastCenter.x += _camera->getMapOffset().x + _spriteWidth / 2;
+	blastCenter.y += _camera->getMapOffset().y + _spriteWidth;	// _spriteHeight - _spriteWidth / 4;
+
+	// need to check, maybe surface already ready
+	if (oldBlastCenter == blastCenter && flashFrame == (_animFrame & 2))
+	{
+		return true;
+	}
+
+	oldBlastCenter = blastCenter;
+	flashFrame = _animFrame & 2;	// blinking 2 times slowly
+
+	int beginX = action.target.x - blastRadius,   endX = action.target.x + blastRadius;
+	int beginY = action.target.y - blastRadius,   endY = action.target.y + blastRadius;
+	int beginZ = action.target.z - blastRadius,   endZ = action.target.z + blastRadius;
+
+	if (beginX < 0)  beginX = 0;
+	if (beginY < 0)  beginY = 0;
+	if (endX > _save->getMapSizeX() - 1)  endX = _save->getMapSizeX() - 1;
+	if (endY > _save->getMapSizeY() - 1)  endY = _save->getMapSizeY() - 1;
+
+	if (Options::battleExplosionHeight == 0)
+	{
+		// flat vanilla explosion
+		endZ = beginZ = action.target.z;
+	}
+	else
+	{
+		// OpenXcom 3D explosion
+		if (beginZ < 0)  beginZ = 0;
+		if (endZ > _save->getMapSizeZ() - 1)  endZ = _save->getMapSizeZ() - 1;
+	}
+
+	// searching visible battle units in lethal area
+	bool flash = false;
+	blastRadius *= blastRadius;
+	for (int itZ = beginZ; itZ <= endZ; ++itZ)
+	{
+		int sqrZ = (action.target.z - itZ) * (action.target.z - itZ);
+		for (int itY = beginY; itY <= endY; ++itY)
+		{
+			int sqrY = (action.target.y - itY) * (action.target.y - itY);
+			for (int itX = beginX; itX <= endX; ++itX)
+			{
+				if (blastRadius >= (action.target.x - itX) * (action.target.x - itX) + sqrY + sqrZ)
+				{
+					BattleUnit *bu = _save->getTile(Position(itX, itY, itZ))->getUnit();
+					if (bu != 0 && bu->getVisible() && !bu->isOut())
+					{
+						flash = true;
+						goto out_of_searching_bu;	// yes, this is the same rare case when "goto" better than "break".
+					}
+				}
+			}
+		}
+	}
+	out_of_searching_bu:
+
+	Uint8 color1 = !flash? Palette::blockOffset(2)+3 : Palette::blockOffset(9)+2 + flashFrame;
+	Uint8 color2 = !flash? Palette::blockOffset(2)+5 : Palette::blockOffset(9)+5 + flashFrame;
+
+	// drawing of the crosshair
+	_throwCrosshair->draw();
+	_throwCrosshair->drawEllipse(blastCenter.x, blastCenter.y, rx,     ry,     color1);
+	_throwCrosshair->drawEllipse(blastCenter.x, blastCenter.y, rx - 3, ry - 2, color2);
+	_throwCrosshair->drawEllipse(blastCenter.x, blastCenter.y, rx - 6, ry - 4, 0);
+	_throwCrosshair->getCrop()->w = blastCenter.x + rx;	// + _spriteWidth;
+	_throwCrosshair->getCrop()->h = blastCenter.y + ry;	// + _spriteHeight;
+	_throwCrosshair->getCrop()->x = blastCenter.x - rx - _spriteWidth;
+	_throwCrosshair->getCrop()->y = blastCenter.y - ry - _spriteHeight;
+
+	return true;
+}
+
+/**
+ * Clipping left and right corners.
+ * @param Surface.
+ */
+void Map::clipCorners(Surface *surface)
+{
+	Uint16 *pixels = (Uint16*)surface->getSurface()->pixels;
+	int pitch = surface->getSurface()->format->BytesPerPixel * surface->getSurface()->pitch / 2;
+	int last = surface->getWidth() * surface->getHeight() / 2 - 1;
+
+	for (int y = 0; y <= 6; ++y)
+		for (int x = 0; x <= 6 - y; ++x)
+		{
+			int top_left  = y * pitch + x;
+			int top_right = y * pitch + pitch - 1 - x;
+			pixels[top_left] = 0;	// top left corner
+			pixels[top_right] = 0;	// top right corner
+			pixels[last - top_left] = 0;	// bottom right corner
+			pixels[last - top_right] = 0;	// bottom left corner
+		}
+}
+
 }

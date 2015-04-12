@@ -612,6 +612,19 @@ void Surface::drawCircle(Sint16 x, Sint16 y, Sint16 r, Uint8 color)
 }
 
 /**
+ * Draws a filled ellipse on the surface.
+ * @param x X coordinate in pixels.
+ * @param y Y coordinate in pixels.
+ * @param rx Radius in pixels on X axis.
+ * @param ry Radius in pixels on Y axis.
+ * @param color Color of the circle.
+ */
+void Surface::drawEllipse(Sint16 x, Sint16 y, Sint16 rx, Sint16 ry, Uint8 color)
+{
+	filledEllipseColor(_surface, x, y, rx, ry, Palette::getRGBA(getPalette(), color));
+}
+
+/**
  * Draws a filled polygon on the surface.
  * @param x Array of x coordinates.
  * @param y Array of y coordinates.

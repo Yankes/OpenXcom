@@ -210,9 +210,10 @@ int Projectile::calculateTrajectory(double accuracy, Position originVoxel)
 /**
  * Calculates the trajectory for a curved path.
  * @param accuracy The unit's accuracy.
+ * @param doTestTrajectory
  * @return True when a trajectory is possible.
  */
-int Projectile::calculateThrow(double accuracy)
+int Projectile::calculateThrow(double accuracy, bool doTestTrajectory)
 {
 	Tile *targetTile = _save->getTile(_action.target);
 
@@ -235,6 +236,11 @@ int Projectile::calculateThrow(double accuracy)
 	int retVal = V_OUTOFBOUNDS;
 	if (_save->getTileEngine()->validateThrow(_action, originVoxel, targetVoxel, &curvature, &retVal))
 	{
+		if (doTestTrajectory)
+		{
+			return V_FLOOR;	// retVal;
+		}
+
 		int test = V_OUTOFBOUNDS;
 		// finally do a line calculation and store this trajectory, make sure it's valid.
 		while (test == V_OUTOFBOUNDS)
