@@ -227,8 +227,8 @@ openxcom_SOURCES = \
 	src/Engine/Exception.h \
 	src/Engine/FastLineClip.cpp \
 	src/Engine/FastLineClip.h \
-	src/Engine/Flc.cpp \
-	src/Engine/Flc.h \
+	src/Engine/FlcPlayer.cpp \
+	src/Engine/FlcPlayer.h \
 	src/Engine/Font.cpp \
 	src/Engine/Font.h \
 	src/Engine/Game.cpp \
@@ -295,8 +295,8 @@ openxcom_SOURCES = \
 	src/Engine/Zoom.h \
 	src/Geoscape/AlienBaseState.cpp \
 	src/Geoscape/AlienBaseState.h \
-	src/Geoscape/AlienTerrorState.cpp \
-	src/Geoscape/AlienTerrorState.h \
+	src/Geoscape/MissionDetectedState.cpp \
+	src/Geoscape/MissionDetectedState.h \
 	src/Geoscape/AllocatePsiTrainingState.cpp \
 	src/Geoscape/AllocatePsiTrainingState.h \
 	src/Geoscape/BaseDefenseState.cpp \
@@ -516,6 +516,8 @@ openxcom_SOURCES = \
 	src/Ruleset/RuleItem.h \
 	src/Ruleset/RuleManufacture.cpp \
 	src/Ruleset/RuleManufacture.h \
+	src/Ruleset/RuleMusic.cpp \
+	src/Ruleset/RuleMusic.h \
 	src/Ruleset/RuleRegion.cpp \
 	src/Ruleset/RuleRegion.h \
 	src/Ruleset/RuleResearch.cpp \
@@ -528,6 +530,8 @@ openxcom_SOURCES = \
 	src/Ruleset/RuleTerrain.h \
 	src/Ruleset/RuleUfo.cpp \
 	src/Ruleset/RuleUfo.h \
+	src/Ruleset/RuleVideo.cpp \
+	src/Ruleset/RuleVideo.h \
 	src/Ruleset/SoldierNamePool.cpp \
 	src/Ruleset/SoldierNamePool.h \
 	src/Ruleset/StatString.h \
@@ -536,6 +540,8 @@ openxcom_SOURCES = \
 	src/Ruleset/StatStringCondition.cpp \
 	src/Ruleset/SoundDefinition.h \
 	src/Ruleset/SoundDefinition.cpp \
+	src/Ruleset/Texture.h \
+	src/Ruleset/Texture.cpp \
 	src/Ruleset/UfoTrajectory.cpp \
 	src/Ruleset/UfoTrajectory.h \
 	src/Ruleset/Unit.cpp \
@@ -593,8 +599,8 @@ openxcom_SOURCES = \
 	src/Savegame/SoldierDeath.h \
 	src/Savegame/Target.cpp \
 	src/Savegame/Target.h \
-	src/Savegame/TerrorSite.cpp \
-	src/Savegame/TerrorSite.h \
+	src/Savegame/MissionSite.cpp \
+	src/Savegame/MissionSite.h \
 	src/Savegame/Tile.cpp \
 	src/Savegame/Tile.h \
 	src/Savegame/Transfer.cpp \

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2014 OpenXcom Developers.
+ * Copyright 2010-2015 OpenXcom Developers.
  *
  * This file is part of OpenXcom.
  *
@@ -170,4 +170,14 @@ void AdlibMusic::player(void *udata, Uint8 *stream, int len)
 #endif
 }
 
+bool AdlibMusic::isPlaying()
+{
+#ifndef __NO_MUSIC
+	if (!Options::mute)
+	{
+		return func_is_music_playing();
+	}
+#endif
+	return false;
+}
 }

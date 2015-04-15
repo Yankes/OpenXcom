@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2014 OpenXcom Developers.
+ * Copyright 2010-2015 OpenXcom Developers.
  *
  * This file is part of OpenXcom.
  *
@@ -96,9 +96,12 @@ void Tile::load(const YAML::Node &node)
 	}
 	_fire = node["fire"].as<int>(_fire);
 	_smoke = node["smoke"].as<int>(_smoke);
-	for (int i = 0; i < 3; i++)
+	if (node["discovered"])
 	{
-		_discovered[i] = node["discovered"][i].as<bool>();
+		for (int i = 0; i < 3; i++)
+		{
+			_discovered[i] = node["discovered"][i].as<bool>();
+		}
 	}
 	if (node["openDoorWest"])
 	{

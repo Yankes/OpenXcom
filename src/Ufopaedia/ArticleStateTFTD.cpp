@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2014 OpenXcom Developers.
+ * Copyright 2010-2015 OpenXcom Developers.
  *
  * This file is part of OpenXcom.
  *
@@ -35,7 +35,6 @@ namespace OpenXcom
 	{
 		// Set palette
 		setPalette("PAL_BASESCAPE");
-		_game->getCursor()->setColor(Palette::blockOffset(2)+9);
 
 		_btnOk->setX(227);
 		_btnOk->setY(179);
