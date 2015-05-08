@@ -153,7 +153,7 @@ void AlienBAIState::think(BattleAction *action)
 	_knownEnemies = countKnownTargets();
 	_visibleEnemies = selectNearestTarget();
 	_spottingEnemies = getSpottingUnits(_unit->getPosition());
-	_melee = _unit->getMeleeWeapon();
+	_melee = _unit->getMeleeWeapon() != 0;
 	_rifle = false;
 	_blaster = false;
 	_reachable = _save->getPathfinding()->findReachable(_unit, _unit->getTimeUnits());
@@ -496,6 +496,8 @@ void AlienBAIState::setupPatrol()
 			// can i shoot an object?
 			if (_fromNode->isTarget() &&
 				_unit->getMainHandWeapon() &&
+				_unit->getMainHandWeapon()->getRules()->getAccuracySnap() &&
+				_unit->getMainHandWeapon()->getAmmoItem() &&
 				_unit->getMainHandWeapon()->getAmmoItem()->getRules()->getDamageType() != DT_HE &&
 				_save->getModuleMap()[_fromNode->getPosition().x / 10][_fromNode->getPosition().y / 10].second > 0)
 			{
@@ -1495,8 +1497,12 @@ bool AlienBAIState::findFirePoint()
 bool AlienBAIState::explosiveEfficacy(Position targetPos, BattleUnit *attackingUnit, int radius, int diff, bool grenade) const
 {
 	// i hate the player and i want him dead, but i don't want to piss him off.
-	if (_save->getTurn() < 3)
+	Ruleset *ruleset = _save->getBattleState()->getGame()->getRuleset();
+	if ((!grenade && _save->getTurn() < ruleset->getTurnAIUseBlaster()) ||
+		 (grenade && _save->getTurn() < ruleset->getTurnAIUseGrenade()))
+	{
 		return false;
+	}
 	if (diff == -1)
 	{
 		diff = (int)(_save->getBattleState()->getGame()->getSavedGame()->getDifficulty());
@@ -2053,7 +2059,7 @@ void AlienBAIState::selectMeleeOrRanged()
 bool AlienBAIState::getNodeOfBestEfficacy(BattleAction *action)
 {
 	// i hate the player and i want him dead, but i don't want to piss him off.
-	if (_save->getTurn() < 3)
+	if (_save->getTurn() < _save->getBattleState()->getGame()->getRuleset()->getTurnAIUseGrenade())
 		return false;
 
 	int bestScore = 2;
@@ -2096,6 +2102,11 @@ bool AlienBAIState::getNodeOfBestEfficacy(BattleAction *action)
 		}
 	}
 	return bestScore > 2;
+}
+
+BattleUnit* AlienBAIState::getTarget()
+{
+	return _aggroTarget;
 }
 
 }

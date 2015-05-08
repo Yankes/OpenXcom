@@ -36,7 +36,7 @@
 #include "../Savegame/Node.h"
 #include "../Engine/Game.h"
 #include "../Engine/Language.h"
-#include "../Engine/CrossPlatform.h"
+#include "../Engine/FileMap.h"
 #include "../Engine/Options.h"
 #include "../Engine/RNG.h"
 #include "../Engine/Exception.h"
@@ -218,6 +218,51 @@ void BattlescapeGenerator::nextStage()
 	}
 	_save->resetTurnCounter();
 
+	// remove all items not belonging to our soldiers from the map.
+	// sort items into two categories:
+	// the ones that we are guaranteed to be able to take home, barring complete failure (ie: stuff on the ship)
+	// and the ones that are scattered about on the ground, that will be recovered ONLY on success.
+	// this does not include items in your soldier's hands.
+	std::vector<BattleItem*> *takeHomeGuaranteed = _save->getGuaranteedRecoveredItems();
+	std::vector<BattleItem*> *takeHomeConditional = _save->getConditionalRecoveredItems();
+	std::vector<BattleItem*> takeToNextStage;
+	std::map<RuleItem*, int> guaranteedRounds, conditionalRounds;
+
+	for (std::vector<BattleItem*>::iterator j = _save->getItems()->begin(); j != _save->getItems()->end();)
+	{
+		if (!(*j)->getOwner() || (*j)->getOwner()->getOriginalFaction() != FACTION_PLAYER)
+		{
+			Tile *tile = (*j)->getTile();
+			std::vector<BattleItem*> *toContainer = takeHomeConditional;
+			if (tile)
+			{
+				tile->removeItem(*j);
+				if (tile->getMapData(MapData::O_FLOOR))
+				{
+					if (tile->getMapData(MapData::O_FLOOR)->getSpecialType() == START_POINT)
+					{
+						toContainer = takeHomeGuaranteed;
+					}
+					else if (tile->getMapData(MapData::O_FLOOR)->getSpecialType() == END_POINT
+					&& (*j)->getRules()->isRecoverable()
+					&& !(*j)->getUnit())
+					{
+						takeToNextStage.push_back(*j);
+						++j;
+						continue;
+					}
+				}
+			}
+			if ((*j)->getRules()->isRecoverable() && !(*j)->getXCOMProperty())
+			{
+				toContainer->push_back(*j);
+				j = _save->getItems()->erase(j);
+				continue;
+			}
+		}
+		++j;
+	}
+
 	AlienDeployment *ruleDeploy = _game->getRuleset()->getDeployment(_save->getMissionType());
 	ruleDeploy->getDimensions(&_mapsize_x, &_mapsize_y, &_mapsize_z);
 	size_t pick = RNG::generate(0, ruleDeploy->getTerrains().size() -1);
@@ -278,14 +323,13 @@ void BattlescapeGenerator::nextStage()
 		}
 	}
 
-	// remove all items not belonging to our soldiers from the map.
-	for (std::vector<BattleItem*>::iterator j = _save->getItems()->begin(); j != _save->getItems()->end(); ++j)
+	RuleInventory *ground = _game->getRuleset()->getInventory("STR_GROUND");
+
+	for (std::vector<BattleItem*>::iterator i = takeToNextStage.begin(); i != takeToNextStage.end(); ++i)
 	{
-		if (!(*j)->getOwner() || (*j)->getOwner()->getId() > highestSoldierID)
-		{
-			(*j)->setTile(0);
-		}
+		_craftInventoryTile->addItem(*i, ground);
 	}
+
 	_unitSequence = _save->getUnits()->back()->getId() + 1;
 
 	size_t unitCount = _save->getUnits()->size();
@@ -339,22 +383,30 @@ void BattlescapeGenerator::run()
 
 	if (_terrain == 0)
 	{
-		if (_worldTexture == 0 || _worldTexture->getTerrain()->empty())
+		if (_worldTexture == 0 || _worldTexture->getTerrain()->empty() || !ruleDeploy->getTerrains().empty())
 		{
 			size_t pick = RNG::generate(0, ruleDeploy->getTerrains().size() - 1);
 			_terrain = _game->getRuleset()->getTerrain(ruleDeploy->getTerrains().at(pick));
 		}
 		else
-		{			
+		{
 			Target *target = _ufo;
 			if (_mission) target = _mission;
 			_terrain = _game->getRuleset()->getTerrain(_worldTexture->getRandomTerrain(target));
 		}
 	}
+
 	// new battle menu will have set the depth already
-	if (_terrain->getMaxDepth() > 0 && _save->getDepth() == 0)
+	if (_save->getDepth() == 0)
 	{
-		_save->setDepth(RNG::generate(_terrain->getMinDepth(), _terrain->getMaxDepth()));
+		if (ruleDeploy->getMaxDepth() > 0)
+		{
+			_save->setDepth(RNG::generate(ruleDeploy->getMinDepth(), ruleDeploy->getMaxDepth()));
+		}
+		else if (_terrain->getMaxDepth() > 0)
+		{
+			_save->setDepth(RNG::generate(_terrain->getMinDepth(), _terrain->getMaxDepth()));
+		}
 	}
 
 	if (ruleDeploy->getShade() != -1)
@@ -400,6 +452,14 @@ void BattlescapeGenerator::run()
 		explodePowerSources();
 	}
 
+	if (!ruleDeploy->getMusic().empty())
+	{
+		_save->setMusic(ruleDeploy->getMusic().at(RNG::generate(0, ruleDeploy->getMusic().size()-1)));
+	}
+	else if (!_terrain->getMusic().empty())
+	{
+		_save->setMusic(_terrain->getMusic().at(RNG::generate(0, _terrain->getMusic().size()-1)));
+	}
 	// set shade (alien bases are a little darker, sites depend on worldshade)
 	_save->setGlobalShade(_worldShade);
 
@@ -651,6 +711,20 @@ BattleUnit *BattlescapeGenerator::addXCOMVehicle(Vehicle *v)
 	BattleUnit *unit = addXCOMUnit(new BattleUnit(rule, FACTION_PLAYER, _unitSequence++, _game->getRuleset()->getArmor(rule->getArmor()), 0, _save->getDepth()));
 	if (unit)
 	{
+		BattleItem *item = new BattleItem(_game->getRuleset()->getItem(vehicle), _save->getCurrentItemId());
+		if (!addItem(item, unit))
+		{
+			delete item;
+		}
+		if (!v->getRules()->getCompatibleAmmo()->empty())
+		{
+			std::string ammo = v->getRules()->getCompatibleAmmo()->front();
+			BattleItem *ammoItem = new BattleItem(_game->getRuleset()->getItem(ammo), _save->getCurrentItemId());
+			addItem(ammoItem, unit);
+			ammoItem->setAmmoQuantity(v->getAmmo());
+		}
+		unit->setTurretType(v->getRules()->getTurretType());
+
 		if (!rule->getBuiltInWeapons().empty())
 		{
 			for (std::vector<std::string>::const_iterator i = rule->getBuiltInWeapons().begin(); i != rule->getBuiltInWeapons().end(); ++i)
@@ -666,19 +740,6 @@ BattleUnit *BattlescapeGenerator::addXCOMVehicle(Vehicle *v)
 				}
 			}
 		}
-		BattleItem *item = new BattleItem(_game->getRuleset()->getItem(vehicle), _save->getCurrentItemId());
-		if (!addItem(item, unit))
-		{
-			delete item;
-		}
-		if (!v->getRules()->getCompatibleAmmo()->empty())
-		{
-			std::string ammo = v->getRules()->getCompatibleAmmo()->front();
-			BattleItem *ammoItem = new BattleItem(_game->getRuleset()->getItem(ammo), _save->getCurrentItemId());
-			addItem(ammoItem, unit);
-			ammoItem->setAmmoQuantity(v->getAmmo());
-		}
-		unit->setTurretType(v->getRules()->getTurretType());
 	}
 	return unit;
 }
@@ -704,7 +765,6 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 			unit->setDirection(RNG::generate(0,7));
 			_save->getUnits()->push_back(unit);
 			_save->getTileEngine()->calculateFOV(unit);
-			unit->deriveRank();
 			unit->setSpecialWeapon(_save, _game->getRuleset());
 			return unit;
 		}
@@ -716,7 +776,6 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 				unit->setDirection(RNG::generate(0,7));
 				_save->getUnits()->push_back(unit);
 				_save->getTileEngine()->calculateFOV(unit);
-				unit->deriveRank();
 				unit->setSpecialWeapon(_save, _game->getRuleset());
 				return unit;
 			}
@@ -742,7 +801,6 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 				{
 					_save->getUnits()->push_back(unit);
 					unit->setDirection(dir);
-					unit->deriveRank();
 					unit->setSpecialWeapon(_save, _game->getRuleset());
 					return unit;
 				}
@@ -758,7 +816,6 @@ BattleUnit *BattlescapeGenerator::addXCOMUnit(BattleUnit *unit)
 				if (_save->setUnitPosition(unit, _save->getTiles()[i]->getPosition()))
 				{
 					_save->getUnits()->push_back(unit);
-					unit->deriveRank();
 					unit->setSpecialWeapon(_save, _game->getRuleset());
 					return unit;
 				}
@@ -849,7 +906,7 @@ void BattlescapeGenerator::deployAliens(AlienDeployment *deployment)
 				outside = false;
 			Unit *rule = _game->getRuleset()->getUnit(alienName);
 			BattleUnit *unit = addAlien(rule, (*d).alienRank, outside);
-			int itemLevel = _game->getRuleset()->getAlienItemLevels().at(month).at(RNG::generate(0,9));
+			size_t itemLevel = (size_t)(_game->getRuleset()->getAlienItemLevels().at(month).at(RNG::generate(0,9)));
 			if (unit)
 			{
 				// Built in weapons: the unit has this weapon regardless of loadout or what have you.
@@ -890,6 +947,14 @@ void BattlescapeGenerator::deployAliens(AlienDeployment *deployment)
 				}
 				else
 				{
+					if ((*d).itemSets.size() == 0)
+					{
+						throw Exception("Unit generator encountered an error: item set not defined");
+					}
+					if (itemLevel >= (*d).itemSets.size())
+					{
+						itemLevel = (*d).itemSets.size() - 1;
+					}
 					for (std::vector<std::string>::iterator it = (*d).itemSets.at(itemLevel).items.begin(); it != (*d).itemSets.at(itemLevel).items.end(); ++it)
 					{
 						RuleItem *ruleItem = _game->getRuleset()->getItem((*it));
@@ -1281,7 +1346,7 @@ int BattlescapeGenerator::loadMAP(MapBlock *mapblock, int xoff, int yoff, RuleTe
 	unsigned int terrainObjectID;
 
 	// Load file
-	std::ifstream mapFile (CrossPlatform::getDataFile(filename.str()).c_str(), std::ios::in| std::ios::binary);
+	std::ifstream mapFile (FileMap::getFilePath(filename.str()).c_str(), std::ios::in| std::ios::binary);
 	if (!mapFile)
 	{
 		throw Exception(filename.str() + " not found");
@@ -1404,7 +1469,7 @@ void BattlescapeGenerator::loadRMP(MapBlock *mapblock, int xoff, int yoff, int s
 	filename << "ROUTES/" << mapblock->getName() << ".RMP";
 
 	// Load file
-	std::ifstream mapFile (CrossPlatform::getDataFile(filename.str()).c_str(), std::ios::in| std::ios::binary);
+	std::ifstream mapFile (FileMap::getFilePath(filename.str()).c_str(), std::ios::in| std::ios::binary);
 	if (!mapFile)
 	{
 		throw Exception(filename.str() + " not found");

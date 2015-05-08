@@ -43,7 +43,7 @@ protected:
 	SDL_Surface *_surface;
 	int _x, _y;
 	SDL_Rect _crop, _clear;
-	bool _visible, _hidden, _redraw;
+	bool _visible, _hidden, _redraw, _tftdMode;
 	SDL_Color *_originalColors;
 	void *_alignedBuffer;
 	int _dx, _dy;
@@ -234,6 +234,10 @@ public:
 	virtual void setSecondaryColor(Uint8 color) { /* empty by design */ };
 	/// Sets the border colour of the surface.
 	virtual void setBorderColor(Uint8 color) { /* empty by design */ };
+	/// Sets this button to use a colour lookup table instead of inversion for its alternate form.
+	virtual void setTFTDMode(bool mode);
+	/// checks if this is a TFTD mode surface.
+	bool isTFTDMode();
 
 };
 

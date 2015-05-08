@@ -440,6 +440,12 @@
     <ClCompile Include="Engine\CrossPlatform.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\ModInfo.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\FileMap.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="Battlescape\ActionMenuState.cpp">
       <Filter>Battlescape</Filter>
     </ClCompile>
@@ -913,6 +919,12 @@
     <ClCompile Include="Ruleset\Texture.cpp">
       <Filter>Ruleset</Filter>
     </ClCompile>
+    <ClCompile Include="Battlescape\MeleeAttackBState.cpp">
+      <Filter>Battlescape</Filter>
+    </ClCompile>
+    <ClCompile Include="Battlescape\PsiAttackBState.cpp">
+      <Filter>Battlescape</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -1359,6 +1371,12 @@
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Engine\CrossPlatform.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\ModInfo.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\FileMap.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="Battlescape\ActionMenuState.h">
@@ -1853,6 +1871,12 @@
     </ClInclude>
     <ClInclude Include="Ruleset\Texture.h">
       <Filter>Ruleset</Filter>
+    </ClInclude>
+    <ClInclude Include="Battlescape\MeleeAttackBState.h">
+      <Filter>Battlescape</Filter>
+    </ClInclude>
+    <ClInclude Include="Battlescape\PsiAttackBState.h">
+      <Filter>Battlescape</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

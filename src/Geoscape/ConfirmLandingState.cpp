@@ -65,7 +65,7 @@ ConfirmLandingState::ConfirmLandingState(Craft *craft, Texture *texture, int sha
 	_txtBegin = new Text(206, 17, 25, 130);
 
 	// Set palette
-	setPalette("PAL_GEOSCAPE", _game->getRuleset()->getInterface("confirmLanding")->getElement("palette")->color);
+	setInterface("confirmLanding");
 
 	add(_window, "window", "confirmLanding");
 	add(_btnYes, "button", "confirmLanding");
@@ -156,6 +156,7 @@ void ConfirmLandingState::btnYesClick(Action *)
 		bgame->setMissionType("STR_ALIEN_BASE_ASSAULT");
 		bgen.setAlienBase(b);
 		bgen.setAlienRace(b->getAlienRace());
+		bgen.setWorldTexture(0);
 	}
 	else
 	{

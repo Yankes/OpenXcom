@@ -48,6 +48,7 @@
 #include "Pathfinding.h"
 #include "../Engine/Options.h"
 #include "ProjectileFlyBState.h"
+#include "MeleeAttackBState.h"
 #include "../Engine/Logger.h"
 #include "../fmath.h"
 
@@ -1013,8 +1014,14 @@ bool TileEngine::tryReaction(BattleUnit *unit, BattleUnit *target, int attackTyp
 		if (action.targeting && unit->spendTimeUnits(action.TU))
 		{
 			action.TU = 0;
-			_save->getBattleGame()->statePushBack(new UnitTurnBState(_save->getBattleGame(), action, false));
-			_save->getBattleGame()->statePushBack(new ProjectileFlyBState(_save->getBattleGame(), action));
+			if (action.type == BA_HIT)
+			{
+				_save->getBattleGame()->statePushBack(new MeleeAttackBState(_save->getBattleGame(), action));
+			}
+			else
+			{
+				_save->getBattleGame()->statePushBack(new ProjectileFlyBState(_save->getBattleGame(), action));
+			}
 			return true;
 		}
 	}
@@ -1112,8 +1119,7 @@ BattleUnit *TileEngine::hit(const Position &center, int power, ItemDamageType ty
 				unit &&
 				unit->getOriginalFaction() == FACTION_PLAYER &&
 				type != DT_NONE &&
-				_save->getBattleGame()->getCurrentAction()->type != BA_HIT &&
-				_save->getBattleGame()->getCurrentAction()->type != BA_STUN)
+				_save->getBattleGame()->getCurrentAction()->type != BA_HIT)
 			{
 				unit->addFiringExp();
 			}
@@ -2479,74 +2485,6 @@ int TileEngine::distanceSq(const Position &pos1, const Position &pos2, bool cons
 	int y = pos1.y - pos2.y;
 	int z = considerZ ? (pos1.z - pos2.z) : 0;
 	return x*x + y*y + z*z;
-}
-
-/**
- * Attempts a panic or mind control action.
- * @param action Pointer to an action.
- * @return Whether it failed or succeeded.
- */
-bool TileEngine::psiAttack(BattleAction *action)
-{
-	BattleUnit *victim = _save->getTile(action->target)->getUnit();
-	if (!victim)
-		return false;
-	double attackStrength = action->actor->getBaseStats()->psiStrength * action->actor->getBaseStats()->psiSkill / 50.0;
-	double defenseStrength = victim->getBaseStats()->psiStrength
-		+ ((victim->getBaseStats()->psiSkill > 0) ? 10.0 + victim->getBaseStats()->psiSkill / 5.0 : 10.0);
-	double d = distance(action->actor->getPosition(), action->target);
-	attackStrength -= d;
-	attackStrength += RNG::generate(0,55);
-
-	if (action->type == BA_MINDCONTROL)
-	{
-		defenseStrength += 20;
-	}
-
-	action->actor->addPsiSkillExp();
-	if (Options::allowPsiStrengthImprovement) victim->addPsiStrengthExp();
-	if (attackStrength > defenseStrength)
-	{
-		action->actor->addPsiSkillExp();
-		action->actor->addPsiSkillExp();
-		if (action->type == BA_PANIC)
-		{
-			int moraleLoss = (110-_save->getTile(action->target)->getUnit()->getBaseStats()->bravery);
-			if (moraleLoss > 0)
-			_save->getTile(action->target)->getUnit()->moraleChange(-moraleLoss);
-		}
-		else if (action->type == BA_MINDCONTROL)
-		{
-			victim->convertToFaction(action->actor->getFaction());
-			calculateFOV(victim->getPosition());
-			calculateUnitLighting();
-			victim->setTimeUnits(victim->getBaseStats()->tu);
-			victim->allowReselect();
-			victim->abortTurn(); // resets unit status to STANDING
-			// if all units from either faction are mind controlled - auto-end the mission.
-			if (_save->getSide() == FACTION_PLAYER && Options::battleAutoEnd && Options::allowPsionicCapture)
-			{
-				int liveAliens = 0;
-				int liveSoldiers = 0;
-				_save->getBattleGame()->tallyUnits(liveAliens, liveSoldiers, false);
-				if (liveAliens == 0 || liveSoldiers == 0)
-				{
-					_save->setSelectedUnit(0);
-					_save->getBattleGame()->cancelCurrentAction(true);
-					_save->getBattleGame()->requestEndTurn();
-				}
-			}
-		}
-		return true;
-	}
-	else
-	{
-		if (Options::allowPsiStrengthImprovement)
-		{
-			victim->addPsiStrengthExp();
-		}
-		return false;
-	}
 }
 
 /**

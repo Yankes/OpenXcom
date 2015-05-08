@@ -30,7 +30,9 @@
 #include "../Engine/Exception.h"
 #include "../Engine/Options.h"
 #include "../Engine/CrossPlatform.h"
+#include "../Engine/FileMap.h"
 #include "SavedBattleGame.h"
+#include "SerializationHelper.h"
 #include "GameTime.h"
 #include "Country.h"
 #include "Base.h"
@@ -153,6 +155,29 @@ SavedGame::~SavedGame()
 	delete _battleGame;
 }
 
+static bool _isCurrentGameType(const SaveInfo &saveInfo, const std::string &curMaster)
+{
+	std::string gameMaster;
+	if (saveInfo.mods.empty())
+	{
+		// if no mods listed in the savegame, this is an old-style
+		// savegame.  assume "xcom1" as the game type.
+		gameMaster = "xcom1";
+	}
+	else
+	{
+		gameMaster = saveInfo.mods[0];
+	}
+
+	if (gameMaster != curMaster)
+	{
+		Log(LOG_DEBUG) << "skipping save from inactive master: " << saveInfo.fileName;
+		return false;
+	}
+
+	return true;
+}
+
 /**
  * Gets all the info of the saves found in the user folder.
  * @param lang Loaded language.
@@ -162,6 +187,7 @@ SavedGame::~SavedGame()
 std::vector<SaveInfo> SavedGame::getList(Language *lang, bool autoquick)
 {
 	std::vector<SaveInfo> info;
+	std::string curMaster = Options::getActiveMaster();
 
 	if (autoquick)
 	{
@@ -170,7 +196,12 @@ std::vector<SaveInfo> SavedGame::getList(Language *lang, bool autoquick)
 		{
 			try
 			{
-				info.push_back(getSaveInfo(*i, lang));
+				SaveInfo saveInfo = getSaveInfo(*i, lang);
+				if (!_isCurrentGameType(saveInfo, curMaster))
+				{
+					continue;
+				}
+				info.push_back(saveInfo);
 			}
 			catch (Exception &e)
 			{
@@ -190,7 +221,12 @@ std::vector<SaveInfo> SavedGame::getList(Language *lang, bool autoquick)
 	{
 		try
 		{
-			info.push_back(getSaveInfo(*i, lang));
+			SaveInfo saveInfo = getSaveInfo(*i, lang);
+			if (!_isCurrentGameType(saveInfo, curMaster))
+			{
+				continue;
+			}
+			info.push_back(saveInfo);
 		}
 		catch (Exception &e)
 		{
@@ -252,8 +288,13 @@ SaveInfo SavedGame::getSaveInfo(const std::string &file, Language *lang)
 	std::pair<std::wstring, std::wstring> str = CrossPlatform::timeToString(save.timestamp);
 	save.isoDate = str.first;
 	save.isoTime = str.second;
+        save.mods = doc["mods"].as<std::vector< std::string> >(std::vector<std::string>());
 
 	std::wostringstream details;
+	if (!save.mods.empty())
+	{
+		details << Language::utf8ToWstr(save.mods[0]) << L" ";
+	}
 	if (doc["turn"])
 	{
 		details << lang->getString("STR_BATTLESCAPE") << L": " << lang->getString(doc["mission"].as<std::string>()) << L", ";
@@ -272,11 +313,6 @@ SaveInfo SavedGame::getSaveInfo(const std::string &file, Language *lang)
 		details << L" (" << lang->getString("STR_IRONMAN") << L")";
 	}
 	save.details = details.str();
-
-	if (doc["rulesets"])
-	{
-		save.rulesets = doc["rulesets"].as<std::vector<std::string> >();
-	}
 
 	return save;
 }
@@ -428,7 +464,7 @@ void SavedGame::load(const std::string &filename, Ruleset *rule)
 		b->load(*i, this, false);
 		_bases.push_back(b);
 	}
-	
+
 	const YAML::Node &research = doc["poppedResearch"];
 	for (YAML::const_iterator it = research.begin(); it != research.end(); ++it)
 	{
@@ -480,7 +516,16 @@ void SavedGame::save(const std::string &filename) const
 		brief["mission"] = _battleGame->getMissionType();
 		brief["turn"] = _battleGame->getTurn();
 	}
-	brief["rulesets"] = Options::rulesets;
+
+	std::vector<std::string> activeMods;
+	for (std::vector< std::pair<std::string, bool> >::iterator i = Options::mods.begin(); i != Options::mods.end(); ++i)
+	{
+		if (i->second)
+		{
+			activeMods.push_back(i->first);
+		}
+	}
+	brief["mods"] = activeMods;
 	if (_ironman)
 		brief["ironman"] = _ironman;
 	out << brief;
@@ -499,8 +544,8 @@ void SavedGame::save(const std::string &filename) const
 	node["incomes"] = _incomes;
 	node["expenditures"] = _expenditures;
 	node["warned"] = _warned;
-	node["globeLon"] = _globeLon;
-	node["globeLat"] = _globeLat;
+	node["globeLon"] = serializeDouble(_globeLon);
+	node["globeLat"] = serializeDouble(_globeLat);
 	node["globeZoom"] = _globeZoom;
 	node["ids"] = _ids;
 	for (std::vector<Country*>::const_iterator i = _countries.begin(); i != _countries.end(); ++i)
@@ -996,7 +1041,7 @@ void SavedGame::getAvailableResearchProjects (std::vector<RuleResearch *> & proj
 			continue;
 		}
 		std::vector<const RuleResearch *>::const_iterator itDiscovered = std::find(discovered.begin(), discovered.end(), research);
-		
+
 		bool liveAlien = ruleset->getUnit(research->getName()) != 0;
 
 		if (itDiscovered != discovered.end())
@@ -1022,7 +1067,7 @@ void SavedGame::getAvailableResearchProjects (std::vector<RuleResearch *> & proj
 			{
 				std::vector<std::string>::const_iterator leaderCheck = std::find(research->getUnlocked().begin(), research->getUnlocked().end(), "STR_LEADER_PLUS");
 				std::vector<std::string>::const_iterator cmnderCheck = std::find(research->getUnlocked().begin(), research->getUnlocked().end(), "STR_COMMANDER_PLUS");
-				
+
 				bool leader ( leaderCheck != research->getUnlocked().end());
 				bool cmnder ( cmnderCheck != research->getUnlocked().end());
 
@@ -1120,12 +1165,12 @@ bool SavedGame::isResearchAvailable (RuleResearch * r, const std::vector<const R
 		return true;
 	}
 	else if (liveAlien)
-	{		
+	{
 		if (!r->getGetOneFree().empty())
 		{
 			std::vector<std::string>::const_iterator leaderCheck = std::find(r->getUnlocked().begin(), r->getUnlocked().end(), "STR_LEADER_PLUS");
 			std::vector<std::string>::const_iterator cmnderCheck = std::find(r->getUnlocked().begin(), r->getUnlocked().end(), "STR_COMMANDER_PLUS");
-				
+
 			bool leader ( leaderCheck != r->getUnlocked().end());
 			bool cmnder ( cmnderCheck != r->getUnlocked().end());
 
@@ -1573,7 +1618,7 @@ std::vector<int64_t> &SavedGame::getExpenditures()
 	return _expenditures;
 }
 /**
- * return if the player has been 
+ * return if the player has been
  * warned about poor performance.
  * @return true or false.
  */
@@ -1752,7 +1797,7 @@ void SavedGame::setLastSelectedArmor(const std::string &value)
 
 /**
  * Gets the the last selected armour
- * @return last used armor type string 
+ * @return last used armor type string
  */
 std::string SavedGame::getLastSelectedArmor()
 {
@@ -1778,5 +1823,5 @@ Craft *SavedGame::findCraftByUniqueId(const CraftId& craftId) const
 	return NULL;
 }
 
-    
+
 }
