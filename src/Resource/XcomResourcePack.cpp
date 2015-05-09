@@ -79,7 +79,7 @@ struct HairXCOM2
 {
 	static const Uint8 ManHairColor = 4 << 4;
 	static const Uint8 WomanHairColor = 1 << 4;
-	static inline void func(Uint8& src, int, int, int, int)
+	static inline void func(Uint8& src)
 	{
 		if (src >= WomanHairColor && src <= WomanHairColor + ShadeMax)
 		{
@@ -95,7 +95,7 @@ struct FaceXCOM2
 {
 	static const Uint8 FaceColor = 10 << 4;
 	static const Uint8 PinkColor = 14 << 4;
-	static inline void func(Uint8& src, int, int, int, int)
+	static inline void func(Uint8& src)
 	{
 		if (src >= FaceColor && src <= FaceColor + ShadeMax)
 		{
@@ -110,7 +110,7 @@ struct FaceXCOM2
 struct BodyXCOM2
 {
 	static const Uint8 IonArmorColor = 8 << 4;
-	static inline void func(Uint8& src, int, int, int, int)
+	static inline void func(Uint8& src)
 	{
 		if (src == 153)
 		{
@@ -141,7 +141,7 @@ struct FallXCOM2
 {
 	static const Uint8 HairFall = 8 << 4;
 	static const Uint8 RoguePixel = 151;
-	static inline void func(Uint8& src, int, int, int, int)
+	static inline void func(Uint8& src)
 	{
 		if (src == RoguePixel)
 		{
