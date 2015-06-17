@@ -123,9 +123,9 @@ inline void DeleteAligned(void* buffer)
 inline SDL_Surface* CreateSDL(void *pixels, int width, int height, int depth, int pitch)
 {
 	assert(sizeof(SDL_Color) == 4);
-	SDL_Color red	= {255,   0,   0,   0};
+	SDL_Color red	= {  0,   0, 255,   0};
 	SDL_Color green	= {  0, 255,   0,   0};
-	SDL_Color blue	= {  0,   0, 255,   0};
+	SDL_Color blue	= {255,   0,   0,   0};
 	SDL_Color alpha	= {  0,   0,   0,   0}; //== 0x0
 	return SDL_CreateRGBSurfaceFrom(
 		pixels,
@@ -151,7 +151,7 @@ inline SDL_Surface* CreateSDL(void *pixels, int width, int height, int depth, in
  * @param y Y position in pixels.
  * @param bpp Bits-per-pixel depth.
  */
-Surface::Surface(int width, int height, int x, int y, int bpp) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false), _tftdMode(false), _originalColors(0), _alignedBuffer(0), _palette(0)
+Surface::Surface(int width, int height, int x, int y, int bpp, bool isTransparent) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false), _tftdMode(false), _originalColors(0), _alignedBuffer(0), _palette(0)
 {
 	_alignedBuffer = NewAligned(bpp, width, height);
 
@@ -162,7 +162,8 @@ Surface::Surface(int width, int height, int x, int y, int bpp) : _x(x), _y(y), _
 		throw Exception(SDL_GetError());
 	}
 
-	SDL_SetColorKey(_surface, SDL_SRCCOLORKEY, 0);
+	if (isTransparent)
+		SDL_SetColorKey(_surface, SDL_SRCCOLORKEY, 0);
 
 	_crop.w = 0;
 	_crop.h = 0;

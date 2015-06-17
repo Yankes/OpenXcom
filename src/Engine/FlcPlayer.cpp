@@ -154,15 +154,8 @@ bool FlcPlayer::init(const char *filename, void(*frameCallBack)(), Game *game, i
 		return false;
 	}
 
-	// If the current surface used is at 8bpp use it
-	if (_realScreen->getSurface()->getSurface()->format->BitsPerPixel == 8)
-	{
-		_mainScreen = _realScreen->getSurface()->getSurface();
-	}
-	else // Otherwise create a new one
-	{
-		_mainScreen = SDL_AllocSurface(SDL_SWSURFACE, _screenWidth, _screenHeight, 8, 0, 0, 0, 0);
-	}
+	// Create 8bpp surface for flv
+	_mainScreen = new Surface(_screenWidth, _screenHeight, 0, 0, 8, false);
 
 	
 
@@ -173,8 +166,7 @@ void FlcPlayer::deInit()
 {
 	if (_mainScreen != 0 && _realScreen != 0)
 	{
-		if (_mainScreen != _realScreen->getSurface()->getSurface())
-			SDL_FreeSurface(_mainScreen);
+		delete _mainScreen;
 
 		_mainScreen = 0;
 	}
@@ -193,9 +185,9 @@ void FlcPlayer::play(bool skipLastFrame)
 	_playingState = PLAYING;
 
 	// Vertically center the video
-	_dy = (_mainScreen->h - _headerHeight) / 2;
+	_dy = (_mainScreen->getSurface()->h - _headerHeight) / 2;
 
-	_offset = _dy * _mainScreen->pitch + _mainScreen->format->BytesPerPixel * _dx;
+	_offset = _dy * _mainScreen->getSurface()->pitch + _mainScreen->getSurface()->format->BytesPerPixel * _dx;
 
 	// Skip file header
 	_videoFrameData = _fileBuf + 128;
@@ -241,15 +233,7 @@ void FlcPlayer::SDLPolling()
 			{
 				Options::newDisplayWidth = Options::displayWidth = std::max(Screen::ORIGINAL_WIDTH, event.resize.w);
 				Options::newDisplayHeight = Options::displayHeight = std::max(Screen::ORIGINAL_HEIGHT, event.resize.h);
-				if (_mainScreen != _realScreen->getSurface()->getSurface())
-				{
-					_realScreen->resetDisplay();
-				}
-				else
-				{
-					_realScreen->resetDisplay();
-					_mainScreen = _realScreen->getSurface()->getSurface();
-				}
+				_realScreen->resetDisplay();
 			}
 			break;
 		case SDL_QUIT:
@@ -381,7 +365,7 @@ void FlcPlayer::decodeVideo(bool skipLastFrame)
 void FlcPlayer::playVideoFrame()
 {
 	++_frameCount;
-	if (SDL_LockSurface(_mainScreen) < 0)
+	if (SDL_LockSurface(_mainScreen->getSurface()) < 0)
 		return;
 	int chunkCount = _frameChunks;
 
@@ -423,12 +407,11 @@ void FlcPlayer::playVideoFrame()
 		_chunkData += _chunkSize;
 	}
 
-	SDL_UnlockSurface(_mainScreen);
+	SDL_UnlockSurface(_mainScreen->getSurface());
 
 	/* TODO: Track which rectangles have really changed */
 	//SDL_UpdateRect(_mainScreen, 0, 0, 0, 0);
-	if (_mainScreen != _realScreen->getSurface()->getSurface())
-		SDL_BlitSurface(_mainScreen, 0, _realScreen->getSurface()->getSurface(), 0);
+	SDL_BlitSurface(_mainScreen->getSurface(), 0, _realScreen->getSurface()->getSurface(), 0);
 
 	_realScreen->flip();
 }
@@ -504,7 +487,7 @@ void FlcPlayer::color256()
 			_colors[i].b = *(pSrc++);
 		}
 
-		_realScreen->setPalette(_colors, numColorsSkip, numColors, true);
+		_mainScreen->setPalette(_colors, numColorsSkip, numColors);
 
 		if (numColorPackets >= 1)
 		{
@@ -524,7 +507,7 @@ void FlcPlayer::fliSS2()
 	Uint8 lastByte = 0;
 
 	pSrc = _chunkData + 6;
-	pDst = (Uint8*)_mainScreen->pixels + _offset;
+	pDst = (Uint8*)_mainScreen->getSurface()->pixels + _offset;
 	readU16(lines, pSrc);
 
 	pSrc += 2;
@@ -536,7 +519,7 @@ void FlcPlayer::fliSS2()
 
 		if ((count & MASK) == SKIP_LINES) 
 		{  
-			pDst += (-count)*_mainScreen->pitch;
+			pDst += (-count)*_mainScreen->getSurface()->pitch;
 			++lines;
 			continue;
 		}
@@ -585,9 +568,9 @@ void FlcPlayer::fliSS2()
 			if (setLastByte)
 			{
 				setLastByte = false;
-				*(pDst + _mainScreen->pitch - 1) = lastByte;
+				*(pDst + _mainScreen->getSurface()->pitch - 1) = lastByte;
 			}
-			pDst += _mainScreen->pitch;
+			pDst += _mainScreen->getSurface()->pitch;
 		}
 	}
 }
@@ -600,7 +583,7 @@ void FlcPlayer::fliBRun()
 
 	heightCount = _headerHeight;
 	pSrc = _chunkData + 6; // Skip chunk header
-	pDst = (Uint8*)_mainScreen->pixels + _offset;
+	pDst = (Uint8*)_mainScreen->getSurface()->pixels + _offset;
 
 	while (heightCount--) 
 	{
@@ -632,7 +615,7 @@ void FlcPlayer::fliBRun()
 				}
 			}
 		}
-		pDst += _mainScreen->pitch;
+		pDst += _mainScreen->getSurface()->pitch;
 	}
 }
 
@@ -647,11 +630,11 @@ void FlcPlayer::fliLC()
 	int packetsCount;
 
 	pSrc = _chunkData + 6;
-	pDst = (Uint8*)_mainScreen->pixels + _offset;
+	pDst = (Uint8*)_mainScreen->getSurface()->pixels + _offset;
 
 	readU16(tmp, pSrc);
 	pSrc += 2;
-	pDst += tmp*_mainScreen->pitch;
+	pDst += tmp*_mainScreen->getSurface()->pitch;
 	readU16(lines, pSrc);
 	pSrc += 2;
 
@@ -686,7 +669,7 @@ void FlcPlayer::fliLC()
 				}
 			}
 		}
-		pDst += _mainScreen->pitch;
+		pDst += _mainScreen->getSurface()->pitch;
 	}
 }
 
@@ -717,7 +700,7 @@ void FlcPlayer::color64()
 			_colors[i].b = *(pSrc++) << 2;
 		}
 
-		_realScreen->setPalette(_colors, NumColorsSkip, NumColors, true);
+		_mainScreen->setPalette(_colors, NumColorsSkip, NumColors);
 	}
 }
 
@@ -726,13 +709,13 @@ void FlcPlayer::fliCopy()
 	Uint8 *pSrc, *pDst;
 	int Lines = _screenHeight;
 	pSrc = _chunkData + 6;
-	pDst = (Uint8*)_mainScreen->pixels + _offset;
+	pDst = (Uint8*)_mainScreen->getSurface()->pixels + _offset;
 
 	while (Lines--) 
 	{
 		memcpy(pDst, pSrc, _screenWidth);
 		pSrc += _screenWidth;
-		pDst += _mainScreen->pitch;
+		pDst += _mainScreen->getSurface()->pitch;
 	}
 }
 
@@ -740,12 +723,12 @@ void FlcPlayer::black()
 {
 	Uint8 *pDst;
 	int Lines = _screenHeight;
-	pDst = (Uint8*)_mainScreen->pixels + _offset;
+	pDst = (Uint8*)_mainScreen->getSurface()->pixels + _offset;
 
 	while (Lines-- > 0) 
 	{
 		memset(pDst, 0, _screenHeight);
-		pDst += _mainScreen->pitch;
+		pDst += _mainScreen->getSurface()->pitch;
 	}
 }
 

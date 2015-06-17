@@ -26,6 +26,7 @@
 
 #include <SDL.h>
 #include <deque>
+#include "Surface.h"
 
 namespace OpenXcom
 {
@@ -60,7 +61,7 @@ private:
 
 	void (*_frameCallBack)();
 
-	SDL_Surface *_mainScreen;
+	Surface *_mainScreen;
 	Screen *_realScreen;
 	SDL_Color _colors[256];
 	int _screenWidth;

@@ -319,7 +319,7 @@ void Screen::resetDisplay(bool resetVideo)
 		_surface->getSurface()->h != _baseHeight))) // don't reallocate _surface if not necessary, it's a waste of CPU cycles
 	{
 		if (_surface) delete _surface;
-		_surface = new Surface(_baseWidth, _baseHeight, 0, 0, 32);
+		_surface = new Surface(_baseWidth, _baseHeight, 0, 0, _bpp);
 	}
 	SDL_SetColorKey(_surface->getSurface(), 0, 0); // turn off color key!
 

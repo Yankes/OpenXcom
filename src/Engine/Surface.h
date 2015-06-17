@@ -53,7 +53,7 @@ protected:
 	void resize(int width, int height);
 public:
 	/// Creates a new surface with the specified size and position.
-	Surface(int width, int height, int x = 0, int y = 0, int bpp = 8);
+	Surface(int width, int height, int x = 0, int y = 0, int bpp = 8, bool isTransparent = true);
 	/// Creates a new surface from an existing one.
 	Surface(const Surface& other);
 	/// Cleans up the surface.
