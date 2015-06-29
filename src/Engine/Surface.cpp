@@ -123,9 +123,9 @@ inline void DeleteAligned(void* buffer)
 inline SDL_Surface* CreateSDL(void *pixels, int width, int height, int depth, int pitch)
 {
 	assert(sizeof(SDL_Color) == 4);
-	SDL_Color red	= {  0,   0, 255,   0};
+	SDL_Color red	= {255,   0,   0,   0};
 	SDL_Color green	= {  0, 255,   0,   0};
-	SDL_Color blue	= {255,   0,   0,   0};
+	SDL_Color blue	= {  0,   0, 255,   0};
 	SDL_Color alpha	= {  0,   0,   0,   0}; //== 0x0
 	return SDL_CreateRGBSurfaceFrom(
 		pixels,

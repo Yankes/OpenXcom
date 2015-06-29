@@ -203,10 +203,10 @@ void Screen::flip()
 {
 	if (getWidth() != _baseWidth || getHeight() != _baseHeight || isOpenGLEnabled())
 	{
-#ifdef _WIN32
+		// fix for RGB and BGR color palette mix
 		if(!isOpenGLEnabled() && _surface->getSurface()->format->Rmask != _screen->format->Rmask)
 			ShaderDraw<SwapColors>(ShaderMove<SDL_Color>(_surface));
-#endif
+
 		Zoom::flipWithZoom(_surface->getSurface(), _screen, _topBlackBand, _bottomBlackBand, _leftBlackBand, _rightBlackBand, &glOutput);
 	}
 	else
