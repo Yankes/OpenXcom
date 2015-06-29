@@ -134,7 +134,6 @@ inline SDL_Surface* CreateSDL(void *pixels, int width, int height, int depth, in
 		*reinterpret_cast<Uint32*>(&green),
 		*reinterpret_cast<Uint32*>(&blue),
 		*reinterpret_cast<Uint32*>(&alpha));
-
 }
 
 } //namespace
@@ -162,8 +161,17 @@ Surface::Surface(int width, int height, int x, int y, int bpp, bool isTransparen
 		throw Exception(SDL_GetError());
 	}
 
+	//hopefully solves issues with black transparent color
 	if (isTransparent)
+	{
 		SDL_SetColorKey(_surface, SDL_SRCCOLORKEY, 0);
+	}
+
+	if (bpp != 8)
+	{
+		SDL_Color *pal = new SDL_Color[256];
+		_palette = pal;
+	}
 
 	_crop.w = 0;
 	_crop.h = 0;
@@ -228,6 +236,8 @@ Surface::Surface(const Surface& other) : _palette(other._palette)
  */
 Surface::~Surface()
 {
+	if (_palette != 0)
+		delete []_palette;
 	DeleteAligned(_alignedBuffer);
 	SDL_FreeSurface(_surface);
 }
@@ -752,7 +762,10 @@ void Surface::setPalette(SDL_Color *colors, int firstcolor, int ncolors)
 	if (_surface->format->BitsPerPixel == 8)
 		SDL_SetColors(_surface, colors, firstcolor, ncolors);
 	else
-		_palette = colors;
+	{
+		for (int i = 0;i < ncolors;i++)
+			_palette[i+firstcolor] = colors[i];
+	}
 }
 
 /**
