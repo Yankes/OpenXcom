@@ -149,6 +149,7 @@ inline SDL_Surface* CreateSDL(void *pixels, int width, int height, int depth, in
  * @param x X position in pixels.
  * @param y Y position in pixels.
  * @param bpp Bits-per-pixel depth.
+ * @param isTransparent Used to eliminate transparency in 8bpp flcPlayer surface.
  */
 Surface::Surface(int width, int height, int x, int y, int bpp, bool isTransparent) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false), _tftdMode(false), _originalColors(0), _alignedBuffer(0), _palette(0)
 {

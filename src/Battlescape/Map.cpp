@@ -1543,7 +1543,9 @@ void Map::cacheUnits()
  */
 void Map::cacheUnit(BattleUnit *unit)
 {
-	UnitSprite *unitSprite = new UnitSprite(unit->getStatus() == STATUS_AIMING ? _spriteWidth * 2: _spriteWidth, _spriteHeight, 0, 0, _save->getDepth() != 0, 32);
+	// Cache surface bpp matches first armor sprite
+	int bpp = _res->getSurfaceSet(unit->getArmor()->getSpriteSheet())->getFrame(0)->getSurface()->format->BitsPerPixel;
+	UnitSprite *unitSprite = new UnitSprite(unit->getStatus() == STATUS_AIMING ? _spriteWidth * 2: _spriteWidth, _spriteHeight, 0, 0, _save->getDepth() != 0, bpp);
 	unitSprite->setPalette(this->getPalette());
 	bool invalid, dummy;
 	int numOfParts = unit->getArmor()->getSize() * unit->getArmor()->getSize();
@@ -1557,7 +1559,7 @@ void Map::cacheUnit(BattleUnit *unit)
 			Surface *cache = unit->getCache(&dummy, i);
 			if (!cache) // no cache created yet
 			{
-				cache = new Surface(_spriteWidth, _spriteHeight, 0, 0, 32);
+				cache = new Surface(_spriteWidth, _spriteHeight, 0, 0, bpp);
 				cache->setPalette(this->getPalette());
 			}
 
