@@ -34,17 +34,30 @@ class ShaderMove : public helper::ShaderBase<Pixel>
 
 public:
 	typedef helper::ShaderBase<Pixel> _base;
-	typedef helper::CorrectConst<Pixel> _corect_const;
 	friend class helper::controler<ShaderMove<Pixel> >;
 
-	inline ShaderMove(typename _corect_const::surf* s) :
+	inline ShaderMove(const _base& s) :
+		_base(s),
+		_move_x(), _move_y()
+	{
+
+	}
+
+	inline ShaderMove(const _base& s, int move_x, int move_y) :
+		_base(s),
+		_move_x(move_x), _move_y(move_y)
+	{
+
+	}
+
+	inline ShaderMove(typename _base::_corect_const::surf* s) :
 		_base(s),
 		_move_x(s->getX()), _move_y(s->getY())
 	{
 
 	}
 
-	inline ShaderMove(typename _corect_const::surf* s, int move_x, int move_y) :
+	inline ShaderMove(typename _base::_corect_const::surf* s, int move_x, int move_y) :
 		_base(s),
 		_move_x(move_x), _move_y(move_y)
 	{
@@ -54,20 +67,6 @@ public:
 	inline ShaderMove(const ShaderMove& f) :
 		_base(f),
 		_move_x(f._move_x), _move_y(f._move_y)
-	{
-
-	}
-
-	inline ShaderMove(typename _corect_const::vector& f, int max_x, int max_y) :
-		_base(f, max_x, max_y),
-		_move_x(), _move_y()
-	{
-
-	}
-
-	inline ShaderMove(typename _corect_const::vector& f, int max_x, int max_y, int move_x, int move_y) :
-		_base(f, max_x, max_y),
-		_move_x(move_x), _move_y(move_y)
 	{
 
 	}
@@ -101,7 +100,7 @@ struct controler<ShaderMove<Pixel> > : public controler_base<typename ShaderMove
 	typedef typename ShaderMove<Pixel>::PixelRef PixelRef;
 
 	typedef controler_base<PixelPtr, PixelRef> base_type;
-	
+
 	controler(const ShaderMove<Pixel>& f) : base_type(f.ptr(), f.getDomain(), f.getImage(), std::make_pair(sizeof(Pixel), f.pitch()))
 	{
 
@@ -131,6 +130,41 @@ inline ShaderMove<Uint8> ShaderSurface(Surface* s)
 inline ShaderMove<Uint8> ShaderSurface(Surface* s, int x, int y)
 {
 	return ShaderMove<Uint8>(s, x, y);
+}
+
+/**
+ * Create warper from Surface
+ * @param s standard 32bit OpenXcom surface
+ * @return
+ */
+inline ShaderMove<SDL_Color> ShaderSurface32bit(Surface* s)
+{
+	return ShaderMove<SDL_Color>(s);
+}
+
+/**
+ * Create warper from Surface and provided offset
+ * @param s standard 32bit OpenXcom surface
+ * @param x offset on x
+ * @param y offset on y
+ * @return
+ */
+inline ShaderMove<SDL_Color> ShaderSurface32bit(Surface* s, int x, int y)
+{
+	return ShaderMove<SDL_Color>(s, x, y);
+}
+
+/**
+ * Create warper from Surface and provided offset
+ * @param s standard 8bit OpenXcom surface
+ * @param x offset on x
+ * @param y offset on y
+ * @return
+ */
+template<typename Pixel>
+inline ShaderMove<Pixel> ShaderSurface(std::vector<Pixel>& s, int max_x, int max_y, int x, int y)
+{
+	return ShaderMove<Pixel>(helper::ShaderBase<Pixel>(s, max_x, max_y), x, y);
 }
 
 /**

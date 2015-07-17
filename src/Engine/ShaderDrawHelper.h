@@ -29,20 +29,20 @@ namespace OpenXcom
 {
 namespace helper
 {
-	
+
 /**
  * This is empty argument to `ShaderDraw`.
  * when used in `ShaderDraw` return always 0 to `ColorFunc::func` for every pixel
- */	
+ */
 class Nothing
 {
-	
+
 };
-	
+
 /**
  * This is scalar argument to `ShaderDraw`.
  * when used in `ShaderDraw` return value of `t` to `ColorFunc::func` for every pixel
- */	
+ */
 template<typename T>
 class Scalar
 {
@@ -50,7 +50,7 @@ public:
 	T& ref;
 	inline Scalar(T& t) : ref(t)
 	{
-		
+
 	}
 };
 
@@ -74,19 +74,19 @@ struct CorrectConst<const Pixel>
 	typedef const Surface surf;
 };
 
-
 /**
  * This is surface argument to `ShaderDraw`.
  * every pixel of this surface will have type `Pixel`.
  * Modify pixels of this surface, that will modifying original data.
- */	
+ */
 template<typename Pixel>
 class ShaderBase
 {
 public:
 	typedef Pixel* PixelPtr;
 	typedef Pixel& PixelRef;
-	
+	typedef helper::CorrectConst<Pixel> _corect_const;
+
 protected:
 	const PixelPtr _orgin;
 	const GraphSubset _range_base;
@@ -94,16 +94,20 @@ protected:
 	const int _pitch;
 
 public:
-	///copy constructor
-	inline ShaderBase(const ShaderBase& s) :
+	/**
+	 * copy constructor.
+     * @param s Any ShaderBase that have compatible Pixel type.
+     */
+	template<typename CompatiblePixel>
+	inline ShaderBase(const ShaderBase<CompatiblePixel>& s) :
 		_orgin(s.ptr()),
-		_range_base(s._range_base),
+		_range_base(s.getBaseDomain()),
 		_range_domain(s.getDomain()),
 		_pitch(s.pitch())
 	{
-			
+
 	}
-	
+
 	/**
 	 * create surface using vector `f` as data source.
 	 * surface will have `max_y` x `max_x` dimensions.
@@ -114,15 +118,15 @@ public:
      * @param max_x x dimension of `f`
      * @param max_y y dimension of `f`
      */
-	inline ShaderBase(typename CorrectConst<Pixel>::vector& f, int max_x, int max_y) :
+	inline ShaderBase(typename _corect_const::vector& f, int max_x, int max_y) :
 		_orgin(&(f[0])),
 		_range_base(max_x, max_y),
 		_range_domain(max_x, max_y),
 		_pitch(max_x*sizeof(Pixel))
 	{
-		
+
 	}
-	
+
 	/**
 	 * create surface using array `f` of `Pixel` as data source.
 	 * surface will have `max_y` x `max_x` dimensions.
@@ -138,9 +142,9 @@ public:
 		_range_domain(max_x, max_y),
 		_pitch(pitch)
 	{
-		
+
 	}
-	
+
 	/**
 	 * create surface using openxcom surface `s` as data source.
 	 * surface will have same dimensions as `s`.
@@ -148,17 +152,17 @@ public:
 	 * then `_orgin` will be invalid and use of this object will cause memory exception.
      * @param s openxcom surface
      */
-	inline ShaderBase(typename CorrectConst<Pixel>::surf* s) :
+	inline ShaderBase(typename _corect_const::surf* s) :
 		_orgin((PixelPtr)s->getSurface()->pixels),
 		_range_base(s->getWidth(), s->getHeight()),
 		_range_domain(s->getWidth(), s->getHeight()),
 		_pitch(s->getSurface()->pitch)
 	{
 		if(s->getSurface()->format->BytesPerPixel != sizeof(Pixel))
-			throw Exception("Incompatible type of surface pixels");	
+			throw Exception("Incompatible type of surface pixels");
 	}
-	
-	
+
+
 	inline PixelPtr ptr() const
 	{
 		return _orgin;
@@ -167,7 +171,7 @@ public:
 	{
 		return _pitch;
 	}
-	
+
 	inline void setDomain(const GraphSubset& g)
 	{
 		_range_domain = GraphSubset::intersection(g, _range_base);
@@ -180,7 +184,7 @@ public:
 	{
 		return _range_base;
 	}
-	
+
 	inline const GraphSubset& getImage() const
 	{
 		return _range_domain;
@@ -234,15 +238,15 @@ template<typename T>
 struct controler<Scalar<T> >
 {
 	T& ref;
-	
+
 	inline controler(const Scalar<T>& s) : ref(s.ref)
 	{
-		
+
 	}
-	
+
 	//cant use this function
 	//inline GraphSubset get_range()
-	
+
 	inline void mod_range(GraphSubset&)
 	{
 		//nothing
@@ -251,7 +255,7 @@ struct controler<Scalar<T> >
 	{
 		//nothing
 	}
-	
+
 	inline void mod_y(int&, int&)
 	{
 		//nothing
@@ -264,8 +268,8 @@ struct controler<Scalar<T> >
 	{
 		//nothing
 	}
-	
-	
+
+
 	inline void mod_x(int&, int&)
 	{
 		//nothing
@@ -278,7 +282,7 @@ struct controler<Scalar<T> >
 	{
 		//nothing
 	}
-	
+
 	inline T& get_ref()
 	{
 		return ref;
@@ -291,12 +295,12 @@ struct controler<Nothing>
 {
 	inline controler(const Nothing&)
 	{
-		
+
 	}
-	
+
 	//cant use this function
 	//inline GraphSubset get_range()
-	
+
 	inline void mod_range(GraphSubset&)
 	{
 		//nothing
@@ -305,7 +309,7 @@ struct controler<Nothing>
 	{
 		//nothing
 	}
-	
+
 	inline void mod_y(int&, int&)
 	{
 		//nothing
@@ -318,7 +322,7 @@ struct controler<Nothing>
 	{
 		//nothing
 	}
-	
+
 	inline void mod_x(int&, int&)
 	{
 		//nothing
@@ -331,7 +335,7 @@ struct controler<Nothing>
 	{
 		//nothing
 	}
-	
+
 	/**
 	 * Dont return anything
 	 */
@@ -353,17 +357,17 @@ static inline PixelPtr add_byte_offset(PixelPtr ptr, int off)
 template<typename PixelPtr, typename PixelRef>
 struct controler_base
 {
-	
+
 	const PixelPtr data;
 	PixelPtr ptr_pos_y;
 	PixelPtr ptr_pos_x;
 	GraphSubset range;
 	int start_x;
 	int start_y;
-	
+
 	///step in bytes
 	const std::pair<int, int> step;
-		
+
 	controler_base(PixelPtr base, const GraphSubset& d, const GraphSubset& r, const std::pair<int, int>& s) :
 		data(add_byte_offset(base, d.beg_x*s.first + d.beg_y*s.second)),
 		ptr_pos_y(0), ptr_pos_x(0),
@@ -371,27 +375,27 @@ struct controler_base
 		start_x(), start_y(),
 		step(s)
 	{
-		
+
 	}
-	
-	
+
+
 	inline const GraphSubset& get_range()
 	{
 		return range;
 	}
-	
+
 	inline void mod_range(GraphSubset& r)
 	{
 		r = GraphSubset::intersection(range, r);
 	}
-	
+
 	inline void set_range(const GraphSubset& r)
 	{
 		start_x = r.beg_x - range.beg_x;
 		start_y = r.beg_y - range.beg_y;
 		range = r;
 	}
-	
+
 	inline void mod_y(int&, int&)
 	{
 		ptr_pos_y = add_byte_offset(data, step.first * start_x + step.second * start_y);
@@ -404,8 +408,8 @@ struct controler_base
 	{
 		ptr_pos_y = add_byte_offset(ptr_pos_y, step.second);
 	}
-	
-	
+
+
 	inline void mod_x(int&, int&)
 	{
 		ptr_pos_x = ptr_pos_y;
@@ -418,7 +422,7 @@ struct controler_base
 	{
 		ptr_pos_x = add_byte_offset(ptr_pos_x, step.first);
 	}
-	
+
 	inline PixelRef get_ref()
 	{
 		return *ptr_pos_x;
@@ -432,14 +436,14 @@ struct controler<ShaderBase<Pixel> > : public controler_base<typename ShaderBase
 {
 	typedef typename ShaderBase<Pixel>::PixelPtr PixelPtr;
 	typedef typename ShaderBase<Pixel>::PixelRef PixelRef;
-	
+
 	typedef controler_base<PixelPtr, PixelRef> base_type;
-		
+
 	controler(const ShaderBase<Pixel>& f) : base_type(f.ptr(), f.getDomain(), f.getImage(), std::make_pair(sizeof(Pixel), f.pitch()))
 	{
-		
+
 	}
-	
+
 };
 
 }//namespace helper

@@ -568,7 +568,7 @@ void Surface::copy(Surface *surface)
 	SDL_BlitSurface uses colour matching,
 	and is therefor unreliable as a means
 	to copy the contents of one surface to another
-	instead we have to do this manually 
+	instead we have to do this manually
 
 	SDL_Rect from;
 	from.x = getX() - surface->getX();
@@ -808,13 +808,13 @@ void Surface::unlock()
 struct ColorReplace
 {
 	/**
-	* Function used by ShaderDraw in Surface::blitNShade
-	* set shade and replace color in that surface
-	* @param dest destination pixel
-	* @param src source pixel
-	* @param shade value of shade of this surface
-	* @param newColor new color to set (it should be offseted by 4)
-	*/
+	 * Function used by ShaderDraw in Surface::blitNShade
+	 * set shade and replace color in that surface
+	 * @param dest destination pixel
+	 * @param src source pixel
+	 * @param shade value of shade of this surface
+	 * @param newColor new color to set (it should be offseted by 4)
+	 */
 	static inline void func(Uint8& dest, const Uint8& src, const int& shade, const int& newColor)
 	{
 		if (src)
@@ -832,13 +832,13 @@ struct ColorReplace
 	 * Function used by ShaderDraw in Surface::blitNShade
 	 * set shade and replace color in that surface
 	 * 8bit -> 32bit version
-     * @param dest destination pixel
-     * @param src source pixel
-     * @param palette palette of source pixel
-     * @param shade value of shade of this surface
-     * @param newColor new color to set (it should be offseted by 4)
-     */
-	static inline void func(SDL_Color& dest, const Uint8& src, SDL_Color* palette, const int& shade, const int& newColor)
+	 * @param dest destination pixel
+	 * @param src source pixel
+	 * @param palette palette of source pixel
+	 * @param shade value of shade of this surface
+	 * @param newColor new color to set (it should be offseted by 4)
+	 */
+	static inline void func(SDL_Color& dest, const SDL_Color& colorKeyDest, const Uint8& src, SDL_Color* palette, const int& shade, const int& newColor)
 	{
 		if(src)
 		{
@@ -848,7 +848,37 @@ struct ColorReplace
 				dest = palette[15];
 			else
 				dest = palette[newColor | newShade];
+
+			//avoid transparent color
+			if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
+				dest.r ^= 1;
 		}
+	}
+
+	/**
+	 * Function used by ShaderDraw in Surface::blitNShade
+	 * set shade and replace color in that surface
+	 * 32bit -> 32bit version
+	 * @param dest destination pixel
+	 * @param src source pixel
+	 * @param palette palette of source pixel
+	 * @param shade value of shade of this surface
+	 * @param newColor new color to set (it should be offseted by 4)
+	 */
+	static inline void func(SDL_Color& dest, const SDL_Color& colorKeyDest, const SDL_Color& src, const SDL_Color& colorKeySrc, SDL_Color* palette, const int& shade, const int& newColor)
+	{
+		if(src.r == colorKeySrc.r && src.g == colorKeySrc.g && src.b == colorKeySrc.b)
+			return;
+
+		SDL_Color newShade = palette[newColor | shade];
+
+		dest.r = src.r * newShade.r / 256;
+		dest.g = src.g * newShade.g / 256;
+		dest.b = src.b * newShade.b / 256;
+
+		//avoid transparent color
+		if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
+			dest.r ^= 1;
 	}
 };
 
@@ -858,14 +888,12 @@ struct ColorReplace
 struct StandardShade
 {
 	/**
-	* Function used by ShaderDraw in Surface::blitNShade
-	* set shade
-	* @param dest destination pixel
-	* @param src source pixel
-	* @param shade value of shade of this surface
-	* @param notused
-	* @param notused
-	*/
+	 * Function used by ShaderDraw in Surface::blitNShade
+	 * set shade
+	 * @param dest destination pixel
+	 * @param src source pixel
+	 * @param shade value of shade of this surface
+	 */
 	static inline void func(Uint8& dest, const Uint8& src, const int& shade)
 	{
 		if (src)
@@ -879,7 +907,7 @@ struct StandardShade
 		}
 	}
 
-	static inline void func(SDL_Color& dest, const Uint8& src, SDL_Color* palette, const int& shade)
+	static inline void func(SDL_Color& dest, const SDL_Color& colorKeyDest, const Uint8& src, SDL_Color* palette, const int& shade)
 	{
 		if(src)
 		{
@@ -889,6 +917,10 @@ struct StandardShade
 				dest = palette[15];
 			else
 				dest = palette[(src&(15<<4)) | newShade];
+
+			//avoid transparent color
+			if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
+				dest.r ^= 1;
 		}
 	}
 
@@ -930,6 +962,12 @@ struct StandardShade
  */
 void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int newBaseColor)
 {
+	SDL_Color colorKeyDest = { 0, 0, 0, 255 };
+	SDL_GetRGB(surface->getSurface()->format->colorkey, surface->getSurface()->format, &colorKeyDest.r, &colorKeyDest.g, &colorKeyDest.b);
+
+	SDL_Color colorKeySrc = { 0, 0, 0, 255 };
+	SDL_GetRGB(this->getSurface()->format->colorkey, this->getSurface()->format, &colorKeySrc.r, &colorKeySrc.g, &colorKeySrc.b);
+
 	const bool dest8 = surface->_surface->format->BitsPerPixel != 32;
 	if(this->_surface->format->BitsPerPixel == 32)
 	{
@@ -942,16 +980,22 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 			src.setDomain(g);
 		}
 
-		SDL_Color colorKeyDest = { 0, 0, 0, 255 };
-		SDL_GetRGB(surface->getSurface()->format->colorkey, surface->getSurface()->format, &colorKeyDest.r, &colorKeyDest.g, &colorKeyDest.b);
-
-		SDL_Color colorKeySrc = { 0, 0, 0, 255 };
-		SDL_GetRGB(this->getSurface()->format->colorkey, this->getSurface()->format, &colorKeySrc.r, &colorKeySrc.g, &colorKeySrc.b);
-
-		if(dest8)
-			throw Exception("Cannot blit 32bit to 8bit");
+		if(newBaseColor)
+		{
+			--newBaseColor;
+			newBaseColor <<= 4;
+			if(dest8)
+				throw Exception("Cannot blit 32bit to 8bit");
+			else
+				ShaderDraw<ColorReplace>(ShaderSurface32bit(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(this->getPalette()), ShaderScalar(off), ShaderScalar(newBaseColor));
+		}
 		else
-			ShaderDraw<StandardShade>(ShaderMove<SDL_Color>(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(off));
+		{
+			if(dest8)
+				throw Exception("Cannot blit 32bit to 8bit");
+			else
+				ShaderDraw<StandardShade>(ShaderSurface32bit(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(off));
+		}
 	}
 	else
 	{
@@ -970,14 +1014,14 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 			if(dest8)
 				ShaderDraw<ColorReplace>(ShaderSurface(surface), src, ShaderScalar(off), ShaderScalar(newBaseColor));
 			else
-				ShaderDraw<ColorReplace>(ShaderMove<SDL_Color>(surface), src, ShaderScalar(this->getPalette()), ShaderScalar(off), ShaderScalar(newBaseColor));
+				ShaderDraw<ColorReplace>(ShaderSurface32bit(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(this->getPalette()), ShaderScalar(off), ShaderScalar(newBaseColor));
 		}
 		else
 		{
 			if(dest8)
 				ShaderDraw<StandardShade>(ShaderSurface(surface), src, ShaderScalar(off));
 			else
-				ShaderDraw<StandardShade>(ShaderMove<SDL_Color>(surface), src, ShaderScalar(this->getPalette()), ShaderScalar(off));
+				ShaderDraw<StandardShade>(ShaderSurface32bit(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(this->getPalette()), ShaderScalar(off));
 		}
 	}
 }
@@ -1034,7 +1078,7 @@ void Surface::resize(int width, int height)
 
 	// Copy old contents
 	SDL_SetColorKey(surface, SDL_SRCCOLORKEY, 0);
-	SDL_SetColors(surface, getPalette(), 0, 255);
+	SDL_SetColors(surface, getPalette(), 0, 256);
 	SDL_BlitSurface(_surface, 0, surface, 0);
 
 	// Delete old surface
