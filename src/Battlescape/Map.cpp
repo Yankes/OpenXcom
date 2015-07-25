@@ -114,7 +114,7 @@ Map::Map(Game *game, int width, int height, int x, int y, int visibleMapHeight, 
 	_scrollKeyTimer = new Timer(SCROLL_INTERVAL);
 	_scrollKeyTimer->onTimer((SurfaceHandler)&Map::scrollKey);
 	_camera->setScrollTimer(_scrollMouseTimer, _scrollKeyTimer);
-	
+
 	_txtAccuracy = new Text(24, 9, 0, 0);
 	_txtAccuracy->setSmall();
 	_txtAccuracy->setPalette(_game->getScreen()->getPalette());
@@ -251,6 +251,25 @@ void Map::setPalette(SDL_Color *colors, int firstcolor, int ncolors)
 	_message->setText(_game->getLanguage()->getString("STR_HIDDEN_MOVEMENT"));
 }
 
+namespace
+{
+
+struct AddParticleColor
+{
+	static void func(SDL_Color &dest, const int &mask, const SDL_Color &add, const Uint8& size, const Uint8 &opty)
+	{
+		if (mask <= (int)size)
+		{
+			dest.r = std::min(255, dest.r + add.r * opty);
+			dest.g = std::min(255, dest.g + add.g * opty);
+			dest.b = std::min(255, dest.b + add.b * opty);
+			dest.unused = 255;
+		}
+	}
+};
+
+} //namespace
+
 /**
  * Draw the terrain.
  * Keep this function as optimised as possible. It's big to minimise overhead of function calls.
@@ -271,7 +290,7 @@ void Map::drawTerrain(Surface *surface)
 	bool invalid;
 	int tileShade, wallShade, tileColor;
 	static const int arrowBob[8] = {0,1,2,1,0,1,2,1};
-	
+
 	NumberText *_numWaypid = 0;
 
 	// if we got bullet, get the highest x and y tiles to draw it on
@@ -933,23 +952,46 @@ void Map::drawTerrain(Surface *surface)
 					}
 
 					//draw particle clouds
-					for (std::list<Particle*>::const_iterator i = tile->getParticleCloud()->begin(); i != tile->getParticleCloud()->end(); ++i)
+					if (surface->getSurface()->format->BitsPerPixel == 8)
 					{
-						int vaporX = screenPosition.x + (*i)->getX();
-						int vaporY = screenPosition.y + (*i)->getY();
-						if ((int)(_transparencies->size()) >= ((*i)->getColor() + 1) * 1024)
+						for (std::list<Particle*>::const_iterator i = tile->getParticleCloud()->begin(); i != tile->getParticleCloud()->end(); ++i)
 						{
-							switch ((*i)->getSize())
+							int vaporX = screenPosition.x + (*i)->getX();
+							int vaporY = screenPosition.y + (*i)->getY();
+							if ((int)(_transparencies->size()) >= ((*i)->getColor() + 1) * 1024)
 							{
-							case 3:
-								surface->setPixel(vaporX+1, vaporY+1, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX+1, vaporY+1)]); 
-							case 2:
-								surface->setPixel(vaporX + 1, vaporY, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX + 1, vaporY)]); 
-							case 1:
-								surface->setPixel(vaporX, vaporY + 1, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX, vaporY + 1)]); 
-							default:
-								surface->setPixel(vaporX, vaporY, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX, vaporY)]); 
-								break;
+								switch ((*i)->getSize())
+								{
+								case 3:
+									surface->setPixel(vaporX+1, vaporY+1, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX+1, vaporY+1)]);
+								case 2:
+									surface->setPixel(vaporX + 1, vaporY, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX + 1, vaporY)]);
+								case 1:
+									surface->setPixel(vaporX, vaporY + 1, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX, vaporY + 1)]);
+								default:
+									surface->setPixel(vaporX, vaporY, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX, vaporY)]);
+									break;
+								}
+							}
+						}
+					}
+					else
+					{
+						int array[4] =
+						{
+							0, 2,
+							1, 3,
+						};
+						ShaderMove<int> posSurf = ShaderSurface(array, 2, 2);
+						const std::vector<SDL_Color> &trans = *_game->getRuleset()->getTransparencies();
+
+						for (std::list<Particle*>::const_iterator i = tile->getParticleCloud()->begin(); i != tile->getParticleCloud()->end(); ++i)
+						{
+							posSurf.setMove(screenPosition.x + (*i)->getX(), screenPosition.y + (*i)->getY());
+							size_t color = (*i)->getColor();
+							if (color < trans.size())
+							{
+								ShaderDraw<AddParticleColor>(ShaderSurface32bit(this), posSurf, ShaderScalar(trans[color]), ShaderScalar((*i)->getSize()), ShaderScalar((*i)->getOpacity()));
 							}
 						}
 					}

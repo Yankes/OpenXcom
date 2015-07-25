@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <list>
 #include <SDL.h>
 #include <yaml-cpp/yaml.h>
 #include "BattleUnit.h"

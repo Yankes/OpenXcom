@@ -21,7 +21,7 @@
 #define	OPENXCOM_SHADERDRAW_H
 
 #include "ShaderDrawHelper.h"
-	
+
 namespace OpenXcom
 {
 
@@ -273,7 +273,7 @@ static inline void ShaderDraw(
 
 	//get basic draw range in 2d space
 	GraphSubset end_temp = src0.get_range();
-	
+
 	//intersections with src ranges
 	src0.mod_range(end_temp);
 	src1.mod_range(end_temp);
@@ -283,7 +283,7 @@ static inline void ShaderDraw(
 	src5.mod_range(end_temp);
 	src6.mod_range(end_temp);
 	src7.mod_range(end_temp);
-	
+
 	const GraphSubset end = end_temp;
 	if (end.size_x() == 0 || end.size_y() == 0)
 		return;
@@ -348,7 +348,7 @@ static inline void ShaderDraw(
 		src5.set_x(begin_x, end_x);
 		src6.set_x(begin_x, end_x);
 		src7.set_x(begin_x, end_x);
-		
+
 		//iteration on x-axis
 		for(int x = end_x-begin_x; x>0; --x,
 			src0.inc_x(), src1.inc_x(),
@@ -477,13 +477,35 @@ static inline helper::Scalar<const T> ShaderScalar(const T& t)
 
 namespace helper
 {
-	
+
 const Uint8 ColorGroup = 15<<4;
 const Uint8 ColorShade = 15;
 const Uint8 ColorShadeMax = 15;
 const Uint8 BLACK = 15;
 
 }//namespace helper
+
+/**
+ * Create warper from vector
+ * @param s vector
+ * @return
+ */
+template<typename Pixel>
+inline helper::ShaderBase<Pixel> ShaderSurface(std::vector<Pixel>& s, int max_x, int max_y)
+{
+	return helper::ShaderBase<Pixel>(s, max_x, max_y);
+}
+
+/**
+ * Create warper from array
+ * @param s array
+ * @return
+ */
+template<typename Pixel, int Size>
+inline helper::ShaderBase<Pixel> ShaderSurface(Pixel(&s)[Size], int max_x, int max_y)
+{
+	return helper::ShaderBase<Pixel>(s, max_x, max_y, max_x*sizeof(Pixel));
+}
 
 }//namespace OpenXcom
 
