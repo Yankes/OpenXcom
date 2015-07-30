@@ -24,25 +24,15 @@
 #include "Map.h"
 #include "Camera.h"
 #include "BattlescapeState.h"
-#include "NextTurnState.h"
 #include "AbortMissionState.h"
-#include "BattleState.h"
-#include "UnitTurnBState.h"
-#include "UnitWalkBState.h"
-#include "ProjectileFlyBState.h"
-#include "ExplosionBState.h"
 #include "TileEngine.h"
 #include "ActionMenuState.h"
 #include "UnitInfoState.h"
-#include "UnitDieBState.h"
 #include "InventoryState.h"
-#include "AlienBAIState.h"
-#include "CivilianBAIState.h"
 #include "Pathfinding.h"
 #include "BattlescapeGame.h"
 #include "WarningMessage.h"
 #include "DebriefingState.h"
-#include "InfoboxState.h"
 #include "MiniMapState.h"
 #include "BattlescapeGenerator.h"
 #include "BriefingState.h"
@@ -50,8 +40,7 @@
 #include "../fmath.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
-#include "../Engine/Music.h"
-#include "../Engine/Language.h"
+#include "../Engine/LocalizedText.h"
 #include "../Engine/Palette.h"
 #include "../Engine/Surface.h"
 #include "../Engine/SurfaceSet.h"
@@ -61,13 +50,9 @@
 #include "../Engine/Logger.h"
 #include "../Engine/Timer.h"
 #include "../Engine/CrossPlatform.h"
-#include "../Engine/RNG.h"
-#include "../Engine/Exception.h"
 #include "../Interface/Cursor.h"
-#include "../Interface/FpsCounter.h"
 #include "../Interface/Text.h"
 #include "../Interface/Bar.h"
-#include "../Interface/ImageButton.h"
 #include "../Interface/BattlescapeButton.h"
 #include "../Interface/NumberText.h"
 #include "../Menu/CutsceneState.h"
@@ -84,8 +69,6 @@
 #include "../Savegame/BattleUnit.h"
 #include "../Savegame/Soldier.h"
 #include "../Savegame/BattleItem.h"
-#include "../Savegame/MissionSite.h"
-#include "../Savegame/AlienBase.h"
 
 namespace OpenXcom
 {
@@ -504,7 +487,7 @@ BattlescapeState::~BattlescapeState()
 }
 
 /**
- * Initilizes the battlescapestate.
+ * Initializes the battlescapestate.
  */
 void BattlescapeState::init()
 {
@@ -1615,7 +1598,7 @@ void BattlescapeState::saveAIMap()
 			r.x = x * r.w;
 			r.y = y * r.h;
 
-			if (t->getTUCost(MapData::O_FLOOR, MT_FLY) != 255 && t->getTUCost(MapData::O_OBJECT, MT_FLY) != 255)
+			if (t->getTUCost(O_FLOOR, MT_FLY) != 255 && t->getTUCost(O_OBJECT, MT_FLY) != 255)
 			{
 				SDL_FillRect(img, &r, SDL_MapRGB(img->format, 255, 0, 0x20));
 				characterRGBA(img, r.x, r.y,'*' , 0x7f, 0x7f, 0x7f, 0x7f);
@@ -1650,12 +1633,12 @@ void BattlescapeState::saveAIMap()
 				if (z > 0 && !t->hasNoFloor(_save->getTile(pos))) break; // no seeing through floors
 			}
 
-			if (t->getMapData(MapData::O_NORTHWALL) && t->getMapData(MapData::O_NORTHWALL)->getTUCost(MT_FLY) == 255)
+			if (t->getMapData(O_NORTHWALL) && t->getMapData(O_NORTHWALL)->getTUCost(MT_FLY) == 255)
 			{
 				lineRGBA(img, r.x, r.y, r.x+r.w, r.y, 0x50, 0x50, 0x50, 255);
 			}
 
-			if (t->getMapData(MapData::O_WESTWALL) && t->getMapData(MapData::O_WESTWALL)->getTUCost(MT_FLY) == 255)
+			if (t->getMapData(O_WESTWALL) && t->getMapData(O_WESTWALL)->getTUCost(MT_FLY) == 255)
 			{
 				lineRGBA(img, r.x, r.y, r.x, r.y+r.h, 0x50, 0x50, 0x50, 255);
 			}

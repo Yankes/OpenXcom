@@ -32,10 +32,6 @@
 #include "../Engine/Sound.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
-#include "../Savegame/SavedBattleGame.h"
-#include "../Savegame/Tile.h"
-#include "../Savegame/Node.h"
-#include "../Battlescape/Position.h"
 #include "../Ruleset/MapDataSet.h"
 #include "../Ruleset/RuleMusic.h"
 #include "../Engine/ShaderDraw.h"
@@ -139,7 +135,6 @@ struct BodyXCOM2
  */
 struct FallXCOM2
 {
-	static const Uint8 HairFall = 8 << 4;
 	static const Uint8 RoguePixel = 151;
 	static inline void func(Uint8& src)
 	{
@@ -515,12 +510,12 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 		{
 			if (_surfaces.find(sheetName) == _surfaces.end())
 			{
-				Log(LOG_DEBUG) << "Creating new single image: " << sheetName;
+				Log(LOG_VERBOSE) << "Creating new single image: " << sheetName;
 				_surfaces[sheetName] = new Surface(spritePack->getWidth(), spritePack->getHeight(), 0, 0, 32);
 			}
 			else
 			{
-				Log(LOG_DEBUG) << "Adding/Replacing single image: " << sheetName;
+				Log(LOG_VERBOSE) << "Adding/Replacing single image: " << sheetName;
 				delete _surfaces[sheetName];
 				_surfaces[sheetName] = new Surface(spritePack->getWidth(), spritePack->getHeight(), 0, 0, 32);
 			}
@@ -531,7 +526,7 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 			bool adding = false;
 			if (_sets.find(sheetName) == _sets.end())
 			{
-				Log(LOG_DEBUG) << "Creating new surface set: " << sheetName;
+				Log(LOG_VERBOSE) << "Creating new surface set: " << sheetName;
 				adding = true;
 				 if (subdivision)
 				 {
@@ -544,13 +539,13 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 			}
 			else
 			{
-				Log(LOG_DEBUG) << "Adding/Replacing items in surface set: " << sheetName;
+				Log(LOG_VERBOSE) << "Adding/Replacing items in surface set: " << sheetName;
 			}
 
 			if (subdivision)
 			{
 				int frames = (spritePack->getWidth() / spritePack->getSubX())*(spritePack->getHeight() / spritePack->getSubY());
-				Log(LOG_DEBUG) << "Subdividing into " << frames << " frames.";
+				Log(LOG_VERBOSE) << "Subdividing into " << frames << " frames.";
 			}
 
 			for (std::map<int, std::string>::iterator j = spritePack->getSprites()->begin(); j != spritePack->getSprites()->end(); ++j)
@@ -559,7 +554,7 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 				std:: string fileName = j->second;
 				if (fileName.substr(fileName.length() - 1, 1) == "/")
 				{
-					Log(LOG_DEBUG) << "Loading surface set from folder: " << fileName << " starting at frame: " << startFrame;
+					Log(LOG_VERBOSE) << "Loading surface set from folder: " << fileName << " starting at frame: " << startFrame;
 					int offset = startFrame;
 					std::set<std::string> contents = FileMap::getVFolderContents(fileName);
 					for (std::set<std::string>::iterator k = contents.begin(); k != contents.end(); ++k)
@@ -571,7 +566,7 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 							std::string fullPath = FileMap::getFilePath(fileName + *k);
 							if (_sets[sheetName]->getFrame(offset))
 							{
-								Log(LOG_DEBUG) << "Replacing frame: " << offset;
+								Log(LOG_VERBOSE) << "Replacing frame: " << offset;
 								_sets[sheetName]->getFrame(offset)->loadImage(fullPath);
 							}
 							else
@@ -582,7 +577,7 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 								}
 								else
 								{
-									Log(LOG_DEBUG) << "Adding frame: " << offset + spritePack->getModIndex();
+									Log(LOG_VERBOSE) << "Adding frame: " << offset + spritePack->getModIndex();
 									_sets[sheetName]->addFrame(offset + spritePack->getModIndex(), 32)->loadImage(fullPath);
 								}
 							}
@@ -601,12 +596,12 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 						std::string fullPath = FileMap::getFilePath(fileName);
 						if (_sets[sheetName]->getFrame(startFrame))
 						{
-							Log(LOG_DEBUG) << "Replacing frame: " << startFrame;
+							Log(LOG_VERBOSE) << "Replacing frame: " << startFrame;
 							_sets[sheetName]->getFrame(startFrame)->loadImage(fullPath);
 						}
 						else
 						{
-							Log(LOG_DEBUG) << "Adding frame: " << startFrame << ", using index: " << startFrame + spritePack->getModIndex();
+							Log(LOG_VERBOSE) << "Adding frame: " << startFrame << ", using index: " << startFrame + spritePack->getModIndex();
 							_sets[sheetName]->addFrame(startFrame + spritePack->getModIndex(), 32)->loadImage(fullPath);
 						}
 					}
@@ -624,7 +619,7 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 							{
 								if (_sets[sheetName]->getFrame(offset))
 								{
-									Log(LOG_DEBUG) << "Replacing frame: " << offset;
+									Log(LOG_VERBOSE) << "Replacing frame: " << offset;
 									_sets[sheetName]->getFrame(offset)->clear();
 									// for some reason regular blit() doesn't work here how i want it, so i use this function instead.
 									temp->blitNShade(_sets[sheetName]->getFrame(offset), 0 - (x * spritePack->getSubX()), 0 - (y * spritePack->getSubY()), 0);
@@ -638,7 +633,7 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 									}
 									else
 									{
-										Log(LOG_DEBUG) << "Adding frame: " << offset + spritePack->getModIndex();
+										Log(LOG_VERBOSE) << "Adding frame: " << offset + spritePack->getModIndex();
 										// for some reason regular blit() doesn't work here how i want it, so i use this function instead.
 										temp->blitNShade(_sets[sheetName]->addFrame(offset + spritePack->getModIndex(), 32), 0 - (x * spritePack->getSubX()), 0 - (y * spritePack->getSubY()), 0);
 									}
@@ -672,17 +667,17 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 		ExtraSounds *soundPack = i->second;
 		if (_sounds.find(setName) == _sounds.end())
 		{
-			Log(LOG_DEBUG) << "Creating new sound set: " << setName << ", this will likely have no in-game use.";
+			Log(LOG_VERBOSE) << "Creating new sound set: " << setName << ", this will likely have no in-game use.";
 			_sounds[setName] = new SoundSet();
 		}
-		else Log(LOG_DEBUG) << "Adding/Replacing items in sound set: " << setName;
+		else Log(LOG_VERBOSE) << "Adding/Replacing items in sound set: " << setName;
 		for (std::map<int, std::string>::iterator j = soundPack->getSounds()->begin(); j != soundPack->getSounds()->end(); ++j)
 		{
 			int startSound = j->first;
 			std::string fileName = j->second;
 			if (fileName.substr(fileName.length() - 1, 1) == "/")
 			{
-				Log(LOG_DEBUG) << "Loading sound set from folder: " << fileName << " starting at index: " << startSound;
+				Log(LOG_VERBOSE) << "Loading sound set from folder: " << fileName << " starting at index: " << startSound;
 				int offset = startSound;
 				std::set<std::string> contents = FileMap::getVFolderContents(fileName);
 				for (std::set<std::string>::iterator k = contents.begin(); k != contents.end(); ++k)
@@ -711,12 +706,12 @@ XcomResourcePack::XcomResourcePack(Ruleset *rules) : ResourcePack()
 				std::string fullPath = FileMap::getFilePath(fileName);
 				if (_sounds[setName]->getSound(startSound))
 				{
-					Log(LOG_DEBUG) << "Replacing index: " << startSound;
+					Log(LOG_VERBOSE) << "Replacing index: " << startSound;
 					_sounds[setName]->getSound(startSound)->load(fullPath);
 				}
 				else
 				{
-					Log(LOG_DEBUG) << "Adding index: " << startSound;
+					Log(LOG_VERBOSE) << "Adding index: " << startSound;
 					_sounds[setName]->addSound(startSound + soundPack->getModIndex())->load(fullPath);
 				}
 			}

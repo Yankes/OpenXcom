@@ -28,12 +28,9 @@
 #include <fstream>
 
 #include "Logger.h"
-#include "Exception.h"
-#include "Zoom.h"
 #include "Screen.h"
 #include "Surface.h"
 #include "Options.h"
-#include "../fmath.h"
 #include "Game.h"
 
 namespace OpenXcom
@@ -80,6 +77,7 @@ enum PlayingState
 
 FlcPlayer::FlcPlayer() : _fileBuf(0), _mainScreen(0), _realScreen(0), _game(0)
 {
+	_volume = Game::volumeExponent(Options::musicVolume);
 }
 
 FlcPlayer::~FlcPlayer()
@@ -450,10 +448,9 @@ void FlcPlayer::playAudioFrame(Uint16 sampleRate)
 		loadingBuff->sampleBufSize = newSize;
 	}
 
-	float volume = Game::volumeExponent(Options::musicVolume);
 	for (unsigned int i = 0; i < _audioFrameSize; i++)
 	{
-		loadingBuff->samples[loadingBuff->sampleCount + i] = (float)((_chunkData[i]) -128) * 240 * volume;
+		loadingBuff->samples[loadingBuff->sampleCount + i] = (float)((_chunkData[i]) -128) * 240 * _volume;
 	}
 	loadingBuff->sampleCount += _audioFrameSize;
 

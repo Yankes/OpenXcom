@@ -23,13 +23,9 @@
 #include "../Resource/ResourcePack.h"
 #include "../Engine/Language.h"
 #include "../Engine/Screen.h"
-#include "../Engine/Palette.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
-#include "../Engine/Music.h"
-#include "../Interface/Cursor.h"
-#include "../Interface/FpsCounter.h"
 #include "NewGameState.h"
 #include "NewBattleState.h"
 #include "ListLoadState.h"
@@ -95,9 +91,6 @@ MainMenuState::MainMenuState()
 	title << tr("STR_OPENXCOM") << L"\x02";
 	title << Language::utf8ToWstr(OPENXCOM_VERSION_SHORT) << Language::utf8ToWstr(OPENXCOM_VERSION_GIT);
 	_txtTitle->setText(title.str());
-
-	// Set music
-	_game->getResourcePack()->playMusic("GMSTORY");
 }
 
 /**

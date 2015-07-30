@@ -20,7 +20,6 @@
 #include <cmath>
 #include <sstream>
 #include <SDL_mixer.h>
-#include "Adlib/adlplayer.h"
 #include "State.h"
 #include "Screen.h"
 #include "Sound.h"
@@ -32,10 +31,8 @@
 #include "../Resource/ResourcePack.h"
 #include "../Ruleset/Ruleset.h"
 #include "../Savegame/SavedGame.h"
-#include "Palette.h"
 #include "Action.h"
 #include "Exception.h"
-#include "InteractiveSurface.h"
 #include "Options.h"
 #include "CrossPlatform.h"
 #include "FileMap.h"
@@ -281,7 +278,7 @@ void Game::run()
 
 			if (_init && _timeUntilNextFrame <= 0)
 			{
-				// make a note of when this frame update occured.
+				// make a note of when this frame update occurred.
 				_timeOfLastFrame = SDL_GetTicks();
 				_fpsCounter->addFrame();
 				_screen->clear();
@@ -449,7 +446,23 @@ Language *Game::getLanguage() const
 void Game::loadLanguage(const std::string &filename)
 {
 	std::ostringstream ss;
-	ss << "Language/" << filename << ".yml";
+	ss << "/Language/" << filename << ".yml";
+
+	_lang->load(CrossPlatform::searchDataFile("common" + ss.str()));
+
+	for (std::vector< std::pair<std::string, bool> >::const_iterator i = Options::mods.begin(); i != Options::mods.end(); ++i)
+	{
+		if (i->second)
+		{
+			std::string modId = i->first;
+			ModInfo modInfo = Options::getModInfos().find(modId)->second;
+			std::string file = modInfo.getPath() + ss.str();
+			if (CrossPlatform::fileExists(file))
+			{
+				_lang->load(file);				
+			}
+		}
+	}
 
 	ExtraStrings *strings = 0;
 	std::map<std::string, ExtraStrings *> extraStrings = _rules->getExtraStrings();
@@ -459,24 +472,8 @@ void Game::loadLanguage(const std::string &filename)
 		{
 			strings = extraStrings[filename];
 		}
-		// Fallback
-		else if (extraStrings.find("en-US") != extraStrings.end())
-		{
-			strings = extraStrings["en-US"];
-		}
-		else if (extraStrings.find("en-GB") != extraStrings.end())
-		{
-			strings = extraStrings["en-GB"];
-		}
-		else
-		{
-			strings = extraStrings.begin()->second;
-		}
 	}
-
-	_lang->load(FileMap::getFilePath(ss.str()), strings);
-
-	Options::language = filename;
+	_lang->load(strings);
 }
 
 /**
@@ -606,44 +603,64 @@ bool Game::isQuitting() const
  */
 void Game::defaultLanguage()
 {
-	std::string defaultLang = "en-US";
+	const std::string defaultLang = "en-US";
+	std::string currentLang = defaultLang;
+
+	delete _lang;
+	_lang = new Language();
+
+	std::ostringstream ss;
+	ss << "common/Language/" << defaultLang << ".yml";
+	std::string defaultPath = CrossPlatform::searchDataFile(ss.str());
+	std::string path = defaultPath;
+
 	// No language set, detect based on system
 	if (Options::language.empty())
 	{
 		std::string locale = CrossPlatform::getLocale();
 		std::string lang = locale.substr(0, locale.find_first_of('-'));
 		// Try to load full locale
-		try
+		Language::replace(path, defaultLang, locale);
+		if (CrossPlatform::fileExists(path))
 		{
-			loadLanguage(locale);
+			currentLang = locale;
 		}
-		catch (std::exception)
+		else
 		{
 			// Try to load language locale
-			try
+			Language::replace(path, locale, lang);
+			if (CrossPlatform::fileExists(path))
 			{
-				loadLanguage(lang);
+				currentLang = lang;
 			}
 			// Give up, use default
-			catch (std::exception)
+			else
 			{
-				loadLanguage(defaultLang);
+				currentLang = defaultLang;
 			}
 		}
 	}
 	else
 	{
 		// Use options language
-		try
+		Language::replace(path, defaultLang, Options::language);
+		if (CrossPlatform::fileExists(path))
 		{
-			loadLanguage(Options::language);
+			currentLang = Options::language;
 		}
 		// Language not found, use default
-		catch (std::exception)
+		else
 		{
-			loadLanguage(defaultLang);
+			currentLang = defaultLang;
 		}
 	}
+
+	loadLanguage(defaultLang);
+	if (currentLang != defaultLang)
+	{
+		loadLanguage(currentLang);
+	}
+	Options::language = currentLang;
 }
 
 /**

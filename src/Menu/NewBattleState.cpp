@@ -24,8 +24,7 @@
 #include "../Engine/Game.h"
 #include "../Resource/ResourcePack.h"
 #include "../Ruleset/RuleItem.h"
-#include "../Engine/Language.h"
-#include "../Engine/Palette.h"
+#include "../Engine/LocalizedText.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
@@ -38,7 +37,6 @@
 #include "../Savegame/Craft.h"
 #include "../Savegame/ItemContainer.h"
 #include "../Battlescape/BattlescapeGenerator.h"
-#include "../Battlescape/BattlescapeState.h"
 #include "../Battlescape/BriefingState.h"
 #include "../Savegame/Ufo.h"
 #include "../Savegame/MissionSite.h"
@@ -46,7 +44,6 @@
 #include "../Ruleset/RuleCraft.h"
 #include "../Ruleset/RuleTerrain.h"
 #include "../Ruleset/AlienDeployment.h"
-#include "../Engine/Music.h"
 #include "../Engine/RNG.h"
 #include "../Engine/Action.h"
 #include "../Engine/Options.h"
@@ -482,7 +479,8 @@ void NewBattleState::btnOkClick(Action *)
 		_craft = 0;
 	}
 	// alien base
-	else if (_missionTypes[_cbxMission->getSelected()] == "STR_ALIEN_BASE_ASSAULT")
+	else if (_missionTypes[_cbxMission->getSelected()].find("STR_ALIEN_BASE") != std::string::npos ||
+			 _missionTypes[_cbxMission->getSelected()].find("STR_ALIEN_COLONY") != std::string::npos)
 	{
 		AlienBase *b = new AlienBase();
 		b->setId(1);
@@ -613,7 +611,7 @@ void NewBattleState::cbxMissionChange(Action *)
 	for (std::set<std::string>::const_iterator i = terrains.begin(); i != terrains.end(); ++i)
 	{
 		_terrainTypes.push_back(*i);
-		terrainStrings.push_back("STR_" + *i);
+		terrainStrings.push_back("MAP_" + *i);
 	}
 
 	// Hide controls that don't apply to mission

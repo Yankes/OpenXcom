@@ -21,7 +21,6 @@
 #include "Game.h"
 #include "Screen.h"
 #include "Surface.h"
-#include "Font.h"
 #include "Language.h"
 #include "LocalizedText.h"
 #include "Palette.h"
@@ -101,6 +100,10 @@ void State::setInterface(const std::string& category, bool alterPal, bool battle
 			{
 				backPal = color;
 			}
+		}
+		if (!_ruleInterface->getMusic().empty())
+		{
+			_game->getResourcePack()->playMusic(_ruleInterface->getMusic());
 		}
 	}
 	if (battlescape)

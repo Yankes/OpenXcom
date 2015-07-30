@@ -66,6 +66,7 @@ class SoundDefinition;
 class MapScript;
 class RuleVideo;
 class RuleMusic;
+class RuleMissionScript;
 
 /**
  * Set of rules and stats for a game.
@@ -103,6 +104,7 @@ protected:
 	std::map<std::string, RuleVideo *>_videos;
 	std::map<std::string, MCDPatch *> _MCDPatches;
 	std::map<std::string, std::vector<MapScript *> > _mapScripts;
+	std::vector<std::pair<std::string, RuleMissionScript*> > _missionScripts;
 	std::vector<std::pair<std::string, ExtraSprites *> > _extraSprites;
 	std::vector<std::pair<std::string, ExtraSounds *> > _extraSounds;
 	std::map<std::string, ExtraStrings *> _extraStrings;
@@ -110,7 +112,7 @@ protected:
 	std::map<std::string, RuleMusic *> _musics;
 	RuleGlobe *_globe;
 	int _costSoldier, _costEngineer, _costScientist, _timePersonnel, _initialFunding, _turnAIUseGrenade, _turnAIUseBlaster;
-	std::string _alienFuel;
+	std::pair<std::string, int> _alienFuel;
 	std::string _fontName;
 	YAML::Node _startingBase;
 	GameTime _startingTime;
@@ -249,7 +251,9 @@ public:
 	/// Generates a new soldier.
 	Soldier *genSoldier(SavedGame *save) const;
 	/// Gets the item to be used as fuel for ships.
-	const std::string getAlienFuel() const;
+	const std::string getAlienFuelName() const;
+	/// Gets the amount of alien fuel to recover
+	const int getAlienFuelQuantity() const;
 	/// Gets the font name.
 	const std::string getFontName() const;
 	/// Gets first turn when AI can use grenade.
@@ -270,6 +274,7 @@ public:
 	/// Gets the list videos for intro/outro etc.
 	const std::map<std::string, RuleVideo *> *getVideos() const;
 	const std::map<std::string, RuleMusic *> *getMusic() const;
+	const std::vector<std::pair<std::string, RuleMissionScript*> > *getMissionScripts() const;
 };
 
 }

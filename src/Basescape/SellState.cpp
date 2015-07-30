@@ -24,8 +24,7 @@
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Resource/ResourcePack.h"
-#include "../Engine/Language.h"
-#include "../Engine/Palette.h"
+#include "../Engine/LocalizedText.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
@@ -36,6 +35,7 @@
 #include "../Savegame/Soldier.h"
 #include "../Savegame/Craft.h"
 #include "../Savegame/ItemContainer.h"
+#include "../Savegame/Vehicle.h"
 #include "../Ruleset/RuleItem.h"
 #include "../Ruleset/Armor.h"
 #include "../Ruleset/RuleCraft.h"
@@ -305,6 +305,13 @@ void SellState::btnOkClick(Action *)
 				for (std::map<std::string, int>::iterator it = craft->getItems()->getContents()->begin(); it != craft->getItems()->getContents()->end(); ++it)
 				{
 					_base->getItems()->addItem(it->first, it->second);
+				}
+
+				// Remove vehicles from craft
+				for (std::vector<Vehicle*>::iterator v = craft->getVehicles()->begin(); v != craft->getVehicles()->end(); ++v)
+				{
+					_base->getItems()->addItem((*v)->getRules()->getType());
+					_base->getItems()->addItem((*v)->getRules()->getCompatibleAmmo()->front(), (*v)->getAmmo());
 				}
 
 				// Remove soldiers from craft

@@ -21,8 +21,6 @@
 #include "BattleItem.h"
 #include <cmath>
 #include <sstream>
-#include <typeinfo>
-#include "../Engine/Palette.h"
 #include "../Engine/Surface.h"
 #include "../Engine/Language.h"
 #include "../Engine/Logger.h"
@@ -139,7 +137,7 @@ BattleUnit::BattleUnit(Soldier *soldier, int depth) :
  * @param faction Which faction the units belongs to.
  * @param id Unique unit ID.
  * @param armor Pointer to unit Armor.
- * @param diff difficulty level (for stat adjustement).
+ * @param diff difficulty level (for stat adjustment).
  * @param depth the depth of the battlefield (used to determine movement type in case of MT_FLOAT).
  */
 BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, int diff, int depth) :
@@ -1191,7 +1189,7 @@ void BattleUnit::knockOut(BattlescapeGame *battle)
 }
 
 /**
- * Intialises the falling sequence. Occurs after death or stunned.
+ * Initialises the falling sequence. Occurs after death or stunned.
  */
 void BattleUnit::startFalling()
 {
@@ -1566,7 +1564,7 @@ double BattleUnit::getReactionScore()
 /**
  * Prepare for a new turn.
  */
-void BattleUnit::prepareNewTurn()
+void BattleUnit::prepareNewTurn(bool fullProcess)
 {
 	if (_status == STATUS_TIME_OUT)
 	{
@@ -1606,6 +1604,15 @@ void BattleUnit::prepareNewTurn()
 		_energy += ENRecovery;
 		if (_energy > getBaseStats()->stamina)
 			_energy = getBaseStats()->stamina;
+	}
+
+	_dontReselect = false;
+	_motionPoints = 0;
+
+	// transition between stages, don't do damage or panic
+	if (!fullProcess)
+	{
+		return;
 	}
 
 	// suffer from fatal wounds
@@ -1651,8 +1658,6 @@ void BattleUnit::prepareNewTurn()
 		}
 	}
 	_hitByFire = false;
-	_dontReselect = false;
-	_motionPoints = 0;
 }
 
 
@@ -2027,7 +2032,7 @@ bool BattleUnit::checkAmmo()
  */
 bool BattleUnit::isInExitArea(SpecialTileType stt) const
 {
-	return _tile && _tile->getMapData(MapData::O_FLOOR) && (_tile->getMapData(MapData::O_FLOOR)->getSpecialType() == stt);
+	return _tile && _tile->getMapData(O_FLOOR) && (_tile->getMapData(O_FLOOR)->getSpecialType() == stt);
 }
 
 /**
@@ -2787,7 +2792,7 @@ bool BattleUnit::checkViewSector (Position pos) const
 
 /**
  * common function to adjust a unit's stats according to difficulty setting.
- * @param diff difficulty level (for stat adjustement).
+ * @param diff difficulty level (for stat adjustment).
  */
 void BattleUnit::adjustStats(const int diff)
 {

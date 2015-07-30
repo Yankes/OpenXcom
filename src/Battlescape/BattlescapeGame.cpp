@@ -19,13 +19,11 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <sstream>
-#include <typeinfo>
 #include "BattlescapeGame.h"
 #include "BattlescapeState.h"
 #include "Map.h"
 #include "Camera.h"
 #include "NextTurnState.h"
-#include "AbortMissionState.h"
 #include "BattleState.h"
 #include "UnitTurnBState.h"
 #include "UnitWalkBState.h"
@@ -456,7 +454,7 @@ void BattlescapeGame::endTurn()
 
 	if (_save->allObjectivesDestroyed())
 	{
-		_parentState->finishBattle(false,liveSoldiers);
+		_parentState->finishBattle(false, liveSoldiers);
 		return;
 	}
 
@@ -617,7 +615,12 @@ void BattlescapeGame::handleNonTargetAction()
 	if (!_currentAction.targeting)
 	{
 		_currentAction.cameraPosition = Position(0,0,-1);
-		if (_currentAction.type == BA_PRIME && _currentAction.value > -1)
+		if (!_currentAction.result.empty())
+		{
+			_parentState->warning(_currentAction.result);
+			_currentAction.result = "";
+		}
+		else if (_currentAction.type == BA_PRIME && _currentAction.value > -1)
 		{
 			if (_currentAction.actor->spendTimeUnits(_currentAction.TU))
 			{
@@ -629,32 +632,19 @@ void BattlescapeGame::handleNonTargetAction()
 				_parentState->warning("STR_NOT_ENOUGH_TIME_UNITS");
 			}
 		}
-		if (_currentAction.type == BA_USE || _currentAction.type == BA_LAUNCH)
+		else if (_currentAction.type == BA_USE || _currentAction.type == BA_LAUNCH)
 		{
-			if (_currentAction.result.length() > 0)
-			{
-				_parentState->warning(_currentAction.result);
-				_currentAction.result = "";
-			}
 			_save->reviveUnconsciousUnits();
 		}
-		if (_currentAction.type == BA_HIT)
+		else if (_currentAction.type == BA_HIT)
 		{
-			if (_currentAction.result.length() > 0)
+			if (_currentAction.actor->spendTimeUnits(_currentAction.TU))
 			{
-				_parentState->warning(_currentAction.result);
-				_currentAction.result = "";
+				statePushBack(new MeleeAttackBState(this, _currentAction));
 			}
 			else
 			{
-				if (_currentAction.actor->spendTimeUnits(_currentAction.TU))
-				{
-					statePushBack(new MeleeAttackBState(this, _currentAction));
-				}
-				else
-				{
-					_parentState->warning("STR_NOT_ENOUGH_TIME_UNITS");
-				}
+				_parentState->warning("STR_NOT_ENOUGH_TIME_UNITS");
 			}
 		}
 		_currentAction.type = BA_NONE;
@@ -804,7 +794,7 @@ void BattlescapeGame::popState()
 
 	BattleAction action = _states.front()->getAction();
 
-	if (action.actor && action.result.length() > 0 && action.actor->getFaction() == FACTION_PLAYER
+	if (action.actor && !action.result.empty() && action.actor->getFaction() == FACTION_PLAYER
     && _playerPanicHandled && (_save->getSide() == FACTION_PLAYER || _debugPlay))
 	{
 		_parentState->warning(action.result);

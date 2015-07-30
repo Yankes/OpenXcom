@@ -20,9 +20,8 @@
 #include <sstream>
 #include "../Engine/Game.h"
 #include "../Resource/ResourcePack.h"
-#include "../Engine/Palette.h"
 #include "../Engine/Screen.h"
-#include "../Engine/Language.h"
+#include "../Engine/LocalizedText.h"
 #include "../Engine/SurfaceSet.h"
 #include "../Engine/Surface.h"
 #include "../Interface/ImageButton.h"
@@ -501,7 +500,7 @@ DogfightState::DogfightState(Globe *globe, Craft *craft, Ufo *ufo) : _globe(glob
 		_w2FireInterval = _craft->getWeapons()->at(1)->getRules()->getStandardReload();
 	}
 
-	// Set UFO size - going to be moved to Ufo class to implement simultanous dogfights.
+	// Set UFO size - going to be moved to Ufo class to implement simultaneous dogfights.
 	std::string ufoSize = _ufo->getRules()->getSize();
 	if (ufoSize.compare("STR_VERY_SMALL") == 0)
 	{
@@ -731,23 +730,24 @@ void DogfightState::update()
 	if (!_minimized)
 	{
 		animate();
-		int escapeCounter = _ufo->getEscapeCountdown();
-		if (!_ufo->isCrashed() && !_ufo->isDestroyed() && !_craft->isDestroyed())
+		if (!_ufo->isCrashed() && !_ufo->isDestroyed() && !_craft->isDestroyed() && !_ufo->getInterceptionProcessed())
 		{
-			if (escapeCounter > 0 && !_ufo->getInterceptionProcessed())
+			_ufo->setInterceptionProcessed(true);
+			int escapeCounter = _ufo->getEscapeCountdown();
+
+			if (escapeCounter > 0 )
 			{
 				escapeCounter--;
 				_ufo->setEscapeCountdown(escapeCounter);
-				_ufo->setInterceptionProcessed(true);
-				if (_ufo->getFireCountdown() > 0)
+				// Check if UFO is breaking off.
+				if (escapeCounter == 0)
 				{
-					_ufo->setFireCountdown(_ufo->getFireCountdown() - 1);
+					_ufo->setSpeed(_ufo->getRules()->getMaxSpeed());
 				}
 			}
-			// Check if UFO is breaking off.
-			if (escapeCounter == 0)
+			if (_ufo->getFireCountdown() > 0)
 			{
-				_ufo->setSpeed(_ufo->getRules()->getMaxSpeed());
+				_ufo->setFireCountdown(_ufo->getFireCountdown() - 1);
 			}
 		}
 	}
@@ -1039,7 +1039,7 @@ void DogfightState::update()
 				// Difference from original: No retaliation until final UFO lands (Original: Is spawned).
 				if (!_game->getSavedGame()->findAlienMission(targetRegion, OBJECTIVE_RETALIATION))
 				{
-					const RuleAlienMission &rule = *_game->getRuleset()->getAlienMission("STR_ALIEN_RETALIATION");
+					const RuleAlienMission &rule = *_game->getRuleset()->getRandomMission(OBJECTIVE_RETALIATION, _game->getSavedGame()->getMonthsPassed());
 					AlienMission *mission = new AlienMission(rule);
 					mission->setId(_game->getSavedGame()->getId("ALIEN_MISSIONS"));
 					mission->setRegion(targetRegion, *_game->getRuleset());
@@ -1196,7 +1196,7 @@ void DogfightState::fireWeapon2()
  */
 void DogfightState::ufoFireWeapon()
 {
-	int fireCountdown = (_ufo->getRules()->getWeaponReload() - 2 * (int)(_game->getSavedGame()->getDifficulty()));
+	int fireCountdown = std::max(1, (_ufo->getRules()->getWeaponReload() - 2 * (int)(_game->getSavedGame()->getDifficulty())));
 	_ufo->setFireCountdown(RNG::generate(0, fireCountdown) + fireCountdown);
 
 	setStatus("STR_UFO_RETURN_FIRE");
