@@ -289,7 +289,7 @@ void Ruleset::loadModRulesets(const std::vector<std::string> &rulesetFiles, size
 	// short of knowing the results of calls to the RNG before they're determined.
 	// the best solution i can come up with is to disallow it, as there are other ways to acheive what this would amount to anyway,
 	// and they don't require time travel. - Warboy
-	for (std::vector<std::pair<std::string, RuleMissionScript*> >::iterator i = _missionScripts.begin(); i != _missionScripts.end(); ++i)
+	for (std::map<std::string, RuleMissionScript*>::iterator i = _missionScripts.begin(); i != _missionScripts.end(); ++i)
 	{
 		RuleMissionScript *rule = (*i).second;
 		std::set<std::string> missions = rule->getAllMissionTypes();
@@ -684,7 +684,7 @@ void Ruleset::loadFile(const std::string &filename, size_t spriteOffset)
 		ResourcePack::UFO_HIT = (*i)["ufoHit"].as<int>(ResourcePack::UFO_HIT);
 		ResourcePack::UFO_CRASH = (*i)["ufoCrash"].as<int>(ResourcePack::UFO_CRASH);
 		ResourcePack::UFO_EXPLODE = (*i)["ufoExplode"].as<int>(ResourcePack::UFO_EXPLODE);
-		ResourcePack::INTERCEPTOR_HIT = (*i)["intterceptorHit"].as<int>(ResourcePack::INTERCEPTOR_HIT);
+		ResourcePack::INTERCEPTOR_HIT = (*i)["interceptorHit"].as<int>(ResourcePack::INTERCEPTOR_HIT);
 		ResourcePack::INTERCEPTOR_EXPLODE = (*i)["interceptorExplode"].as<int>(ResourcePack::INTERCEPTOR_EXPLODE);
 		ResourcePack::GEOSCAPE_CURSOR = (*i)["geoscapeCursor"].as<int>(ResourcePack::GEOSCAPE_CURSOR);
 		ResourcePack::BASESCAPE_CURSOR = (*i)["basescapeCursor"].as<int>(ResourcePack::BASESCAPE_CURSOR);
@@ -709,6 +709,10 @@ void Ruleset::loadFile(const std::string &filename, size_t spriteOffset)
 	for (YAML::const_iterator i = doc["mapScripts"].begin(); i != doc["mapScripts"].end(); ++i)
 	{
 		std::string type = (*i)["type"].as<std::string>();
+		if ((*i)["delete"])
+		{
+			type = (*i)["delete"].as<std::string>(type);
+		}
 		if (_mapScripts.find(type) != _mapScripts.end())
 		{
 			for (std::vector<MapScript*>::iterator j = _mapScripts[type].begin(); j != _mapScripts[type].end();)
@@ -726,35 +730,11 @@ void Ruleset::loadFile(const std::string &filename, size_t spriteOffset)
 	}
 	for (YAML::const_iterator i = doc["missionScripts"].begin(); i != doc["missionScripts"].end(); ++i)
 	{
-		std::string type = (*i)["type"].as<std::string>();
-		bool kill = (*i)["delete"].as<bool>(false);
-		RuleMissionScript *rule = 0;
-		for (std::vector<std::pair<std::string, RuleMissionScript*> >::iterator j = _missionScripts.begin(); j != _missionScripts.end(); ++j)
+		RuleMissionScript *rule = loadRule(*i, &_missionScripts, &_missionScriptIndex, "type");
+		if (rule != 0)
 		{
-			if ((*j).first == type)
-			{
-				if (kill)
-				{
-					delete (*j).second;
-					_missionScripts.erase(j);
-				}
-				else
-				{
-					rule = (*j).second;
-				}
-				break;
-			}
+			rule->load(*i);
 		}
-		if (kill)
-		{
-			continue;
-		}
-		if (!rule)
-		{
-			rule = new RuleMissionScript(type);
-		}
-		rule->load(*i);
-		_missionScripts.push_back(std::make_pair(type, rule));
 	}
 
 	// refresh _psiRequirements for psiStrengthEval
@@ -847,7 +827,9 @@ SavedGame *Ruleset::newSave() const
 	// Add countries
 	for (std::vector<std::string>::const_iterator i = _countriesIndex.begin(); i != _countriesIndex.end(); ++i)
 	{
-		save->getCountries()->push_back(new Country(getCountry(*i)));
+		RuleCountry *country = getCountry(*i);
+		if (!country->getLonMin().empty())
+			save->getCountries()->push_back(new Country(country));
 	}
 	// Adjust funding to total $6M
 	int missing = ((_initialFunding - save->getCountryFunding()/1000) / (int)save->getCountries()->size()) * 1000;
@@ -865,7 +847,9 @@ SavedGame *Ruleset::newSave() const
 	// Add regions
 	for (std::vector<std::string>::const_iterator i = _regionsIndex.begin(); i != _regionsIndex.end(); ++i)
 	{
-		save->getRegions()->push_back(new Region(getRegion(*i)));
+		RuleRegion *region = getRegion(*i);
+		if (!region->getLonMin().empty())
+			save->getRegions()->push_back(new Region(region));
 	}
 
 	// Set up starting base
@@ -1318,17 +1302,18 @@ const std::vector<std::string> &Ruleset::getManufactureList() const
  */
 std::vector<OpenXcom::RuleBaseFacility*> Ruleset::getCustomBaseFacilities() const
 {
-	std::vector<OpenXcom::RuleBaseFacility*> PlaceList;
+	std::vector<OpenXcom::RuleBaseFacility*> placeList;
 
 	for (YAML::const_iterator i = _startingBase["facilities"].begin(); i != _startingBase["facilities"].end(); ++i)
 	{
 		std::string type = (*i)["type"].as<std::string>();
-		if (type != "STR_ACCESS_LIFT")
+		RuleBaseFacility *facility = getBaseFacility(type);
+		if (!facility->isLift())
 		{
-			PlaceList.push_back(getBaseFacility(type));
+			placeList.push_back(facility);
 		}
 	}
-	return PlaceList;
+	return placeList;
 }
 
 /**
@@ -1763,8 +1748,15 @@ const std::map<std::string, RuleMusic *> *Ruleset::getMusic() const
 	return &_musics;
 }
 
-const std::vector<std::pair<std::string, RuleMissionScript*> > *Ruleset::getMissionScripts() const
+const std::vector<std::string> *Ruleset::getMissionScriptList() const
 {
-	return &_missionScripts;
+	return &_missionScriptIndex;
 }
+
+RuleMissionScript *Ruleset::getMissionScript(const std::string &name) const
+{
+	std::map<std::string, RuleMissionScript*>::const_iterator i = _missionScripts.find(name);
+	if (_missionScripts.end() != i) return i->second; else return 0;
+}
+
 }
