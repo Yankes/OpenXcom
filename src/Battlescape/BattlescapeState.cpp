@@ -455,7 +455,7 @@ BattlescapeState::BattlescapeState() : _reserve(0), _xBeforeMouseScrolling(0), _
 	// Set music
 	if (_save->getMusic() == "")
 	{
-		_game->getResourcePack()->playMusic("GMTACTIC", true);
+		_game->getResourcePack()->playMusic("GMTACTIC");
 	}
 	else
 	{
@@ -1335,7 +1335,7 @@ void BattlescapeState::updateSoldierInfo()
 		++j;
 	}
 
-	showPsiButton(battleUnit->getSpecialWeapon(BT_PSIAMP));
+	showPsiButton(battleUnit->getSpecialWeapon(BT_PSIAMP) != 0);
 }
 
 /**
@@ -1499,15 +1499,27 @@ inline void BattlescapeState::handle(Action *action)
 						debug(L"Influenza bacterium dispersed");
 						for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i !=_save->getUnits()->end(); ++i)
 						{
-							if ((*i)->getOriginalFaction() == FACTION_HOSTILE)
+							if ((*i)->getOriginalFaction() == FACTION_HOSTILE && !(*i)->isOut())
 							{
-								(*i)->instaKill();
-								if ((*i)->getTile())
-								{
-									(*i)->getTile()->setUnit(0);
-								}
+								(*i)->damage(Position(0,0,0), 1000, DT_AP, true);
+							}
+							_save->getBattleGame()->checkForCasualties(0, 0, true, false);
+							_save->getBattleGame()->handleState();
+						}
+					}
+					// "ctrl-j" - stun all aliens
+					else if (_save->getDebugMode() && action->getDetails()->key.keysym.sym == SDLK_j && (SDL_GetModState() & KMOD_CTRL) != 0)
+					{
+						debug(L"Deploying Celine Dione album");
+						for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i !=_save->getUnits()->end(); ++i)
+						{
+							if ((*i)->getOriginalFaction() == FACTION_HOSTILE && !(*i)->isOut())
+							{
+								(*i)->damage(Position(0,0,0), 1000, DT_STUN, true);
 							}
 						}
+						_save->getBattleGame()->checkForCasualties(0, 0, true, false);
+						_save->getBattleGame()->handleState();
 					}
 					// f11 - voxel map dump
 					else if (action->getDetails()->key.keysym.sym == SDLK_F11)

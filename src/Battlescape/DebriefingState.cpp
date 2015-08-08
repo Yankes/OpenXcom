@@ -373,7 +373,7 @@ void DebriefingState::prepareDebriefing()
 	AlienDeployment *deployment = _game->getRuleset()->getDeployment(battle->getMissionType());
 
 	bool aborted = battle->isAborted();
-	bool success = !aborted;
+	bool success = !aborted || battle->allObjectivesDestroyed();
 	Craft* craft = 0;
 	std::vector<Craft*>::iterator craftIterator;
 	Base* base = 0;
@@ -535,7 +535,7 @@ void DebriefingState::prepareDebriefing()
 			}
 		}
 	}
-
+	
 	// mission site disappears (even when you abort)
 	for (std::vector<MissionSite*>::iterator i = save->getMissionSites()->begin(); i != save->getMissionSites()->end(); ++i)
 	{
@@ -581,14 +581,16 @@ void DebriefingState::prepareDebriefing()
 		{
 			_txtRecovery->setText(tr("STR_ALIEN_BASE_RECOVERY"));
 			bool destroyAlienBase = true;
-			if (!deployment->getNextStage().empty())
-			{
-				destroyAlienBase = false;
-			}
-			else if (aborted || playersSurvived == 0)
+
+			if (aborted || playersSurvived == 0)
 			{
 				if (!battle->allObjectivesDestroyed())
 					destroyAlienBase = false;
+			}
+			
+			if (deployment && !deployment->getNextStage().empty())
+			{
+				destroyAlienBase = false;
 			}
 			success = destroyAlienBase;
 			if (destroyAlienBase)
@@ -709,14 +711,32 @@ void DebriefingState::prepareDebriefing()
 						{
 							BattleItem *ammoItem = (*j)->getItem("STR_RIGHT_HAND")->getAmmoItem();
 							if (!tankRule->getCompatibleAmmo()->empty() && ammoItem != 0 && ammoItem->getAmmoQuantity() > 0)
-								base->getItems()->addItem(tankRule->getCompatibleAmmo()->front(), ammoItem->getAmmoQuantity());
+							{
+								int total = ammoItem->getAmmoQuantity();
+
+								if (tankRule->getClipSize()) // meaning this tank can store multiple clips
+								{
+									total /= ammoItem->getRules()->getClipSize();
+								}
+
+								base->getItems()->addItem(tankRule->getCompatibleAmmo()->front(), total);
+							}
 						}
 						if ((*j)->getItem("STR_LEFT_HAND"))
 						{
 							RuleItem *secondaryRule = (*j)->getItem("STR_LEFT_HAND")->getRules();
 							BattleItem *ammoItem = (*j)->getItem("STR_LEFT_HAND")->getAmmoItem();
 							if (!secondaryRule->getCompatibleAmmo()->empty() && ammoItem != 0 && ammoItem->getAmmoQuantity() > 0)
-								base->getItems()->addItem(secondaryRule->getCompatibleAmmo()->front(), ammoItem->getAmmoQuantity());
+							{
+								int total = ammoItem->getAmmoQuantity();
+
+								if (secondaryRule->getClipSize()) // meaning this tank can store multiple clips
+								{
+									total /= ammoItem->getRules()->getClipSize();
+								}
+
+								base->getItems()->addItem(secondaryRule->getCompatibleAmmo()->front(), total);
+							}
 						}
 					}
 				}
@@ -1098,15 +1118,24 @@ void DebriefingState::recoverItems(std::vector<BattleItem*> *from, Base *base)
 					addStat("STR_ALIEN_CORPSES_RECOVERED", 1, (*it)->getUnit()->getValue());
 					base->getItems()->addItem((*it)->getUnit()->getArmor()->getCorpseGeoscape(), 1);
 				}
-				else if ((*it)->getRules()->getBattleType() == BT_CORPSE && (*it)->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
+				else if ((*it)->getRules()->getBattleType() == BT_CORPSE)
 				{
-					if ((*it)->getUnit()->getOriginalFaction() == FACTION_HOSTILE)
+					// it's unconscious
+					if ((*it)->getUnit()->getStatus() == STATUS_UNCONSCIOUS ||
+						// or it's in timeout because it's unconscious from the previous stage
+						// units can be in timeout and alive, and we assume they flee.
+						((*it)->getUnit()->getStatus() == STATUS_TIME_OUT &&
+						(*it)->getUnit()->getHealth() > 0 &&
+						(*it)->getUnit()->getHealth() < (*it)->getUnit()->getStunlevel()))
 					{
-						recoverAlien((*it)->getUnit(), base);
-					}
-					else if ((*it)->getUnit()->getOriginalFaction() == FACTION_NEUTRAL)
-					{
-						addStat("STR_CIVILIANS_SAVED", 1, (*it)->getUnit()->getValue());
+						if ((*it)->getUnit()->getOriginalFaction() == FACTION_HOSTILE)
+						{
+							recoverAlien((*it)->getUnit(), base);
+						}
+						else if ((*it)->getUnit()->getOriginalFaction() == FACTION_NEUTRAL)
+						{
+							addStat("STR_CIVILIANS_SAVED", 1, (*it)->getUnit()->getValue());
+						}
 					}
 				}
 				// only "recover" unresearched items
