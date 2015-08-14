@@ -69,7 +69,7 @@ private:
 	bool _debugMode;
 	bool _aborted;
 	int _itemId;
-	int _objectivesDestroyed, _objectivesNeeded;
+	int _objectiveType, _objectivesDestroyed, _objectivesNeeded;
 	std::vector<BattleUnit*> _exposedUnits;
 	std::list<BattleUnit*> _fallingUnits;
 	bool _unitsFalling, _cheating;
@@ -187,10 +187,10 @@ public:
 	/// Checks if the mission was aborted.
 	bool isAborted() const;
 	/// Sets how many objectives need to be destroyed.
-	void addToObjectiveCount();
+	void setObjectiveCount(int counter);
 	/// increments the objective counter.
 	void addDestroyedObjective();
-	/// Checks if all the objectives are detroyed.
+	/// Checks if all the objectives are destroyed.
 	bool allObjectivesDestroyed();
 	/// Gets the current item ID.
 	int *getCurrentItemId();
@@ -227,7 +227,7 @@ public:
 	/// Checks whether a particular faction has eyes on *unit (whether any unit on that faction sees *unit).
 	bool eyesOnTarget(UnitFaction faction, BattleUnit* unit);
 	/// Attempts to place a unit on or near entryPoint.
-	bool placeUnitNearPosition(BattleUnit *unit, Position entryPoint);
+	bool placeUnitNearPosition(BattleUnit *unit, Position entryPoint, bool largeFriend);
 	/// Resets the turn counter.
 	void resetTurnCounter();
 	/// Resets the visibility of all tiles on the map.
@@ -272,6 +272,10 @@ public:
 	std::string &getMusic();
 	/// Set the name of the music track.
 	void setMusic(std::string track);
+	/// Sets the objective type for this mission.
+	void setObjectiveType(int type);
+	/// Gets the objective type of this mission.
+	SpecialTileType getObjectiveType();
 };
 
 }

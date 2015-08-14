@@ -40,7 +40,7 @@ private:
 	bool _wasLetterboxed;
 	std::vector<InteractiveSurface *> _slides;
 	std::vector<Text *>_captions;
-	int _curScreen;
+	unsigned int _curScreen;
 	Timer *_transitionTimer;
 public:
 	/// Creates the Slideshow state.
@@ -53,6 +53,8 @@ public:
 	void screenTimer();
 	/// Handler for clicking the screen.
 	void screenClick(Action *action);
+	/// Handler for skipping the screen.
+	void screenSkip(Action *action);
 };
 
 }

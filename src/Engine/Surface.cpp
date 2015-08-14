@@ -17,7 +17,6 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "Surface.h"
-#include "Screen.h"
 #include "ShaderDraw.h"
 #include <vector>
 #include <fstream>
@@ -517,7 +516,7 @@ void Surface::think()
  * Draws the graphic that the surface contains before it
  * gets blitted onto other surfaces. The surface is only
  * redrawn if the flag is set by a property change, to
- * avoid unecessary drawing.
+ * avoid unnecessary drawing.
  */
 void Surface::draw()
 {

@@ -19,13 +19,11 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <sstream>
-#include <typeinfo>
 #include "BattlescapeGame.h"
 #include "BattlescapeState.h"
 #include "Map.h"
 #include "Camera.h"
 #include "NextTurnState.h"
-#include "AbortMissionState.h"
 #include "BattleState.h"
 #include "UnitTurnBState.h"
 #include "UnitWalkBState.h"
@@ -40,6 +38,7 @@
 #include "AlienBAIState.h"
 #include "CivilianBAIState.h"
 #include "Pathfinding.h"
+#include "../Ruleset/AlienDeployment.h"
 #include "../Engine/Game.h"
 #include "../Engine/Language.h"
 #include "../Engine/Sound.h"
@@ -454,9 +453,9 @@ void BattlescapeGame::endTurn()
 
 	tallyUnits(liveAliens, liveSoldiers);
 
-	if (_save->allObjectivesDestroyed())
+	if (_save->allObjectivesDestroyed() && _save->getObjectiveType() == MUST_DESTROY)
 	{
-		_parentState->finishBattle(false,liveSoldiers);
+		_parentState->finishBattle(false, liveSoldiers);
 		return;
 	}
 
@@ -496,6 +495,7 @@ void BattlescapeGame::checkForCasualties(BattleItem *murderweapon, BattleUnit *m
 {
 	for (std::vector<BattleUnit*>::iterator j = _save->getUnits()->begin(); j != _save->getUnits()->end(); ++j)
 	{
+		if ((*j)->getStatus() == STATUS_TIME_OUT) continue;
 		if ((*j)->getHealth() == 0 && (*j)->getStatus() != STATUS_DEAD && (*j)->getStatus() != STATUS_COLLAPSING)
 		{
 			BattleUnit *victim = (*j);
@@ -610,6 +610,21 @@ void BattlescapeGame::showInfoBoxQueue()
 }
 
 /**
+ * Sets up a mission complete notification.
+ */
+void BattlescapeGame::missionComplete()
+{
+	Game *game = _parentState->getGame();
+	if (game->getRuleset()->getDeployment(_save->getMissionType()))
+	{
+		std::string missionComplete = game->getRuleset()->getDeployment(_save->getMissionType())->getObjectivePopup();
+		if (missionComplete != "")
+		{
+			_infoboxQueue.push_back(new InfoboxOKState(game->getLanguage()->getString(missionComplete)));
+		}
+	}
+}
+/**
  * Handles the result of non target actions, like priming a grenade.
  */
 void BattlescapeGame::handleNonTargetAction()
@@ -617,7 +632,12 @@ void BattlescapeGame::handleNonTargetAction()
 	if (!_currentAction.targeting)
 	{
 		_currentAction.cameraPosition = Position(0,0,-1);
-		if (_currentAction.type == BA_PRIME && _currentAction.value > -1)
+		if (!_currentAction.result.empty())
+		{
+			_parentState->warning(_currentAction.result);
+			_currentAction.result = "";
+		}
+		else if (_currentAction.type == BA_PRIME && _currentAction.value > -1)
 		{
 			if (_currentAction.actor->spendTimeUnits(_currentAction.TU))
 			{
@@ -629,32 +649,19 @@ void BattlescapeGame::handleNonTargetAction()
 				_parentState->warning("STR_NOT_ENOUGH_TIME_UNITS");
 			}
 		}
-		if (_currentAction.type == BA_USE || _currentAction.type == BA_LAUNCH)
+		else if (_currentAction.type == BA_USE || _currentAction.type == BA_LAUNCH)
 		{
-			if (_currentAction.result.length() > 0)
-			{
-				_parentState->warning(_currentAction.result);
-				_currentAction.result = "";
-			}
 			_save->reviveUnconsciousUnits();
 		}
-		if (_currentAction.type == BA_HIT)
+		else if (_currentAction.type == BA_HIT)
 		{
-			if (_currentAction.result.length() > 0)
+			if (_currentAction.actor->spendTimeUnits(_currentAction.TU))
 			{
-				_parentState->warning(_currentAction.result);
-				_currentAction.result = "";
+				statePushBack(new MeleeAttackBState(this, _currentAction));
 			}
 			else
 			{
-				if (_currentAction.actor->spendTimeUnits(_currentAction.TU))
-				{
-					statePushBack(new MeleeAttackBState(this, _currentAction));
-				}
-				else
-				{
-					_parentState->warning("STR_NOT_ENOUGH_TIME_UNITS");
-				}
+				_parentState->warning("STR_NOT_ENOUGH_TIME_UNITS");
 			}
 		}
 		_currentAction.type = BA_NONE;
@@ -804,7 +811,7 @@ void BattlescapeGame::popState()
 
 	BattleAction action = _states.front()->getAction();
 
-	if (action.actor && action.result.length() > 0 && action.actor->getFaction() == FACTION_PLAYER
+	if (action.actor && !action.result.empty() && action.actor->getFaction() == FACTION_PLAYER
     && _playerPanicHandled && (_save->getSide() == FACTION_PLAYER || _debugPlay))
 	{
 		_parentState->warning(action.result);
@@ -1994,14 +2001,20 @@ void BattlescapeGame::tallyUnits(int &liveAliens, int &liveSoldiers)
 bool BattlescapeGame::convertInfected()
 {
 	bool retVal = false;
-	for (std::vector<BattleUnit*>::iterator j = _save->getUnits()->begin(); j != _save->getUnits()->end(); ++j)
+	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
-		if ((*j)->getHealth() > 0 && (*j)->getRespawn())
+		if ((*i)->getHealth() > 0 && (*i)->getHealth() >= (*i)->getStunlevel() && (*i)->getRespawn())
 		{
 			retVal = true;
-			(*j)->setRespawn(false);
-			convertUnit((*j), (*j)->getSpawnUnit());
-			j = _save->getUnits()->begin();
+			(*i)->setRespawn(false);
+			if (Options::battleNotifyDeath && (*i)->getFaction() == FACTION_PLAYER)
+			{
+				Game *game = _parentState->getGame();
+				game->pushState(new InfoboxState(game->getLanguage()->getString("STR_HAS_BEEN_KILLED", (*i)->getGender()).arg((*i)->getName(game->getLanguage()))));
+			}
+		
+			convertUnit((*i), (*i)->getSpawnUnit());
+			i = _save->getUnits()->begin();
 		}
 	}
 	return retVal;

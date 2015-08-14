@@ -28,7 +28,6 @@
 #include "../Ruleset/Armor.h"
 #include "../Ruleset/Ruleset.h"
 #include "../Ruleset/StatString.h"
-#include "../Engine/Options.h"
 #include "SavedGame.h"
 
 namespace OpenXcom
@@ -584,7 +583,7 @@ int Soldier::getPsiStrImprovement()
 
 /**
  * Returns the soldier's death details.
- * @return Pointer to death data. NULL if no death has occured.
+ * @return Pointer to death data. NULL if no death has occurred.
  */
 SoldierDeath *Soldier::getDeath() const
 {

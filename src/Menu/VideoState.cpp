@@ -31,8 +31,8 @@
 #include "../Resource/ResourcePack.h"
 #include "../Ruleset/Ruleset.h"
 #include "../Ruleset/RuleVideo.h"
-#include "MainMenuState.h"
 #include "CutsceneState.h"
+#include "../Interface/Cursor.h"
 
 namespace OpenXcom
 {
@@ -420,6 +420,7 @@ void VideoState::init()
 			_game->setVolume(Options::soundVolume, Options::musicVolume, -1);
 		}
 	}
+	_game->getCursor()->setVisible(false);
 
 	int dx = (Options::baseXResolution - Screen::ORIGINAL_WIDTH) / 2;
 	int dy = (Options::baseYResolution - Screen::ORIGINAL_HEIGHT) / 2;
@@ -483,14 +484,14 @@ void VideoState::init()
 	}
 #endif
 
-	SDL_Color pal[256];
+/*	SDL_Color pal[256];
 	SDL_Color pal2[256];
-	memcpy(pal, _game->getScreen()->getPalette(), sizeof(SDL_Color) * 256);
+	memcpy(pal, _game->getScreen()->getPalette(), sizeof(SDL_Color) * 256);*/
 	for (int i = 20; i > 0; --i)
 	{
 		SDL_Event event;
 		if (SDL_PollEvent(&event) && event.type == SDL_KEYDOWN) break;
-		for (int color = 0; color < 256; ++color)
+/*		for (int color = 0; color < 256; ++color)
 		{
 			pal2[color].r = (((int)pal[color].r) * i) / 20;
 			pal2[color].g = (((int)pal[color].g) * i) / 20;
@@ -498,7 +499,7 @@ void VideoState::init()
 			pal2[color].unused = pal[color].unused;
 		}
 		_game->getScreen()->setPalette(pal2, 0, 256, true);
-		_game->getScreen()->flip();
+		_game->getScreen()->flip();*/
 		SDL_Delay(45);
 	}
 	_game->getScreen()->clear();
@@ -516,6 +517,7 @@ void VideoState::init()
 	Music::stop();
 #endif
 
+	_game->getCursor()->setVisible(true);
 	CutsceneState::resetDisplay(wasLetterboxed);
 	_game->popState();
 }

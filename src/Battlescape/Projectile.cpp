@@ -23,23 +23,17 @@
 #include "Map.h"
 #include "Camera.h"
 #include "Particle.h"
-#include "../fmath.h"
 #include "../Engine/SurfaceSet.h"
 #include "../Engine/Surface.h"
 #include "../Resource/ResourcePack.h"
-#include "../Ruleset/Unit.h"
-#include "../Ruleset/RuleSoldier.h"
 #include "../Ruleset/RuleItem.h"
 #include "../Ruleset/MapData.h"
 #include "../Savegame/BattleUnit.h"
 #include "../Savegame/BattleItem.h"
-#include "../Savegame/Soldier.h"
 #include "../Savegame/SavedBattleGame.h"
 #include "../Savegame/Tile.h"
 #include "../Engine/RNG.h"
 #include "../Engine/Options.h"
-#include "../Ruleset/Armor.h"
-#include "../Engine/Game.h"
 
 namespace OpenXcom
 {
@@ -252,8 +246,8 @@ int Projectile::calculateThrow(double accuracy)
 			// check if the item would land on a tile with a blocking object
 			if (_action.type == BA_THROW
 				&& endTile
-				&& endTile->getMapData(MapData::O_OBJECT)
-				&& endTile->getMapData(MapData::O_OBJECT)->getTUCost(MT_WALK) == 255)
+				&& endTile->getMapData(O_OBJECT)
+				&& endTile->getMapData(O_OBJECT)->getTUCost(MT_WALK) == 255)
 			{
 				test = V_OUTOFBOUNDS;
 			}
@@ -457,7 +451,7 @@ Position Projectile::getTarget()
 
 /**
  * Is this projectile drawn back to front or front to back?
- * @retun return if this is to be drawn in reverse order.
+ * @return return if this is to be drawn in reverse order.
  */
 bool Projectile::isReversed() const
 {
