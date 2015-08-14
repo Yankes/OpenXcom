@@ -83,7 +83,7 @@ void UnitSprite::setBattleUnit(BattleUnit *unit, int part)
 	_redraw = true;
 	_part = part;
 
-	if (Options::battleHairBleach)
+	if (Options::battleHairBleach && this->getSurface()->format->BitsPerPixel != 32)
 	{
 		_colorSize =_unit->getRecolor().size();
 		if (_colorSize)
