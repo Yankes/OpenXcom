@@ -150,7 +150,7 @@ inline SDL_Surface* CreateSDL(void *pixels, int width, int height, int depth, in
  * @param bpp Bits-per-pixel depth.
  * @param isTransparent Used to eliminate transparency in 8bpp flcPlayer surface.
  */
-Surface::Surface(int width, int height, int x, int y, int bpp, bool isTransparent) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false), _tftdMode(false), _originalColors(0), _alignedBuffer(0), _palette(0)
+Surface::Surface(int width, int height, int x, int y, int bpp, bool isTransparent) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false), _tftdMode(false), _originalColors(0), _alignedBuffer(0), _palette(0), _seeDepth(0)
 {
 	_alignedBuffer = NewAligned(bpp, width, height);
 
@@ -229,6 +229,7 @@ Surface::Surface(const Surface& other) : _palette(other._palette)
 	_redraw = other._redraw;
 	_originalColors = other._originalColors;
 	_alignedBuffer = 0;
+	_seeDepth = other._seeDepth;
 }
 
 /**
@@ -931,6 +932,16 @@ struct StandardShade
 		else
 			return curr;
 	}
+
+	static inline int mix(int a, int b, int shade)
+	{
+		int curr = (a * (16 - shade) + b * shade) / 16;
+		if(curr < 0)
+			return 0;
+		else
+			return curr;
+	}
+
 	static inline void func(SDL_Color& dest, const SDL_Color& colorKeyDest, const SDL_Color& src, const SDL_Color& colorKeySrc, const int& shade)
 	{
 		if(src.r == colorKeySrc.r && src.g == colorKeySrc.g && src.b == colorKeySrc.b)
@@ -939,6 +950,25 @@ struct StandardShade
 		dest.r = offset(src.r, shade, 16);
 		dest.g = offset(src.g, shade, 17);
 		dest.b = offset(src.b, shade, 16);
+
+		//avoid transparent color
+		if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
+			dest.r ^= 1;
+	}
+	static inline void func(SDL_Color& dest, const SDL_Color& colorKeyDest, const SDL_Color& src, const SDL_Color& colorKeySrc, const int& shade, const int* tintTab, const int* diffTab)
+	{
+		if(src.r == colorKeySrc.r && src.g == colorKeySrc.g && src.b == colorKeySrc.b)
+			return;
+
+		const int newShade = shade + (src.r + src.g + src.b) / 192;
+
+		dest.r = offset(src.r, newShade, diffTab[0]);
+		dest.g = offset(src.g, newShade, diffTab[1]);
+		dest.b = offset(src.b, newShade, diffTab[2]);
+
+		dest.r = mix(dest.r, tintTab[0], newShade);
+		dest.g = mix(dest.g, tintTab[1], newShade);
+		dest.b = mix(dest.b, tintTab[2], newShade);
 
 		//avoid transparent color
 		if(dest.r == colorKeyDest.r && dest.g == colorKeyDest.g && dest.b == colorKeyDest.b)
@@ -961,6 +991,22 @@ struct StandardShade
  */
 void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int newBaseColor)
 {
+	const int depth = surface->getSeeDepth();
+	const int tintTab[][3] =
+	{
+		{ 0, 0, 0 },
+		{ 0, 50, 140 },
+		{ -10, 20, 80 },
+		{ -20, -50, 20 },
+	};
+	const int diffTab[][3] =
+	{
+		{ 0, 0, 0 },
+		{ 7, 3, 0 },
+		{ 11, 4, 0 },
+		{ 20, 6, 0 },
+	};
+
 	SDL_Color colorKeyDest = { 0, 0, 0, 255 };
 	SDL_GetRGB(surface->getSurface()->format->colorkey, surface->getSurface()->format, &colorKeyDest.r, &colorKeyDest.g, &colorKeyDest.b);
 
@@ -993,7 +1039,24 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 			if(dest8)
 				throw Exception("Cannot blit 32bit to 8bit");
 			else
-				ShaderDraw<StandardShade>(ShaderSurface32bit(surface), ShaderScalar(colorKeyDest), src, ShaderScalar(colorKeySrc), ShaderScalar(off));
+			{
+				if (depth > 0)
+				{
+					ShaderDraw<StandardShade>(
+						ShaderSurface32bit(surface), ShaderScalar(colorKeyDest),
+						src, ShaderScalar(colorKeySrc),
+						ShaderScalar(off), ShaderScalar(tintTab[depth]), ShaderScalar(diffTab[depth])
+					);
+				}
+				else
+				{
+					ShaderDraw<StandardShade>(
+						ShaderSurface32bit(surface), ShaderScalar(colorKeyDest),
+						src, ShaderScalar(colorKeySrc),
+						ShaderScalar(off)
+					);
+				}
+			}
 		}
 	}
 	else
@@ -1131,4 +1194,23 @@ bool Surface::isTFTDMode()
 {
 	return _tftdMode;
 }
+
+/**
+ * Sets see depth mode of surface.
+ * @param d depth
+ */
+void Surface::setSeeDepth(int d)
+{
+	_seeDepth = d;
+}
+
+/**
+ * Gets see depth mode of surface.
+ * @return depth
+ */
+int Surface::getSeeDepth()
+{
+	return _seeDepth;
+}
+
 }

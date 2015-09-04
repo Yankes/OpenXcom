@@ -49,6 +49,7 @@ protected:
 	int _dx, _dy;
 	SDL_Color *_palette;
 	std::string _tooltip;
+	int _seeDepth;
 
 	void resize(int width, int height);
 public:
@@ -238,7 +239,10 @@ public:
 	virtual void setTFTDMode(bool mode);
 	/// checks if this is a TFTD mode surface.
 	bool isTFTDMode();
-
+	/// Sets the see depth mode of surface.
+	void setSeeDepth(int d);
+	/// Gets the see depth mode of surface.
+	int getSeeDepth();
 };
 
 }
