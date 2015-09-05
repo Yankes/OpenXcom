@@ -960,7 +960,7 @@ struct StandardShade
 		if(src.r == colorKeySrc.r && src.g == colorKeySrc.g && src.b == colorKeySrc.b)
 			return;
 
-		const int newShade = shade + (src.r + src.g + src.b) / 192;
+		const int newShade = shade + 4 - (src.r + src.g + src.b) / 192;
 
 		dest.r = offset(src.r, newShade, diffTab[0]);
 		dest.g = offset(src.g, newShade, diffTab[1]);
