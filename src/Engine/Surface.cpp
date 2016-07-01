@@ -23,6 +23,7 @@
 #include <SDL_gfxPrimitives.h>
 #include <SDL_image.h>
 #include <SDL_endian.h>
+#include "../lodepng.h"
 #include "Palette.h"
 #include "Exception.h"
 #include "Logger.h"
@@ -255,19 +256,55 @@ void Surface::loadImage(const std::string &filename)
 	_alignedBuffer = 0;
 	_surface = 0;
 
-	// SDL only takes UTF-8 filenames
-	// so here's an ugly hack to match this ugly reasoning
-	std::string utf8 = Language::wstrToUtf8(Language::fsToWstr(filename));
+	Log(LOG_VERBOSE) << "Loading image: " << filename;
 
-	// Load file
-	Log(LOG_VERBOSE) << "Loading image: " << utf8;
-	_surface = IMG_Load(utf8.c_str());
+	// Try loading with LodePNG first
+	std::vector<unsigned char> png;
+	unsigned error = lodepng::load_file(png, filename);
+	if (!error)
+	{
+		std::vector<unsigned char> image;
+		unsigned width, height;
+		lodepng::State state;
+		state.decoder.color_convert = 0;
+		error = lodepng::decode(image, width, height, state, png);
+		if (!error)
+		{
+			LodePNGColorMode *color = &state.info_png.color;
+			unsigned bpp = lodepng_get_bpp(color);
+			if (bpp == 8)
+			{
+				_alignedBuffer = NewAligned(bpp, width, height);
+				_surface = SDL_CreateRGBSurfaceFrom(_alignedBuffer, width, height, bpp, GetPitch(bpp, width), 0, 0, 0, 0);
+				if (_surface)
+				{
+					int x = 0, y = 0;
+					for (std::vector<unsigned char>::const_iterator i = image.begin(); i != image.end(); ++i)
+					{
+						setPixelIterative(&x, &y, *i);
+					}
+					setPalette((SDL_Color*)color->palette, 0, color->palettesize);					
+				}
+			}
+		}
+	}
+
+	// Otherwise default to SDL_Image
+	if (!_surface)
+	{
+		// SDL only takes UTF-8 filenames
+		// so here's an ugly hack to match this ugly reasoning
+		std::string utf8 = Language::wstrToUtf8(Language::fsToWstr(filename));
+		_surface = IMG_Load(utf8.c_str());
+	}
 
 	if (!_surface)
 	{
 		std::string err = filename + ":" + IMG_GetError();
 		throw Exception(err);
 	}
+
+	SDL_SetColorKey(_surface, SDL_SRCCOLORKEY, 0);
 }
 
 /**
@@ -753,6 +790,65 @@ void Surface::unlock()
 {
 	SDL_UnlockSurface(_surface);
 }
+
+/**
+ * help class used for Surface::blitNShade
+ */
+struct ColorReplace
+{
+	/**
+	* Function used by ShaderDraw in Surface::blitNShade
+	* set shade and replace color in that surface
+	* @param dest destination pixel
+	* @param src source pixel
+	* @param shade value of shade of this surface
+	* @param newColor new color to set (it should be offseted by 4)
+	*/
+	static inline void func(Uint8& dest, const Uint8& src, const int& shade, const int& newColor, const int&)
+	{
+		if (src)
+		{
+			const int newShade = (src&15) + shade;
+			if (newShade > 15)
+				// so dark it would flip over to another color - make it black instead
+				dest = 15;
+			else
+				dest = newColor | newShade;
+		}
+	}
+
+};
+
+/**
+ * help class used for Surface::blitNShade
+ */
+struct StandardShade
+{
+	/**
+	* Function used by ShaderDraw in Surface::blitNShade
+	* set shade
+	* @param dest destination pixel
+	* @param src source pixel
+	* @param shade value of shade of this surface
+	* @param notused
+	* @param notused
+	*/
+	static inline void func(Uint8& dest, const Uint8& src, const int& shade, const int&, const int&)
+	{
+		if (src)
+		{
+			const int newShade = (src&15) + shade;
+			if (newShade > 15)
+				// so dark it would flip over to another color - make it black instead
+				dest = 15;
+			else
+				dest = (src&(15<<4)) | newShade;
+		}
+	}
+
+};
+
+
 
 /**
  * Specific blit function to blit battlescape terrain data in different shades in a fast way.
