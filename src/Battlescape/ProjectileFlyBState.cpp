@@ -265,6 +265,19 @@ void ProjectileFlyBState::init()
 		_parent->getMap()->setCursorType(CT_NONE);
 		_parent->getMap()->getCamera()->stopMouseScrolling();
 	}
+	else
+	{
+		_action.clearTU();
+		_unit->abortTurn();
+		_parent->popState();
+	}
+}
+
+bool ProjectileFlyBState::canShoot()
+{
+	return _action.weapon->haveNextShotsForAction(_action.type, _action.autoShotCounter) &&
+		_action.weapon->getAmmoForAction(_action.type) &&
+		_action.weapon->checkItemState(_action.type, _action.autoShotCounter, _action.actor, _parent->getSave()) <= 0;
 }
 
 /**
@@ -274,6 +287,11 @@ void ProjectileFlyBState::init()
  */
 bool ProjectileFlyBState::createNewProjectile()
 {
+	if (!canShoot())
+	{
+		return false;
+	}
+
 	++_action.autoShotCounter;
 
 	// create a new projectile
@@ -319,8 +337,6 @@ bool ProjectileFlyBState::createNewProjectile()
 			delete projectile;
 			_parent->getMap()->setProjectile(0);
 			_action.result = "STR_UNABLE_TO_THROW_HERE";
-			_action.clearTU();
-			_parent->popState();
 			return false;
 		}
 	}
@@ -342,7 +358,7 @@ bool ProjectileFlyBState::createNewProjectile()
 			}
 			if (_action.type != BA_LAUNCH)
 			{
-				_action.weapon->spendAmmoForAction(_action.type, _parent->getSave());
+				_action.weapon->updateItemState(_action.type, _action.autoShotCounter, _unit, _parent->getSave());
 			}
 		}
 		else
@@ -354,8 +370,6 @@ bool ProjectileFlyBState::createNewProjectile()
 			{
 				_action.result = "STR_NO_LINE_OF_FIRE";
 			}
-			_unit->abortTurn();
-			_parent->popState();
 			return false;
 		}
 	}
@@ -384,7 +398,7 @@ bool ProjectileFlyBState::createNewProjectile()
 			}
 			if (_action.type != BA_LAUNCH)
 			{
-				_action.weapon->spendAmmoForAction(_action.type, _parent->getSave());
+				_action.weapon->updateItemState(_action.type, _action.autoShotCounter, _unit, _parent->getSave());
 			}
 		}
 		else
@@ -396,8 +410,6 @@ bool ProjectileFlyBState::createNewProjectile()
 			{
 				_action.result = "STR_NO_LINE_OF_FIRE";
 			}
-			_unit->abortTurn();
-			_parent->popState();
 			return false;
 		}
 	}
@@ -424,12 +436,11 @@ void ProjectileFlyBState::think()
 		bool hasFloor = t && !t->hasNoFloor(bt);
 		bool unitCanFly = _action.actor->getMovementType() == MT_FLY;
 
-		if (_action.weapon->haveNextShotsForAction(_action.type, _action.autoShotCounter)
-			&& !_action.actor->isOut()
+		if (!_action.actor->isOut()
 			&& _ammo->getAmmoQuantity() != 0
-			&& (hasFloor || unitCanFly))
+			&& (hasFloor || unitCanFly)
+			&& createNewProjectile())
 		{
-			createNewProjectile();
 			if (_action.cameraPosition.z != -1)
 			{
 				_parent->getMap()->getCamera()->setMapOffset(_action.cameraPosition);
@@ -438,6 +449,7 @@ void ProjectileFlyBState::think()
 		}
 		else
 		{
+			_action.clearTU();
 			if (_action.cameraPosition.z != -1 && _action.waypoints.size() <= 1)
 			{
 				_parent->getMap()->getCamera()->setMapOffset(_action.cameraPosition);
@@ -529,7 +541,7 @@ void ProjectileFlyBState::think()
 				_parent->getMap()->resetCameraSmoothing();
 				if (_action.type == BA_LAUNCH)
 				{
-					_action.weapon->spendAmmoForAction(_action.type, _parent->getSave());
+					_action.weapon->updateItemState(_action.type, 1, _unit, _parent->getSave());
 				}
 
 				if (_projectileImpact != V_OUTOFBOUNDS)
@@ -545,7 +557,7 @@ void ProjectileFlyBState::think()
 					_parent->statePushFront(new ExplosionBState(
 						_parent, _parent->getMap()->getProjectile()->getPosition(offset),
 						{ _action, _ammo }, 0,
-						_action.weapon->haveNextShotsForAction(_action.type, _action.autoShotCounter) || !_action.weapon->getAmmoForAction(_action.type),
+						!canShoot(),
 						shotgun ? 0 : _range + _parent->getMap()->getProjectile()->getDistance()
 					));
 
@@ -599,7 +611,7 @@ void ProjectileFlyBState::think()
 //						_unit->nerfFiringXP(firingXP + 1);
 //					}
 				}
-				else if (!_action.weapon->haveNextShotsForAction(_action.type, _action.autoShotCounter) || !_action.weapon->getAmmoForAction(_action.type))
+				else if (!canShoot())
 				{
 					_unit->aim(false);
 				}

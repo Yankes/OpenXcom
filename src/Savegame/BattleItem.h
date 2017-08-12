@@ -64,8 +64,10 @@ private:
 	const RuleItemAction *_confMelee = nullptr;
 	ScriptValues<BattleItem> _scriptValues;
 
-public:
+	/// Spend one bullet.
+	bool spendBullet();
 
+public:
 	/// Name of class used in script.
 	static constexpr const char *ScriptName = "BattleItem";
 	/// Register all useful function used by script.
@@ -103,8 +105,6 @@ public:
 	/// Called when item fuse is triggered on throw.
 	bool fuseProximityEvent();
 
-	/// Spend one bullet.
-	bool spendBullet();
 	/// Gets the item's owner.
 	BattleUnit *getOwner();
 	/// Gets the item's owner.
@@ -154,8 +154,6 @@ public:
 	const BattleItem *getAmmoForAction(BattleActionType action) const;
 	/// Get ammo for action.
 	BattleItem *getAmmoForAction(BattleActionType action, std::string* message = nullptr);
-	/// Spend weapon ammo.
-	void spendAmmoForAction(BattleActionType action, SavedBattleGame *save);
 	/// How many auto shots does this weapon fire.
 	bool haveNextShotsForAction(BattleActionType action, int shotCount) const;
 	/// Determines if this item uses ammo.
@@ -172,6 +170,11 @@ public:
 	int getTotalWeight() const;
 	/// Get waypoints count.
 	int getCurrentWaypoints() const;
+
+	/// Check if item us usable before action.
+	int checkItemState(BattleActionType action, int seq, BattleUnit *unit, SavedBattleGame *save) const;
+	/// Update item state after action.
+	void updateItemState(BattleActionType action, int seq, BattleUnit *unit, SavedBattleGame *save);
 
 	/// Gets the item's tile.
 	Tile *getTile() const;

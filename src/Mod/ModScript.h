@@ -72,6 +72,10 @@ class ModScript
 	using Output = ScriptOutputArgs<int&, int>;
 
 
+	////////////////////////////////////////////////////////////
+	//					unit script
+	////////////////////////////////////////////////////////////
+
 	struct RecolorUnitParser : ScriptParserEvents<Output, const BattleUnit*, int, int, int, int>
 	{
 		RecolorUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
@@ -86,13 +90,9 @@ class ModScript
 		ReactionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
-	struct RecolorItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
+	struct AwardExperienceParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*>
 	{
-		RecolorItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
-	};
-	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
-	{
-		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+		AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
 	struct VisibilityUnitParser : ScriptParserEvents<ScriptOutputArgs<int&, int, ScriptTag<BattleUnitVisibility>&>, const BattleUnit*, const BattleUnit*, int, int, int, int>
@@ -122,6 +122,19 @@ class ModScript
 		ReturnFromMissionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
+	////////////////////////////////////////////////////////////
+	//					item script
+	////////////////////////////////////////////////////////////
+
+	struct RecolorItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
+	{
+		RecolorItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
+	{
+		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
 	struct CreateItemParser : ScriptParserEvents<ScriptOutputArgs<>, BattleItem*, SavedBattleGame*, int>
 	{
 		CreateItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
@@ -130,10 +143,13 @@ class ModScript
 	{
 		NewTurnItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
-
-	struct AwardExperienceParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*>
+	struct UseItemParser : ScriptParserEvents<ScriptOutputArgs<>, BattleItem*, BattleItem*, BattleUnit*, SavedBattleGame*, int, int, int>
 	{
-		AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+		UseItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+	struct CheckItemParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleItem*, const BattleItem*, const BattleUnit*, const SavedBattleGame*, int, int, int>
+	{
+		CheckItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
 public:
@@ -176,6 +192,8 @@ public:
 
 	using CreateItem = MACRO_NAMED_SCRIPT("createItem", CreateItemParser);
 	using NewTurnItem = MACRO_NAMED_SCRIPT("newTurnItem", NewTurnItemParser);
+	using UseItem = MACRO_NAMED_SCRIPT("useItem", UseItemParser);
+	using CheckItem = MACRO_NAMED_SCRIPT("checkItem", CheckItemParser);
 
 	////////////////////////////////////////////////////////////
 	//					groups
@@ -206,7 +224,9 @@ public:
 		ReactionWeaponAction,
 
 		CreateItem,
-		NewTurnItem
+		NewTurnItem,
+		UseItem,
+		CheckItem
 	>;
 
 	////////////////////////////////////////////////////////////

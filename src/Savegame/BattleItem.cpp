@@ -418,10 +418,8 @@ void BattleItem::setAmmoQuantity(int qty)
  */
 bool BattleItem::spendBullet()
 {
-	if (_ammoQuantity > 0)
-		_ammoQuantity--;
-
-	if (_ammoQuantity == 0)
+	_ammoQuantity--;
+	if (_ammoQuantity <= 0)
 		return false;
 	else
 		return true;
@@ -822,19 +820,37 @@ BattleItem *BattleItem::getAmmoForAction(BattleActionType action, std::string* m
 }
 
 /**
+ * Check if item us usable before action.
+ * @param action Battle Action done using this item.
+ * @param save Save game.
+ */
+int BattleItem::checkItemState(BattleActionType action, int seq, BattleUnit *unit, SavedBattleGame *save) const
+{
+	const BattleItem *ammo = getAmmoForAction(action);
+
+	ModScript::CheckItem::Output args { 100 };
+	ModScript::CheckItem::Worker work { this, ammo, unit, save, seq, save->getTurn(), action, };
+
+	work.execute(this->getRules()->getScript<ModScript::CheckItem>(), args);
+
+	return args.getFirst();
+}
+
+/**
  * Spend weapon ammo, if depleded remove clip.
  * @param action Battle Action done using this item.
  * @param save Save game.
  */
-void BattleItem::spendAmmoForAction(BattleActionType action, SavedBattleGame* save)
+void BattleItem::updateItemState(BattleActionType action, int seq, BattleUnit *unit, SavedBattleGame* save)
 {
-	if (save->getDebugMode() || getActionConf(action)->ammoSlot == -1)
-	{
-		return;
-	}
+	BattleItem *ammo = getAmmoForAction(action);
 
-	auto ammo = getAmmoForAction(action);
-	if (ammo)
+	ModScript::UseItem::Output args { };
+	ModScript::UseItem::Worker work { this, ammo, unit, save, seq, save->getTurn(), action, };
+
+	work.execute(this->getRules()->getScript<ModScript::UseItem>(), args);
+
+	if (!(save->getDebugMode() || getActionConf(action)->ammoSlot == -1) && ammo)
 	{
 		if (ammo->getRules()->getClipSize() > 0 && ammo->spendBullet() == false)
 		{
@@ -1435,6 +1451,20 @@ ModScript::CreateItemParser::CreateItemParser(ScriptGlobal* shared, const std::s
 }
 
 ModScript::NewTurnItemParser::NewTurnItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "item", "battle_game", "turn", "side", }
+{
+	BindBase b { this };
+
+	b.addCustomPtr<const Mod>("rules", mod);
+}
+
+ModScript::UseItemParser::UseItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "item", "ammo", "unit", "battle_game", "shoot_num", "turn", "battle_action", }
+{
+	BindBase b { this };
+
+	b.addCustomPtr<const Mod>("rules", mod);
+}
+
+ModScript::CheckItemParser::CheckItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "result", "item", "ammo", "unit", "battle_game", "shoot_num", "turn", "battle_action", }
 {
 	BindBase b { this };
 

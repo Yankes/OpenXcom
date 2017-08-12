@@ -39,9 +39,13 @@ private:
 	Position _origin, _targetVoxel, _originVoxel;
 	int _projectileImpact;
 	int _range;
+	bool _initialized, _targetFloor;
+
+	/// Check if unit can shoot this weapon.
+	bool canShoot();
 	/// Tries to create a projectile sprite.
 	bool createNewProjectile();
-	bool _initialized, _targetFloor;
+
 public:
 	/// Creates a new ProjectileFly class
 	ProjectileFlyBState(BattlescapeGame *parent, BattleAction action);

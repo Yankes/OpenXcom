@@ -89,6 +89,12 @@ void MeleeAttackBState::init()
 		return;
 	}
 
+	if (_weapon->checkItemState(BA_HIT, 0, _unit, _parent->getSave()) <= 0)
+	{
+		_parent->popState();
+		return;
+	}
+
 	// reaction fire
 	if (reactionShoot)
 	{
@@ -166,6 +172,8 @@ void MeleeAttackBState::think()
 		_target && !_target->isOutThresholdExceed() &&
 		// and we still have ammo to make the attack
 		_weapon->getAmmoForAction(BA_HIT) &&
+		// check if script allow attack
+		_weapon->checkItemState(BA_HIT, 0, _unit, _parent->getSave()) <= 0 &&
 		// spend the TUs immediately
 		_action.spendTU())
 	{
@@ -198,7 +206,7 @@ void MeleeAttackBState::performMeleeAttack()
 	_unit->aim(true);
 
 	// use up ammo if applicable
-	_action.weapon->spendAmmoForAction(BA_HIT, _parent->getSave());
+	_action.weapon->updateItemState(BA_HIT, 0, _unit, _parent->getSave());
 	_parent->getMap()->setCursorType(CT_NONE);
 
 	// offset the damage voxel ever so slightly so that the target knows which side the attack came from
