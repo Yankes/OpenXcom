@@ -38,6 +38,7 @@
 #include "../Mod/RuleCraft.h"
 #include "../Mod/RuleItem.h"
 #include "../Savegame/Base.h"
+#include "../Savegame/HangarAllocation.h"
 #include "../Engine/Action.h"
 #include "../Savegame/Craft.h"
 #include "../Savegame/ItemContainer.h"
@@ -69,6 +70,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	_txtQuantity = new Text(60, 9, 256, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 	_lstItems = new TextList(287, 120, 8, 54);
+	_hangarAllocation = new HangarAllocation(_base);
 
 	// Set palette
 	setInterface("buyMenu");
@@ -232,6 +234,7 @@ PurchaseState::~PurchaseState()
 {
 	delete _timerInc;
 	delete _timerDec;
+	delete _hangarAllocation;
 }
 
 /**
@@ -359,14 +362,16 @@ void PurchaseState::btnOkClick(Action *)
 				_base->getTransfers()->push_back(t);
 				break;
 			case TRANSFER_CRAFT:
-				for (int c = 0; c < i->amount; c++)
 				{
 					RuleCraft *rule = (RuleCraft*)i->rule;
-					t = new Transfer(rule->getTransferTime());
-					Craft *craft = new Craft(rule, _base, _game->getSavedGame()->getId(rule->getType()));
-					craft->setStatus("STR_REFUELLING");
-					t->setCraft(craft);
-					_base->getTransfers()->push_back(t);
+					for (int c = 0; c < i->amount; c++)
+					{
+						t = new Transfer(rule->getTransferTime());
+						Craft *craft = new Craft(rule, _base, _game->getSavedGame()->getId(rule->getType()));
+						craft->setStatus("STR_REFUELLING");
+						t->setCraft(craft);
+						_base->getTransfers()->push_back(t);
+					}
 				}
 				break;
 			case TRANSFER_ITEM:
@@ -380,6 +385,7 @@ void PurchaseState::btnOkClick(Action *)
 			}
 		}
 	}
+	_base->initHangars();
 	_game->popState();
 }
 
@@ -522,7 +528,6 @@ void PurchaseState::increaseByValue(int change)
 	}
 	else
 	{
-		RuleItem *rule = nullptr;
 		switch (getRow().type)
 		{
 		case TRANSFER_SOLDIER:
@@ -534,18 +539,27 @@ void PurchaseState::increaseByValue(int change)
 			}
 			break;
 		case TRANSFER_CRAFT:
-			if (_cQty + 1 > _base->getAvailableHangars() - _base->getUsedHangars())
 			{
-				errorMessage = tr("STR_NO_FREE_HANGARS_FOR_PURCHASE");
+				RuleCraft *rule = (RuleCraft*)getRow().rule;
+				if (_cQty + 1 > _base->getAvailableHangars() - _base->getUsedHangars())
+				{
+					errorMessage = tr("STR_NO_FREE_HANGARS_FOR_PURCHASE");
+				}
+				else if (!_hangarAllocation->addCraftType(rule))
+				{
+					errorMessage = tr("STR_NO_FREE_HANGARS_FOR_PURCHASE");
+				}
+				break;
 			}
-			break;
 		case TRANSFER_ITEM:
-			rule = (RuleItem*)getRow().rule;
-			if (_iQty + rule->getSize() > _base->getAvailableStores() - _base->getUsedStores())
 			{
-				errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE");
+				RuleItem *rule = (RuleItem*)getRow().rule;
+				if (_iQty + rule->getSize() > _base->getAvailableStores() - _base->getUsedStores())
+				{
+					errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE");
+				}
+				break;
 			}
-			break;
 		}
 	}
 
@@ -567,24 +581,24 @@ void PurchaseState::increaseByValue(int change)
 			break;
 		case TRANSFER_CRAFT:
 			{
-				int maxByHangars = _base->getAvailableHangars() - _base->getUsedHangars() - _cQty;
+				int maxByHangars = 1; //alwas 1 becasue we need check each craft
 				change = std::min(maxByHangars, change);
 				_cQty += change;
 			}
 			break;
 		case TRANSFER_ITEM:
-		{
-			RuleItem *rule = (RuleItem*)getRow().rule;
-			double storesNeededPerItem = rule->getSize();
-			double freeStores = _base->getAvailableStores() - _base->getUsedStores() - _iQty;
-			double maxByStores = (double)(INT_MAX);
-			if (!AreSame(storesNeededPerItem, 0.0))
 			{
-				maxByStores = (freeStores + 0.05) / storesNeededPerItem;
+				RuleItem *rule = (RuleItem*)getRow().rule;
+				double storesNeededPerItem = rule->getSize();
+				double freeStores = _base->getAvailableStores() - _base->getUsedStores() - _iQty;
+				double maxByStores = (double)(INT_MAX);
+				if (!AreSame(storesNeededPerItem, 0.0))
+				{
+					maxByStores = (freeStores + 0.05) / storesNeededPerItem;
+				}
+				change = std::min((int)maxByStores, change);
+				_iQty += change * storesNeededPerItem;
 			}
-			change = std::min((int)maxByStores, change);
-			_iQty += change * storesNeededPerItem;
-		}
 			break;
 		}
 		getRow().amount += change;
@@ -618,7 +632,6 @@ void PurchaseState::decreaseByValue(int change)
 	if (0 >= change || 0 >= getRow().amount) return;
 	change = std::min(getRow().amount, change);
 
-	RuleItem *rule = nullptr;
 	switch (getRow().type)
 	{
 	case TRANSFER_SOLDIER:
@@ -627,11 +640,20 @@ void PurchaseState::decreaseByValue(int change)
 		_pQty -= change;
 		break;
 	case TRANSFER_CRAFT:
-		_cQty -= change;
+		{
+			RuleCraft *rule = (RuleCraft*)getRow().rule;
+			_cQty -= change;
+			for (int i = 0; i < change; ++i)
+			{
+				_hangarAllocation->removeCraftType(rule);
+			}
+		}
 		break;
 	case TRANSFER_ITEM:
-		rule = (RuleItem*)getRow().rule;
-		_iQty -= rule->getSize() * change;
+		{
+			RuleItem *rule = (RuleItem*)getRow().rule;
+			_iQty -= rule->getSize() * change;
+		}
 		break;
 	}
 	getRow().amount -= change;

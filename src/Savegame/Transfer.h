@@ -39,6 +39,7 @@ class Soldier;
 class Craft;
 class Language;
 class Base;
+class BaseFacility;
 class Mod;
 class SavedGame;
 
@@ -53,6 +54,7 @@ private:
 	int _hours;
 	Soldier *_soldier;
 	Craft *_craft;
+	BaseFacility *_hangar;
 	std::string _itemId;
 	int _itemQty, _scientists, _engineers;
 	bool _delivered;
@@ -91,7 +93,10 @@ public:
 	void advance(Base *base);
 	/// Get a pointer to the soldier being transferred.
 	Soldier *getSoldier();
-
+	/// Sets hangar.
+	void setHangar(BaseFacility* f);
+	/// Get hangar.
+	BaseFacility* getHangar() const;
 };
 
 }

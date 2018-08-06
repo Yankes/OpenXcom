@@ -34,7 +34,7 @@
 
 namespace OpenXcom
 {
-Production::Production(const RuleManufacture * rules, int amount) : _rules(rules), _amount(amount), _infinite(false), _timeSpent(0), _engineers(0), _sell(false)
+Production::Production(const RuleManufacture * rules, int amount) : _rules(rules), _hangar(nullptr), _amount(amount), _infinite(false), _timeSpent(0), _engineers(0), _sell(false)
 {
 }
 
@@ -132,7 +132,9 @@ productionProgress_e Production::step(Base * b, SavedGame * g, const Mod *m)
 			{
 				Craft *craft = new Craft(ruleCraft, b, g->getId(ruleCraft->getType()));
 				craft->setStatus("STR_REFUELLING");
+				craft->setHangar(getHangar());
 				b->getCrafts()->push_back(craft);
+				setHangar(nullptr);
 			}
 			else
 			{
@@ -159,6 +161,7 @@ productionProgress_e Production::step(Base * b, SavedGame * g, const Mod *m)
 				// We need to ensure that player has enough cash/item to produce a new unit
 				if (!haveEnoughMoneyForOneMoreUnit(g)) return PROGRESS_NOT_ENOUGH_MONEY;
 				if (!haveEnoughMaterialsForOneMoreUnit(b, m)) return PROGRESS_NOT_ENOUGH_MATERIALS;
+				if (!b->addHangarCraftProduction(this)) return PROGRESS_NOT_ENOUGH_FREE_HANGARS;
 				startItem(b, g, m);
 			}
 		}
@@ -170,6 +173,7 @@ productionProgress_e Production::step(Base * b, SavedGame * g, const Mod *m)
 		// We need to ensure that player has enough cash/item to produce a new unit
 		if (!haveEnoughMoneyForOneMoreUnit(g)) return PROGRESS_NOT_ENOUGH_MONEY;
 		if (!haveEnoughMaterialsForOneMoreUnit(b, m)) return PROGRESS_NOT_ENOUGH_MATERIALS;
+		if (!b->addHangarCraftProduction(this)) return PROGRESS_NOT_ENOUGH_FREE_HANGARS;
 		startItem(b, g, m);
 	}
 	return PROGRESS_NOT_COMPLETE;
@@ -227,7 +231,7 @@ void Production::startItem(Base * b, SavedGame * g, const Mod *m) const
 	}
 }
 
-YAML::Node Production::save() const
+YAML::Node Production::save(const Base *b) const
 {
 	YAML::Node node;
 	node["item"] = getRules()->getName();
@@ -237,10 +241,11 @@ YAML::Node Production::save() const
 	node["infinite"] = getInfiniteAmount();
 	if (getSellItems())
 		node["sell"] = getSellItems();
+	node["hangar"] = b->saveFacilitieReference(_hangar);
 	return node;
 }
 
-void Production::load(const YAML::Node &node)
+void Production::load(const YAML::Node &node, Base* base)
 {
 	setAssignedEngineers(node["assigned"].as<int>(getAssignedEngineers()));
 	setTimeSpent(node["spent"].as<int>(getTimeSpent()));
@@ -254,6 +259,23 @@ void Production::load(const YAML::Node &node)
 		setInfiniteAmount(true);
 		setSellItems(true);
 	}
+	_hangar = base->loadFacilitieReference(node["hangar"]);
+}
+
+/**
+ * Sets hangar.
+ */
+void Production::setHangar(BaseFacility* f)
+{
+	_hangar = f;
+}
+
+/*
+ * Get hangar.
+ */
+BaseFacility* Production::getHangar() const
+{
+	return _hangar;
 }
 
 }

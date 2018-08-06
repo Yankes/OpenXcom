@@ -215,6 +215,11 @@ SavedGame *SaveConverter::loadOriginal()
 	loadDatBProd();
 	loadDatXBases();
 
+	for (auto b : *_save->getBases())
+	{
+		b->initHangars();
+	}
+
 	return _save;
 }
 

@@ -80,18 +80,29 @@ public:
 	YAML::Node save() const;
 	/// Saves the base's ID to YAML.
 	YAML::Node saveId() const;
+	/// Get facilitie by reference.
+	BaseFacility* loadFacilitieReference(const YAML::Node &node) const;
+	/// Save facilitie reference.
+	YAML::Node saveFacilitieReference(BaseFacility* fac) const;
+
 	/// Gets the base's name.
 	std::wstring getName(Language *lang = 0) const;
 	/// Gets the base's marker.
 	int getMarker() const;
 	/// Gets the base's facilities.
 	std::vector<BaseFacility*> *getFacilities();
+	/// Gets the base's facilities.
+	const std::vector<BaseFacility*> *getFacilities() const;
 	/// Gets the base's soldiers.
 	std::vector<Soldier*> *getSoldiers();
 	/// Gets the base's crafts.
 	std::vector<Craft*> *getCrafts();
+	/// Gets the base's crafts.
+	const std::vector<Craft*> *getCrafts() const;
 	/// Gets the base's transfers.
 	std::vector<Transfer*> *getTransfers();
+	/// Gets the base's transfers.
+	const std::vector<Transfer*> *getTransfers() const;
 	/// Gets the base's items.
 	ItemContainer *getStorageItems();
 	/// Gets the base's scientists.
@@ -140,6 +151,20 @@ public:
 	int getUsedHangars() const;
 	/// Gets the base's available hangars.
 	int getAvailableHangars() const;
+	/// Allocate all crafts to hangars.
+	void initHangars();
+	/// Get hangar by it number.
+	bool haveHangarForCrafrType(const RuleCraft* type) const;
+	/// Add new craft to base.
+	bool addHangarCraft(Craft* craft);
+	/// Add craft transfer to base
+	bool addHangarCraftTransfer(Transfer* transfer);
+	/// Add craft production to base.
+	bool addHangarCraftProduction(Production* prod);
+	/// Can remove hangar from base.
+	bool isHangarNeeded(const BaseFacility* hangar) const;
+	/// Remove hangar from base.
+	bool removeHangar(BaseFacility* hangar);
 	/// Get the number of available space lab (not used by a ResearchProject)
 	int getFreeLaboratories() const;
 	/// Get the number of available space lab (not used by a Production)

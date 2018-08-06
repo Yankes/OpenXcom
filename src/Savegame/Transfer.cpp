@@ -24,6 +24,7 @@
 #include "../Engine/Language.h"
 #include "../Mod/Mod.h"
 #include "../Engine/Logger.h"
+#include "BaseFacility.h"
 
 namespace OpenXcom
 {
@@ -32,7 +33,7 @@ namespace OpenXcom
  * Initializes a transfer.
  * @param hours Hours in-transit.
  */
-Transfer::Transfer(int hours) : _hours(hours), _soldier(0), _craft(0), _itemQty(0), _scientists(0), _engineers(0), _delivered(false)
+Transfer::Transfer(int hours) : _hours(hours), _soldier(0), _craft(0), _hangar(nullptr), _itemQty(0), _scientists(0), _engineers(0), _delivered(false)
 {
 }
 
@@ -104,6 +105,7 @@ bool Transfer::load(const YAML::Node& node, Base *base, const Mod *mod, SavedGam
 	_scientists = node["scientists"].as<int>(_scientists);
 	_engineers = node["engineers"].as<int>(_engineers);
 	_delivered = node["delivered"].as<bool>(_delivered);
+	_hangar = base->loadFacilitieReference(node["hangar"]);
 	return true;
 }
 
@@ -140,6 +142,7 @@ YAML::Node Transfer::save(const Base *b, const Mod *mod) const
 	{
 		node["delivered"] = _delivered;
 	}
+	node["hangar"] = b->saveFacilitieReference(_hangar);
 	return node;
 }
 
@@ -333,6 +336,22 @@ void Transfer::advance(Base *base)
 Soldier *Transfer::getSoldier()
 {
 	return _soldier;
+}
+
+/**
+ * Sets hangar.
+ */
+void Transfer::setHangar(BaseFacility* f)
+{
+	_hangar = f;
+}
+
+/*
+ * Get hangar.
+ */
+BaseFacility* Transfer::getHangar() const
+{
+	return _hangar;
 }
 
 }

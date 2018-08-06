@@ -33,6 +33,7 @@ class TextList;
 class ComboBox;
 class Timer;
 class Base;
+class HangarAllocation;
 
 /**
  * Purchase/Hire screen that lets the player buy
@@ -48,6 +49,8 @@ private:
 	Text *_txtTitle, *_txtFunds, *_txtPurchases, *_txtCost, *_txtQuantity, *_txtSpaceUsed;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
+	HangarAllocation *_hangarAllocation;
+
 	std::vector<TransferRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;

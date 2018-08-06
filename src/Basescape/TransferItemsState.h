@@ -33,6 +33,7 @@ class TextList;
 class ComboBox;
 class Timer;
 class Base;
+class HangarAllocation;
 
 /**
  * Transfer screen that lets the player pick
@@ -42,11 +43,14 @@ class TransferItemsState : public State
 {
 private:
 	Base *_baseFrom, *_baseTo;
+
 	TextButton *_btnOk, *_btnCancel;
 	Window *_window;
 	Text *_txtTitle, *_txtQuantity, *_txtAmountTransfer, *_txtAmountDestination;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
+	HangarAllocation *_hangarAllocation;
+
 	std::vector<TransferRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;

@@ -20,6 +20,7 @@
 #include <vector>
 #include <map>
 #include <list>
+#include <SDL_stdinc.h>
 #include "Exception.h"
 
 namespace OpenXcom
@@ -28,9 +29,66 @@ namespace OpenXcom
 /**
  * Helper class for managing object colections
  */
-class Collections
+struct Collections
 {
-public:
+	template<typename C>
+	class ForwardPosIterator
+	{
+		C* _colection;
+		std::size_t _position;
+
+	public:
+
+		ForwardPosIterator() : _colection{ nullptr }, _position{ 0 }
+		{
+
+		}
+
+		ForwardPosIterator(C* c, std::size_t pos) : _colection{ nullptr }, _position{ pos }
+		{
+
+		}
+
+		bool operator==(const ForwardPosIterator& other)
+		{
+			return other._colection == _colection && other._position == _position;
+		}
+
+		typename C::reference operator*() const
+		{
+			return _colection->raw_data(_position);
+		}
+
+		ForwardPosIterator operator++()
+		{
+			*this = _colection->find(_position + 1);
+			return this;
+		}
+
+		ForwardPosIterator operator++(int)
+		{
+			auto pos = _position;
+			++(*this);
+			return { _colection, pos };
+		}
+	};
+
+	template<typename T>
+	class SkipVector
+	{
+		struct SkipTable
+		{
+			Uint8 groupSkip;
+			Uint8 itemSkip[64];
+		};
+
+		std::vector<SkipTable> _skipTable;
+		std::vector<T> _items;
+
+	public:
+
+	};
+
 	template<typename T>
 	static void deleteAll(const T& p)
 	{
@@ -180,6 +238,246 @@ public:
 			}
 		}
 		return numberToRemove;
+	}
+
+
+
+	template<typename T>
+	struct ValueIterator
+	{
+		T value;
+
+		T operator*()
+		{
+			return value;
+		}
+
+		void operator++()
+		{
+			++value;
+		}
+
+		void operator--()
+		{
+			--value;
+		}
+
+		bool operator!=(const ValueIterator& r)
+		{
+			return value != r.value;
+		}
+	};
+
+	template<typename ItA, typename ItB>
+	struct ZipIterator
+	{
+		ItA first;
+		ItB second;
+
+		auto operator*() -> decltype(std::make_pair(*first, *second))
+		{
+			return std::make_pair(*first, *second);
+		}
+
+		void operator++()
+		{
+			++first;
+			++second;
+		}
+
+		bool operator!=(const ZipIterator& r)
+		{
+			return first != r.first && second != r.second; //zip will stop when one of ranges ends, this is why `&&` isntade of `||`
+		}
+	};
+
+	template<typename It, typename Filter>
+	class FilterIterator
+	{
+		It _curr;
+		It _end;
+		Filter _filter;
+
+	public:
+
+		FilterIterator(It curr, It end, Filter filter) :
+			_curr { std::move(curr)},
+			_end { std::move(end)},
+			_filter { std::move(filter)}
+		{
+
+		}
+
+		auto operator*() -> decltype(*_curr)
+		{
+			return *_curr;
+		}
+
+		void operator++()
+		{
+			++_curr;
+			while (_curr != _end && !_filter(*_curr))
+			{
+				++_curr;
+			}
+		}
+
+		bool operator!=(const FilterIterator& r)
+		{
+			return _curr != r._curr;
+		}
+	};
+
+	template<typename It>
+	struct ReverseIterator
+	{
+		It _curr;
+
+	public:
+
+		ReverseIterator(It curr) :
+			_curr{ std::move(curr) }
+		{
+
+		}
+
+		auto operator*() -> decltype(*_curr)
+		{
+			auto copy = _curr;
+			--copy;
+			return *copy;
+		}
+
+		void operator++()
+		{
+			--_curr;
+		}
+
+		bool operator!=(const ReverseIterator& r)
+		{
+			return _curr != r._curr;
+		}
+	};
+
+	template<typename It>
+	class Range
+	{
+		It _begin;
+		It _end;
+	public:
+
+		Range(It begin, It end) :
+			_begin { std::move(begin) },
+			_end { std::move(end) }
+		{
+		}
+
+		It begin()
+		{
+			return _begin;
+		}
+		It end()
+		{
+			return _end;
+		}
+	};
+
+	/**
+	 * Crate range from `min` to `max` (excluding), if `max > min` it return empty range.
+	 * @param min minimum value of range
+	 * @param max maximum value of range
+	 * @return
+	 */
+	template<typename T>
+	static Range<ValueIterator<T>> rangeValue(T begin, T end)
+	{
+		if (begin < end)
+		{
+			return { ValueIterator<T>{ begin }, ValueIterator<T>{ end } };
+		}
+		else
+		{
+			return { ValueIterator<T>{ end }, ValueIterator<T>{ end } };
+		}
+	}
+
+	/**
+	 * Crate range from zero to less than `end`
+	 * @param end
+	 * @return
+	 */
+	template<typename T>
+	static Range<ValueIterator<T>> rangeValueLess(T end)
+	{
+		return rangeValue(T{}, end);
+	}
+
+	template<typename It>
+	static Range<It> range(It begin, It end)
+	{
+		return { begin, end };
+	}
+
+	template<typename T>
+	static Range<T*> range(std::vector<T>& v)
+	{
+		return { v.data(), v.data() + v.size() };
+	}
+
+	template<typename T>
+	static Range<const T*> range(const std::vector<T>& v)
+	{
+		return { v.data(), v.data() + v.size() };
+	}
+
+	template<typename T, int N>
+	static Range<T*> range(T (&a)[N])
+	{
+		return { std::begin(a), std::end(a) };
+	}
+
+	template<typename ItA, typename ItB>
+	static Range<ZipIterator<ItA, ItB>> zip(Range<ItA> a, Range<ItB> b)
+	{
+		return { { a.begin(), b.begin() }, { a.end(), b.end() } };
+	}
+
+	template<typename It>
+	static Range<ReverseIterator<It>> reverse(Range<It> a)
+	{
+		return { a.end(), a.begin() };
+	}
+
+	template<typename It>
+	static Range<It> reverse(Range<ReverseIterator<It>> a)
+	{
+		return { a.end().curr, a.begin().curr };
+	}
+
+	template<typename It, typename Filter>
+	static Range<FilterIterator<It, Filter>> filter(Range<It> a, Filter f)
+	{
+		auto begin = a.begin();
+		auto end = a.end();
+		if (begin != end)
+		{
+			auto fbegin = FilterIterator<It, Filter>{ begin, end, f };
+			if (!f(*begin))
+			{
+				++fbegin;
+			}
+			return { fbegin, { end, end, f } };
+		}
+		else
+		{
+			return { { end, end, f }, { end, end, f } };
+		}
+	}
+
+	template<typename It>
+	static Range<ValueIterator<It>> nonDeref(Range<It> a)
+	{
+		return { { a.begin() }, { a.end() } };
 	}
 };
 

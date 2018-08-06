@@ -30,6 +30,7 @@ typedef std::pair<std::string, int> CraftId;
 
 class RuleCraft;
 class Base;
+class BaseFacility;
 class Soldier;
 class CraftWeapon;
 class ItemContainer;
@@ -48,6 +49,7 @@ class Craft : public MovingTarget
 private:
 	const RuleCraft *_rules;
 	Base *_base;
+	BaseFacility *_hangar;
 	int _id, _fuel, _damage, _interceptionOrder, _takeoff;
 	std::vector<CraftWeapon*> _weapons;
 	ItemContainer *_items;
@@ -186,6 +188,10 @@ public:
 	void unload(const Mod *mod);
 	/// Reuses a base item.
 	void reuseItem(const std::string &item);
+	/// Sets hangar.
+	void setHangar(BaseFacility* f);
+	/// Get hangar.
+	BaseFacility* getHangar() const;
 };
 
 }

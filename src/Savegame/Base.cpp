@@ -20,6 +20,8 @@
 #include "../fmath.h"
 #include <stack>
 #include <algorithm>
+#include <cassert>
+#include <tuple>
 #include "BaseFacility.h"
 #include "../Mod/RuleBaseFacility.h"
 #include "Craft.h"
@@ -45,6 +47,7 @@
 #include "../Mod/RuleSoldier.h"
 #include "../Engine/Logger.h"
 #include "../Engine/Collections.h"
+#include "HangarAllocation.h"
 
 namespace OpenXcom
 {
@@ -214,7 +217,7 @@ void Base::load(const YAML::Node &node, SavedGame *save, bool newGame, bool newB
 		if (_mod->getManufacture(item))
 		{
 			Production *p = new Production(_mod->getManufacture(item), 0);
-			p->load(*i);
+			p->load(*i, this);
 			_productions.push_back(p);
 		}
 		else
@@ -225,6 +228,8 @@ void Base::load(const YAML::Node &node, SavedGame *save, bool newGame, bool newB
 	}
 
 	_retaliationTarget = node["retaliationTarget"].as<bool>(_retaliationTarget);
+
+	initHangars();
 }
 
 /**
@@ -261,7 +266,7 @@ YAML::Node Base::save() const
 	}
 	for (std::vector<Production*>::const_iterator i = _productions.begin(); i != _productions.end(); ++i)
 	{
-		node["productions"].push_back((*i)->save());
+		node["productions"].push_back((*i)->save(this));
 	}
 	if (_retaliationTarget)
 	node["retaliationTarget"] = _retaliationTarget;
@@ -312,6 +317,51 @@ std::vector<BaseFacility*> *Base::getFacilities()
 }
 
 /**
+ * Returns the list of facilities in the base.
+ * @return Pointer to the facility list.
+ */
+const std::vector<BaseFacility*> *Base::getFacilities() const
+{
+	return &_facilities;
+}
+
+/**
+ * Get facilitie from reference.
+ */
+BaseFacility* Base::loadFacilitieReference(const YAML::Node &node) const
+{
+	if (node)
+	{
+		BaseFacility temp(nullptr, nullptr);
+		temp.load(node);
+		auto x = temp.getX();
+		auto y = temp.getY();
+
+		for (auto f : _facilities)
+		{
+			if (f->getX() == x && f->getY() == y)
+			{
+				return f;
+			}
+		}
+	}
+	return nullptr;
+}
+/**
+ *  Save facilitie reference.
+ */
+YAML::Node Base::saveFacilitieReference(BaseFacility* fac) const
+{
+	YAML::Node n;
+	if (fac)
+	{
+		// we need only x and y but we save copy of all data for debuging
+		n = fac->save();
+	}
+	return n;
+}
+
+/**
  * Returns the list of soldiers in the base.
  * @return Pointer to the soldier list.
  */
@@ -330,11 +380,30 @@ std::vector<Craft*> *Base::getCrafts()
 }
 
 /**
+ * Returns the list of crafts in the base.
+ * @return Pointer to the craft list.
+ */
+const std::vector<Craft*> *Base::getCrafts() const
+{
+	return &_crafts;
+}
+
+/**
  * Returns the list of transfers destined
  * to this base.
  * @return Pointer to the transfer list.
  */
 std::vector<Transfer*> *Base::getTransfers()
+{
+	return &_transfers;
+}
+
+/**
+ * Returns the list of transfers destined
+ * to this base.
+ * @return Pointer to the transfer list.
+ */
+const std::vector<Transfer*> *Base::getTransfers() const
 {
 	return &_transfers;
 }
@@ -797,6 +866,116 @@ int Base::getAvailableHangars() const
 		}
 	}
 	return total;
+}
+
+/**
+ *  Allocate all crafts to hangars.
+ */
+void Base::initHangars()
+{
+	auto sortValue = [](BaseFacility* a) { return std::make_tuple(a->getX(), a->getY()); };
+	std::sort(_facilities.begin(), _facilities.end(), [&](BaseFacility* a, BaseFacility* b){ return sortValue(a) < sortValue(b); });
+
+	HangarAllocation allocation(this);
+	allocation.assignAll();
+}
+
+/**
+ * Get hangar by it number.
+ */
+bool Base::haveHangarForCrafrType(const RuleCraft* type) const
+{
+	HangarAllocation allocation(this);
+	return allocation.addCraftType(type);
+}
+
+/**
+ * Add new craft to base.
+ */
+bool Base::addHangarCraft(Craft* craft)
+{
+	HangarAllocation::Skip s;
+	s.craft = craft;
+	HangarAllocation allocation(this, s);
+	return allocation.addCraft(craft);
+}
+
+/*
+ * Add craft transfer to base
+ */
+bool Base::addHangarCraftTransfer(Transfer* transfer)
+{
+	HangarAllocation::Skip s;
+	s.transfer = transfer;
+	HangarAllocation allocation(this, s);
+	return allocation.addCraftTransfer(transfer);
+}
+
+/**
+ * Add craft production to base.
+ */
+bool Base::addHangarCraftProduction(Production* prod)
+{
+	HangarAllocation::Skip s;
+	s.production = prod;
+	HangarAllocation allocation(this, s);
+	return allocation.addCraftProduction(prod);
+}
+
+/**
+ * Can remove hangar from base.
+ */
+bool Base::isHangarNeeded(const BaseFacility* hangar) const
+{
+	return false;
+}
+
+/**
+ * Remove hangar from base.
+ */
+bool Base::removeHangar(BaseFacility* hangar)
+{
+	HangarAllocation::Skip s;
+	s.hangar = hangar;
+	HangarAllocation allocation(this, s);
+	allocation.assignAll();
+
+	Collections::deleteIf(_crafts, _crafts.size(),
+		[&](Craft* c)
+		{
+			if (c->getHangar() == hangar)
+			{
+				c->unload(_mod);
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	);
+	Collections::deleteIf(_productions, _productions.size(),
+		[&](Production* i)
+		{
+			if (i->getHangar() == hangar)
+			{
+				_engineers += i->getAssignedEngineers();
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	);
+	Collections::deleteIf(_transfers, _transfers.size(),
+		[&](Transfer* i)
+		{
+			return i->getHangar() == hangar;
+		}
+	);
+
+	return true;
 }
 
 /**
@@ -1609,55 +1788,7 @@ void Base::destroyFacility(std::vector<BaseFacility*>::iterator facility)
 	{
 		// hangar destruction - destroy crafts and any production of crafts
 		// if this will mean there is no hangar to contain it
-		if ((*facility)->getCraftForDrawing())
-		{
-			// remove all soldiers
-			for (Soldier *s : _soldiers)
-			{
-				if (s->getCraft() == (*facility)->getCraftForDrawing())
-				{
-					s->setCraft(0);
-				}
-			}
-
-			// remove all items
-			while (!(*facility)->getCraftForDrawing()->getItems()->getContents()->empty())
-			{
-				std::map<std::string, int>::iterator i = (*facility)->getCraftForDrawing()->getItems()->getContents()->begin();
-				_items->addItem(i->first, i->second);
-				(*facility)->getCraftForDrawing()->getItems()->removeItem(i->first, i->second);
-			}
-			Collections::deleteIf(_crafts, 1,
-				[&](Craft* c)
-				{
-					return c == (*facility)->getCraftForDrawing();
-				}
-			);
-		}
-		else
-		{
-			auto remove = -(getAvailableHangars() - getUsedHangars() - (*facility)->getRules()->getCrafts());
-			remove = Collections::deleteIf(_productions, remove,
-				[&](Production* i)
-				{
-					if (i->getRules()->getProducedCraft())
-					{
-						_engineers += i->getAssignedEngineers();
-						return true;
-					}
-					else
-					{
-						return false;
-					}
-				}
-			);
-			remove = Collections::deleteIf(_transfers, remove,
-				[&](Transfer* i)
-				{
-					return i->getType() == TRANSFER_CRAFT;
-				}
-			);
-		}
+		removeHangar((*facility));
 	}
 	if ((*facility)->getRules()->getPsiLaboratories() > 0)
 	{

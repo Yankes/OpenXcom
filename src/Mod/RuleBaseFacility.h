@@ -27,6 +27,7 @@ namespace OpenXcom
 {
 
 class Mod;
+class RuleCraft;
 
 /**
  * Represents a specific type of base facility.
@@ -97,6 +98,8 @@ public:
 	int getAliens() const;
 	/// Gets the facility's craft capacity.
 	int getCrafts() const;
+	/// Gets if given craft type can be stroed in hangar.
+	bool isCraftTypeAllowed(const RuleCraft* craft) const;
 	/// Gets the facility's laboratory space.
 	int getLaboratories() const;
 	/// Gets the facility's workshop space.

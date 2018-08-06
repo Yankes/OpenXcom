@@ -38,6 +38,7 @@ class BaseFacility
 private:
 	RuleBaseFacility *_rules;
 	Base *_base;
+	int _id;
 	int _x, _y, _buildTime;
 	Craft *_craftForDrawing;	// craft, used for drawing facility
 public:

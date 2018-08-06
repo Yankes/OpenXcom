@@ -424,7 +424,7 @@ void ManufactureInfoState::lessEngineerClick(Action *action)
 void ManufactureInfoState::moreUnit(int change)
 {
 	if (change <= 0) return;
-	if (_production->getRules()->getProducedCraft() && _base->getAvailableHangars() - _base->getUsedHangars() <= 0)
+	if (!_base->addHangarCraftProduction(_production))
 	{
 		_timerMoreUnit->stop();
 		_game->pushState(new ErrorMessageState(tr("STR_NO_FREE_HANGARS_FOR_CRAFT_PRODUCTION"), _palette, _game->getMod()->getInterface("basescape")->getElement("errorMessage")->color, "BACK17.SCR", _game->getMod()->getInterface("basescape")->getElement("errorPalette")->color));

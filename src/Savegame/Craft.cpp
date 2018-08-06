@@ -37,6 +37,7 @@
 #include "../Mod/RuleItem.h"
 #include "../Mod/AlienDeployment.h"
 #include "../Engine/Logger.h"
+#include "BaseFacility.h"
 
 namespace OpenXcom
 {
@@ -49,7 +50,7 @@ namespace OpenXcom
  * @param id ID to assign to the craft (0 to not assign).
  */
 Craft::Craft(const RuleCraft *rules, Base *base, int id) : MovingTarget(),
-	_rules(rules), _base(base), _id(0), _fuel(0), _damage(0),
+	_rules(rules), _base(base), _hangar(nullptr), _id(0), _fuel(0), _damage(0),
 	_interceptionOrder(0), _takeoff(0), _weapons(),
 	_status("STR_READY"), _lowFuel(false), _mission(false),
 	_inBattlescape(false), _inDogfight(false), _stats()
@@ -225,6 +226,11 @@ void Craft::load(const YAML::Node &node, const Mod *mod, SavedGame *save)
 	_inBattlescape = node["inBattlescape"].as<bool>(_inBattlescape);
 	if (_inBattlescape)
 		setSpeed(0);
+	//normal loading have base, but in save converter or craft tranfer base is not link to craft.
+	if (_base)
+	{
+		_hangar = _base->loadFacilitieReference(node["hangar"]);
+	}
 }
 
 /**
@@ -267,6 +273,10 @@ YAML::Node Craft::save() const
 		node["interceptionOrder"] = _interceptionOrder;
 	if (_takeoff != 0)
 		node["takeoff"] = _takeoff;
+	if (_base)
+	{
+		node["hangar"] = _base->saveFacilitieReference(_hangar);
+	}
 	return node;
 }
 
@@ -1118,6 +1128,22 @@ void Craft::reuseItem(const std::string& item)
 	// Check if it's fuel to refuel the craft
 	if (item == _rules->getRefuelItem() && _fuel < _rules->getMaxFuel())
 		_status = "STR_REFUELLING";
+}
+
+/**
+ * Sets hangar.
+ */
+void Craft::setHangar(BaseFacility* f)
+{
+	_hangar = f;
+}
+
+/*
+ * Get hangar.
+ */
+BaseFacility* Craft::getHangar() const
+{
+	return _hangar;
 }
 
 }

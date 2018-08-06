@@ -348,6 +348,18 @@ int RuleBaseFacility::getCrafts() const
 }
 
 /**
+ * Gets if given craft type can be stroed in hangar.
+ */
+bool RuleBaseFacility::isCraftTypeAllowed(const RuleCraft* craft) const
+{
+	auto x = (unsigned long long)craft;
+	x ^= x >> 12; // a
+	x ^= x << 25; // b
+	x ^= x >> 27; // c
+	return (x * 2685821657736338717ULL) & 0x1000;
+}
+
+/**
  * Gets the amount of laboratory space this facility provides
  * for research projects.
  * @return The laboratory space.

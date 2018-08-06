@@ -24,9 +24,10 @@ namespace OpenXcom
 
 class RuleManufacture;
 class Base;
+class BaseFacility;
 class SavedGame;
 class Mod;
-enum productionProgress_e { PROGRESS_NOT_COMPLETE, PROGRESS_COMPLETE, PROGRESS_NOT_ENOUGH_MONEY, PROGRESS_NOT_ENOUGH_MATERIALS, PROGRESS_MAX, PROGRESS_CONSTRUCTION };
+enum productionProgress_e { PROGRESS_NOT_COMPLETE, PROGRESS_COMPLETE, PROGRESS_NOT_ENOUGH_MONEY, PROGRESS_NOT_ENOUGH_MATERIALS, PROGRESS_NOT_ENOUGH_FREE_HANGARS, PROGRESS_MAX, PROGRESS_CONSTRUCTION };
 
 class Production
 {
@@ -46,10 +47,16 @@ public:
 	productionProgress_e step(Base * b, SavedGame * g, const Mod *m);
 	const RuleManufacture * getRules() const;
 	void startItem(Base * b, SavedGame * g, const Mod *m) const;
-	YAML::Node save() const;
-	void load(const YAML::Node &node);
+	YAML::Node save(const Base *b) const;
+	void load(const YAML::Node &node, Base* base);
+	/// Sets hangar.
+	void setHangar(BaseFacility* f);
+	/// Get hangar.
+	BaseFacility* getHangar() const;
+
 private:
 	const RuleManufacture * _rules;
+	BaseFacility *_hangar;
 	int _amount;
 	bool _infinite;
 	int _timeSpent;

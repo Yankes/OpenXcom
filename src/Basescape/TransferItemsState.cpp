@@ -33,6 +33,7 @@
 #include "../Savegame/BaseFacility.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Base.h"
+#include "../Savegame/HangarAllocation.h"
 #include "../Savegame/Soldier.h"
 #include "../Savegame/Craft.h"
 #include "../Savegame/ItemContainer.h"
@@ -68,6 +69,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtAmountDestination = new Text(60, 17, 260, 24);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 24);
 	_lstItems = new TextList(287, 128, 8, 44);
+	_hangarAllocation = new HangarAllocation(_baseTo);
 
 	// Set palette
 	setInterface("transferMenu");
@@ -221,6 +223,7 @@ TransferItemsState::~TransferItemsState()
 {
 	delete _timerInc;
 	delete _timerDec;
+	delete _hangarAllocation;
 }
 
 /**
@@ -359,13 +362,17 @@ void TransferItemsState::completeTransfer()
 				break;
 			case TRANSFER_CRAFT:
 				craft = (Craft*)i->rule;
+				craft->setHangar(nullptr);
 				// Transfer soldiers inside craft
 				for (std::vector<Soldier*>::iterator s = _baseFrom->getSoldiers()->begin(); s != _baseFrom->getSoldiers()->end();)
 				{
 					if ((*s)->getCraft() == craft)
 					{
 						if ((*s)->isInPsiTraining()) (*s)->setPsiTraining();
-						if (craft->getStatus() == "STR_OUT") _baseTo->getSoldiers()->push_back(*s);
+						if (craft->getStatus() == "STR_OUT")
+						{
+							_baseTo->getSoldiers()->push_back(*s);
+						}
 						else
 						{
 							t = new Transfer(time);
@@ -443,6 +450,7 @@ void TransferItemsState::completeTransfer()
 			}
 		}
 	}
+	_baseTo->initHangars();
 }
 
 /**
@@ -597,6 +605,10 @@ void TransferItemsState::increaseByValue(int change)
 		{
 			errorMessage = tr("STR_NO_FREE_HANGARS_FOR_TRANSFER");
 		}
+		else if (_hangarAllocation->addCraftType(craft->getRules()))
+		{
+			errorMessage = tr("STR_NO_FREE_HANGARS_FOR_TRANSFER");
+		}
 		else if (_pQty + craft->getNumSoldiers() > _baseTo->getAvailableQuarters() - _baseTo->getUsedQuarters())
 		{
 			errorMessage = tr("STR_NO_FREE_ACCOMODATION_CREW");
@@ -672,7 +684,7 @@ void TransferItemsState::increaseByValue(int change)
 	{
 		_timerInc->stop();
 		RuleInterface *menuInterface = _game->getMod()->getInterface("transferMenu");
-		_game->pushState(new ErrorMessageState(errorMessage, _palette, menuInterface->getElement("errorMessage")->color, "BACK13.SCR", menuInterface->getElement("errorPalette")->color));		
+		_game->pushState(new ErrorMessageState(errorMessage, _palette, menuInterface->getElement("errorMessage")->color, "BACK13.SCR", menuInterface->getElement("errorPalette")->color));
 	}
 }
 
@@ -695,7 +707,7 @@ void TransferItemsState::decreaseByValue(int change)
 	if (0 >= change || 0 >= getRow().amount) return;
 	Craft *craft = 0;
 	change = std::min(getRow().amount, change);
-	
+
 	switch (getRow().type)
 	{
 	case TRANSFER_SOLDIER:
@@ -705,6 +717,7 @@ void TransferItemsState::decreaseByValue(int change)
 		break;
 	case TRANSFER_CRAFT:
 		craft = (Craft*)getRow().rule;
+		_hangarAllocation->removeCraftType(craft->getRules());
 		_cQty--;
 		_pQty -= craft->getNumSoldiers();
 		_iQty -= craft->getItems()->getTotalSize(_game->getMod());
