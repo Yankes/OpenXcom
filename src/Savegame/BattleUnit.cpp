@@ -2711,7 +2711,7 @@ void BattleUnit::updateGeoscapeStats(Soldier *soldier) const
  * @param statsDiff (out) The passed UnitStats struct will be filled with the stats differences.
  * @return True if the soldier was eligible for squaddie promotion.
  */
-bool BattleUnit::postMissionProcedures(SavedGame *geoscape, UnitStats &statsDiff)
+bool BattleUnit::postMissionProcedures(SavedGame *geoscape, SavedBattleGame *battle, UnitStats &statsDiff)
 {
 	Soldier *s = geoscape->getSoldier(_id);
 	if (s == 0)
@@ -2726,11 +2726,18 @@ bool BattleUnit::postMissionProcedures(SavedGame *geoscape, UnitStats &statsDiff
 	const UnitStats caps = s->getRules()->getStatCaps();
 	int healthLoss = _stats.health - _health;
 
-	if (healthLoss < 0)
+	auto recovery = RNG::generate((healthLoss*0.5),(healthLoss*1.5));
+
 	{
-		healthLoss = 0;
+		ModScript::ReturnFromMissionUnit::Output arg{ recovery, healthLoss };
+		ModScript::ReturnFromMissionUnit::Worker work{ this, battle, s };
+
+		work.execute(getArmor()->getScript<ModScript::ReturnFromMissionUnit>(), arg);
+
+		recovery = arg.getFirst();
 	}
-	s->setWoundRecovery(RNG::generate((healthLoss*0.5),(healthLoss*1.5)));
+
+	s->setWoundRecovery(recovery);
 
 	if (_expBravery && stats->bravery < caps.bravery)
 	{
@@ -2779,6 +2786,11 @@ bool BattleUnit::postMissionProcedures(SavedGame *geoscape, UnitStats &statsDiff
 	}
 
 	statsDiff += *stats; // add new stat
+
+	if (s->getWoundRecovery() > 0)
+	{
+		s->setCraft(nullptr);
+	}
 
 	return hasImproved;
 }
@@ -4579,6 +4591,18 @@ ModScript::NewTurnUnitParser::NewTurnUnitParser(ScriptGlobal* shared, const std:
 	BindBase b { this };
 
 	b.addCustomPtr<const Mod>("rules", mod);
+}
+
+ModScript::ReturnFromMissionUnitParser::ReturnFromMissionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name,
+	"recovery_time",
+	"health_loss",
+	"unit", "battle_game", "soldier", }
+{
+	BindBase b { this };
+
+	b.addCustomPtr<const Mod>("rules", mod);
+
+	setEmptyReturn();
 }
 
 ModScript::AwardExperienceParser::AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "experience_multipler", "experience_type", "attacker", "unit", "weapon", }

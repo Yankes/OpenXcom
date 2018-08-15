@@ -573,13 +573,7 @@ int Soldier::getWoundRecovery() const
  */
 void Soldier::setWoundRecovery(int recovery)
 {
-	_recovery = recovery;
-
-	// dismiss from craft
-	if (_recovery > 0)
-	{
-		_craft = 0;
-	}
+	_recovery = std::max(recovery, 0);
 }
 
 /**
