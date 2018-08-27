@@ -150,10 +150,10 @@ inline ShaderMove<Uint8> ShaderSurface(Surface* s, int x, int y)
  * @param y offset on y
  * @return
  */
-inline ShaderMove<Uint8> ShaderCrop(Surface* s, int x, int y)
+inline ShaderMove<Uint8> ShaderCrop(SurfaceCrop s, int x, int y)
 {
-	ShaderMove<Uint8> ret(s, x, y);
-	SDL_Rect* s_crop = s->getCrop();
+	ShaderMove<Uint8> ret(s.getSurface(), x, y);
+	SDL_Rect* s_crop = s.getCrop();
 	if (s_crop->w && s_crop->h)
 	{
 		GraphSubset crop(std::make_pair(s_crop->x, s_crop->x + s_crop->w), std::make_pair(s_crop->y, s_crop->y + s_crop->h));
@@ -168,9 +168,9 @@ inline ShaderMove<Uint8> ShaderCrop(Surface* s, int x, int y)
  * @param s standard 8bit OpenXcom surface
  * @return
  */
-inline ShaderMove<Uint8> ShaderCrop(Surface* s)
+inline ShaderMove<Uint8> ShaderCrop(SurfaceCrop s)
 {
-	return ShaderCrop(s, s->getX(), s->getY());
+	return ShaderCrop(s, s.getX(), s.getY());
 }
 
 }//namespace OpenXcom

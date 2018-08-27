@@ -24,6 +24,8 @@
 #include <SDL.h>
 #include <yaml-cpp/yaml.h>
 
+#include "Surface.h"
+
 namespace OpenXcom
 {
 
@@ -73,7 +75,7 @@ public:
 	/// Generate the terminal font.
 	void loadTerminal();
 	/// Gets a particular character from the font, with its real size.
-	Surface *getChar(wchar_t c);
+	SurfaceCrop getChar(wchar_t c);
 	/// Gets the font's character width.
 	int getWidth() const;
 	/// Gets the font's character height.

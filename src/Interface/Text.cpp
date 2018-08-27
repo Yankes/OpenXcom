@@ -419,7 +419,7 @@ void Text::processText()
 		// Keep track of the width of the last line and word
 		else if ((*str)[c] != Font::TOK_FLIP_COLORS)
 		{
-			if (font->getChar((*str)[c]) == 0)
+			if (font->getChar((*str)[c]).getSurface() == 0)
 			{
 				(*str)[c] = L'?';
 			}
@@ -644,9 +644,9 @@ void Text::draw()
 		{
 			if (dir < 0)
 				x += dir * font->getCharSize(*c).w;
-			Surface* chr = font->getChar(*c);
-			chr->setX(x);
-			chr->setY(y);
+			auto chr = font->getChar(*c);
+			chr.setX(x);
+			chr.setY(y);
 			ShaderDraw<PaletteShift>(ShaderSurface(this, 0, 0), ShaderCrop(chr), ShaderScalar(color), ShaderScalar(mul), ShaderScalar(mid));
 			if (dir > 0)
 				x += dir * font->getCharSize(*c).w;

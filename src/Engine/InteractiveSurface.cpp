@@ -31,7 +31,7 @@ const SDLKey InteractiveSurface::SDLK_ANY = (SDLKey)-1; // using an unused keyco
  * @param x X position in pixels.
  * @param y Y position in pixels.
  */
-InteractiveSurface::InteractiveSurface(int width, int height, int x, int y) : Surface(width, height, x, y), _buttonsPressed(0), _in(0), _over(0), _out(0), _isHovered(false), _isFocused(true), _listButton(false)
+InteractiveSurface::InteractiveSurface(int width, int height, int x, int y) : Surface(width, height, x, y), _buttonsPressed(0), _in(0), _over(0), _out(0), _isHovered(false), _isFocused(true), _listButton(false), _tftdMode(false)
 {
 }
 
@@ -519,6 +519,44 @@ void InteractiveSurface::onKeyboardRelease(ActionHandler handler, SDLKey key)
 void InteractiveSurface::setListButton()
 {
 	_listButton = true;
+}
+
+/**
+ * Returns the help description of this surface,
+ * for example for showing in tooltips.
+ * @return String ID.
+ */
+std::string InteractiveSurface::getTooltip() const
+{
+	return _tooltip;
+}
+
+/**
+ * Changes the help description of this surface,
+ * for example for showing in tooltips.
+ * @param tooltip String ID.
+ */
+void InteractiveSurface::setTooltip(const std::string &tooltip)
+{
+	_tooltip = tooltip;
+}
+
+/**
+ * TFTD mode: much like click inversion, but does a colour swap rather than a palette shift.
+ * @param mode set TFTD mode to this.
+ */
+void InteractiveSurface::setTFTDMode(bool mode)
+{
+	_tftdMode = mode;
+}
+
+/**
+ * checks TFTD mode.
+ * @return TFTD mode.
+ */
+bool InteractiveSurface::isTFTDMode() const
+{
+	return _tftdMode;
 }
 
 }

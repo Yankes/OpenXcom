@@ -167,15 +167,15 @@ void Font::init(size_t index, const std::wstring &str)
  * @return Pointer to the font's surface with the respective
  * cropping rectangle set up.
  */
-Surface *Font::getChar(wchar_t c)
+SurfaceCrop Font::getChar(wchar_t c)
 {
 	if (_chars.find(c) == _chars.end())
 	{
-		return 0;
+		return SurfaceCrop{};
 	}
-	Surface *surface = _images[_chars[c].first].surface;
-	*surface->getCrop() = _chars[c].second;
-	return surface;
+	auto surfaceCrop = _images[_chars[c].first].surface->getCrop();
+	*surfaceCrop.getCrop() = _chars[c].second;
+	return surfaceCrop;
 }
 
 /**
@@ -217,7 +217,7 @@ SDL_Rect Font::getCharSize(wchar_t c)
 	SDL_Rect size = { 0, 0, 0, 0 };
 	if (c != TOK_FLIP_COLORS && !isLinebreak(c) && !isSpace(c))
 	{
-		if (_chars.find(c) == _chars.end()) 
+		if (_chars.find(c) == _chars.end())
 			c = L'?';
 
 		FontImage *image = &_images[_chars[c].first];

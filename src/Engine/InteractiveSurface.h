@@ -40,11 +40,13 @@ private:
 	static const int NUM_BUTTONS = 7;
 	static const SDLKey SDLK_ANY;
 	Uint8 _buttonsPressed;
+	std::string _tooltip;
+
 protected:
 	std::map<Uint8, ActionHandler> _click, _press, _release;
 	ActionHandler _in, _over, _out;
 	std::map<SDLKey, ActionHandler> _keyPress, _keyRelease;
-	bool _isHovered, _isFocused, _listButton;
+	bool _isHovered, _isFocused, _listButton, _tftdMode;
 
 	/// Is this mouse button pressed?
 	bool isButtonPressed(Uint8 button = 0) const;
@@ -101,6 +103,14 @@ public:
 	virtual void keyboardRelease(Action *action, State *state);
 	/// Check this surface to see if it's a textlist button.
 	void setListButton();
+	/// Gets the tooltip of the surface.
+	std::string getTooltip() const;
+	/// Sets the tooltip of the surface.
+	void setTooltip(const std::string &tooltip);
+	/// Sets this button to use a colour lookup table instead of inversion for its alternate form.
+	void setTFTDMode(bool mode);
+	/// checks if this is a TFTD mode surface.
+	bool isTFTDMode() const;
 };
 
 }

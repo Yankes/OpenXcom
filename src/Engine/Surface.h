@@ -28,6 +28,7 @@ namespace OpenXcom
 class Font;
 class Language;
 class ScriptWorkerBase;
+class SurfaceCrop;
 
 /**
  * Element that is blit (rendered) onto the screen.
@@ -55,9 +56,7 @@ protected:
 	UniqueBufferPtr _alignedBuffer;
 	UniqueSurfacePtr _surface;
 	int _x, _y;
-	SDL_Rect _crop, _clear;
-	bool _visible, _hidden, _redraw, _tftdMode;
-	std::string _tooltip;
+	bool _visible, _hidden, _redraw;
 
 	void resize(int width, int height);
 public:
@@ -143,10 +142,8 @@ public:
 	virtual void setVisible(bool visible);
 	/// Gets the surface's visibility.
 	bool getVisible() const;
-	/// Resets the cropping rectangle for the surface.
-	void resetCrop();
 	/// Gets the cropping rectangle for the surface.
-	SDL_Rect *getCrop();
+	SurfaceCrop getCrop();
 	/**
 	 * Changes the color of a pixel in the surface, relative to
 	 * the top-left corner of the surface.
@@ -234,10 +231,6 @@ public:
 	void blitNShade(Surface *surface, int x, int y, int shade, GraphSubset range);
 	/// Invalidate the surface: force it to be redrawn
 	void invalidate(bool valid = true);
-	/// Gets the tooltip of the surface.
-	std::string getTooltip() const;
-	/// Sets the tooltip of the surface.
-	void setTooltip(const std::string &tooltip);
 
 	/// Sets the color of the surface.
 	virtual void setColor(Uint8 /*color*/) { /* empty by design */ };
@@ -247,11 +240,68 @@ public:
 	virtual void setBorderColor(Uint8 /*color*/) { /* empty by design */ };
 	/// Sets the high contrast color setting of the surface.
 	virtual void setHighContrast(bool /*contrast*/) { /* empty by design */ };
-	/// Sets this button to use a colour lookup table instead of inversion for its alternate form.
-	void setTFTDMode(bool mode);
-	/// checks if this is a TFTD mode surface.
-	bool isTFTDMode() const;
+};
 
+/**
+ * Helper class used to blit part of surface to another one.
+ */
+class SurfaceCrop
+{
+	Surface* _surface;
+	SDL_Rect _crop;
+	int _x, _y;
+
+public:
+	/// Default constructor
+	SurfaceCrop() : _surface{ nullptr }, _crop{ }, _x{ }, _y{ }
+	{
+
+	}
+
+	/// Constructor
+	SurfaceCrop(Surface* surf) : _surface{ surf }, _crop{ }, _x{ surf->getX() }, _y{ surf->getY() }
+	{
+
+	}
+
+	/// Get crop rectangle.
+	SDL_Rect* getCrop()
+	{
+		return &_crop;
+	}
+
+	/// Get Surface.
+	Surface* getSurface()
+	{
+		return _surface;
+	}
+
+	/// Sets the X position of the surface.
+	void setX(int x)
+	{
+		_x = x;
+	}
+
+	/// Returns the position of the surface in the X axis.
+	int getX() const
+	{
+		return _x;
+	}
+
+	/// Sets the Y position of the surface.
+	void setY(int y)
+	{
+		_y = y;
+	}
+
+	/// Returns the position of the surface in the Y axis.
+	int getY() const
+	{
+		return _y;
+	}
+
+	/// Blit Croped surface to another surface.
+	void blit(Surface* dest);
 };
 
 }
