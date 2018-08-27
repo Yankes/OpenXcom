@@ -40,7 +40,21 @@ public:
 
 	}
 
+	inline ShaderMove(SDL_Surface* s):
+		_base(s),
+		_move_x(0), _move_y(0)
+	{
+
+	}
+
 	inline ShaderMove(Surface* s, int move_x, int move_y):
+		_base(s),
+		_move_x(move_x), _move_y(move_y)
+	{
+
+	}
+
+	inline ShaderMove(SDL_Surface* s, int move_x, int move_y):
 		_base(s),
 		_move_x(move_x), _move_y(move_y)
 	{

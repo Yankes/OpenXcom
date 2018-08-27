@@ -19,6 +19,7 @@
  */
 #include <SDL.h>
 #include <string>
+#include <memory>
 #include "GraphSubset.h"
 
 namespace OpenXcom
@@ -37,12 +38,25 @@ class ScriptWorkerBase;
  */
 class Surface
 {
+public:
+	struct UniqueBufferDeleter
+	{
+		void operator()(Uint8*);
+	};
+	struct UniqueSurfaceDeleter
+	{
+		void operator()(SDL_Surface*);
+	};
+
+	using UniqueBufferPtr = std::unique_ptr<Uint8, UniqueBufferDeleter>;
+	using UniqueSurfacePtr = std::unique_ptr<SDL_Surface, UniqueSurfaceDeleter>;
+
 protected:
-	SDL_Surface *_surface;
+	UniqueBufferPtr _alignedBuffer;
+	UniqueSurfacePtr _surface;
 	int _x, _y;
 	SDL_Rect _crop, _clear;
 	bool _visible, _hidden, _redraw, _tftdMode;
-	void *_alignedBuffer;
 	std::string _tooltip;
 
 	void resize(int width, int height);
@@ -51,6 +65,8 @@ public:
 	Surface(int width, int height, int x = 0, int y = 0, int bpp = 8);
 	/// Creates a new surface from an existing one.
 	Surface(const Surface& other);
+	/// Move surface to another place.
+	Surface(Surface&& other) = default;
 	/// Cleans up the surface.
 	virtual ~Surface();
 	/// Loads an X-Com SCR graphic.
@@ -184,7 +200,7 @@ public:
 	 */
 	SDL_Surface *getSurface() const
 	{
-		return _surface;
+		return _surface.get();
 	}
 	/**
 	 * Returns the width of the surface.

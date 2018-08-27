@@ -250,11 +250,24 @@ public:
 	 * then `_orgin` will be invalid and use of this object will cause memory exception.
      * @param s vector that are treated as surface
      */
+	inline ShaderBase(SDL_Surface* s):
+		_orgin((Uint8*) s->pixels),
+		_range_base(s->w, s->h),
+		_range_domain(s->w, s->h),
+		_pitch(s->pitch)
+	{
+
+	}
+
+	/**
+	 * create surface using surface `s` as data source.
+	 * surface will have same dimensions as `s`.
+	 * Attention: after use of this constructor you change size of surface `s`
+	 * then `_orgin` will be invalid and use of this object will cause memory exception.
+     * @param s vector that are treated as surface
+     */
 	inline ShaderBase(Surface* s):
-		_orgin((Uint8*) s->getSurface()->pixels),
-		_range_base(s->getWidth(), s->getHeight()),
-		_range_domain(s->getWidth(), s->getHeight()),
-		_pitch(s->getSurface()->pitch)
+		ShaderBase(s->getSurface())
 	{
 
 	}
