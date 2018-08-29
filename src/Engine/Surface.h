@@ -55,19 +55,33 @@ public:
 protected:
 	UniqueBufferPtr _alignedBuffer;
 	UniqueSurfacePtr _surface;
-	int _x, _y;
+	Sint16 _x, _y;
+	Uint16 _width, _height, _pitch;
 	bool _visible, _hidden, _redraw;
 
 	void resize(int width, int height);
 public:
+	/// Default empy surface.
+	Surface();
 	/// Creates a new surface with the specified size and position.
 	Surface(int width, int height, int x = 0, int y = 0, int bpp = 8);
 	/// Creates a new surface from an existing one.
 	Surface(const Surface& other);
 	/// Move surface to another place.
 	Surface(Surface&& other) = default;
+	/// Move assigment
+	Surface& operator=(Surface&& other) = default;
+	/// Copy assigment
+	Surface& operator=(const Surface& other) { *this = Surface(other); return *this; };
 	/// Cleans up the surface.
 	virtual ~Surface();
+
+	/// Is surface empy?
+	explicit operator bool() const
+	{
+		return _alignedBuffer.get();
+	}
+
 	/// Loads an X-Com SCR graphic.
 	void loadScr(const std::string &filename);
 	/// Loads an X-Com SPK graphic.
@@ -205,7 +219,7 @@ public:
 	 */
 	int getWidth() const
 	{
-		return _surface->w;
+		return _width;
 	}
 	/// Sets the width of the surface.
 	virtual void setWidth(int width);
@@ -215,10 +229,25 @@ public:
 	 */
 	int getHeight() const
 	{
-		return _surface->h;
+		return _height;
 	}
 	/// Sets the height of the surface.
 	virtual void setHeight(int height);
+	/// Get surface pitch
+	int getPitch() const
+	{
+		return _pitch;
+	}
+	/// Get pointer to buffer
+	Uint8* getBuffer()
+	{
+		return _alignedBuffer.get();
+	}
+	/// Get pointer to buffer
+	const Uint8* getBuffer() const
+	{
+		return _alignedBuffer.get();
+	}
 	/// Sets the surface's special hidden flag.
 	void setHidden(bool hidden);
 	/// Locks the surface.

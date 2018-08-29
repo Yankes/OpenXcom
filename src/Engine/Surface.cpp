@@ -177,7 +177,6 @@ inline void FixTransparent(const Surface::UniqueSurfacePtr& dest, int currentTra
 			ShaderMove<Uint8>(dest.get())
 		);
 	}
-	SDL_SetColorKey(dest.get(), SDL_SRCCOLORKEY, 0);
 }
 
 } //namespace
@@ -210,6 +209,14 @@ void Surface::UniqueSurfaceDeleter::operator ()(SDL_Surface* surf)
 
 
 /**
+ * Default empty surface.
+ */
+Surface::Surface() : _x{ }, _y{ }, _width{ }, _height{ }, _pitch{ }, _visible(true), _hidden(false), _redraw(false)
+{
+
+}
+
+/**
  * Sets up a blank 8bpp surface with the specified size and position,
  * with pure black as the transparent color.
  * @note Surfaces don't have to fill the whole size since their
@@ -225,6 +232,9 @@ Surface::Surface(int width, int height, int x, int y, int bpp) : _x(x), _y(y), _
 {
 	_alignedBuffer = NewAligned(bpp, width, height);
 	_surface = NewSurface(_alignedBuffer, bpp, width, height);
+	_width = _surface->w;
+	_height = _surface->h;
+	_pitch = _surface->pitch;
 	SDL_SetColorKey(_surface.get(), SDL_SRCCOLORKEY, 0);
 }
 
@@ -232,14 +242,17 @@ Surface::Surface(int width, int height, int x, int y, int bpp) : _x(x), _y(y), _
  * Performs a deep copy of an existing surface.
  * @param other Surface to copy from.
  */
-Surface::Surface(const Surface& other)
+Surface::Surface(const Surface& other) : Surface{ }
 {
+	if (!other)
+	{
+		return;
+	}
 	Uint8 bpp = other._surface->format->BitsPerPixel;
 	int width = other.getWidth();
 	int height = other.getHeight();
-	_alignedBuffer = NewAligned(bpp, width, height);
-	_surface = NewSurface(_alignedBuffer, bpp, width, height);
-	SDL_SetColorKey(_surface.get(), SDL_SRCCOLORKEY, 0);
+	//move copy
+	*this = Surface(width, height, other._x, other._y, bpp);
 	//cant call `setPalette` because its virtual function and it dont work correctly in constructor
 	SDL_SetColors(_surface.get(), other.getPalette(), 0, 255);
 	RawCopySurf(_surface, other._surface);
@@ -320,9 +333,8 @@ void Surface::loadImage(const std::string &filename)
 			unsigned bpp = lodepng_get_bpp(color);
 			if (bpp == 8)
 			{
-				_alignedBuffer = NewAligned(bpp, width, height);
-				_surface = NewSurface(_alignedBuffer, bpp, width, height);
-
+				*this = Surface(width, height, 0, 0, bpp);
+				setPalette((SDL_Color*)color->palette, 0, color->palettesize);
 				ShaderDrawFunc(
 					[](Uint8& dest, unsigned char& src)
 					{
@@ -331,7 +343,6 @@ void Surface::loadImage(const std::string &filename)
 					ShaderMove<Uint8>(this),
 					ShaderMove<unsigned char>(image, width, height)
 				);
-				setPalette((SDL_Color*)color->palette, 0, color->palettesize);
 				int transparent = 0;
 				for (int c = 0; c < _surface->format->palette->ncolors; ++c)
 				{
@@ -365,10 +376,9 @@ void Surface::loadImage(const std::string &filename)
 			throw Exception(err);
 		}
 
-		_alignedBuffer = NewAligned(surface->format->BitsPerPixel, surface->w, surface->h);
-		_surface = NewSurface(_alignedBuffer, surface->format->BitsPerPixel, surface->w, surface->h);
-		RawCopySurf(_surface, surface);
+		*this = Surface(surface->w, surface->h, 0, 0, surface->format->BitsPerPixel);
 		setPalette(surface->format->palette->colors, 0, surface->format->palette->ncolors);
+		RawCopySurf(_surface, surface);
 		FixTransparent(_surface, surface->format->colorkey);
 	}
 }
@@ -979,6 +989,9 @@ void Surface::resize(int width, int height)
 	// Delete old surface
 	_surface = std::move(surface);
 	_alignedBuffer = std::move(alignedBuffer);
+	_width = _surface->w;
+	_height = _surface->h;
+	_pitch = _surface->pitch;
 }
 
 /**

@@ -248,7 +248,7 @@ public:
 	 * surface will have same dimensions as `s`.
 	 * Attention: after use of this constructor you change size of surface `s`
 	 * then `_orgin` will be invalid and use of this object will cause memory exception.
-     * @param s vector that are treated as surface
+     * @param s SDL surface
      */
 	inline ShaderBase(SDL_Surface* s):
 		_orgin((Uint8*) s->pixels),
@@ -264,10 +264,13 @@ public:
 	 * surface will have same dimensions as `s`.
 	 * Attention: after use of this constructor you change size of surface `s`
 	 * then `_orgin` will be invalid and use of this object will cause memory exception.
-     * @param s vector that are treated as surface
+     * @param s OpenXcom surface
      */
 	inline ShaderBase(Surface* s):
-		ShaderBase(s->getSurface())
+		_orgin(s->getBuffer()),
+		_range_base(s->getWidth(), s->getHeight()),
+		_range_domain(s->getWidth(), s->getHeight()),
+		_pitch(s->getPitch())
 	{
 
 	}
@@ -364,13 +367,29 @@ public:
 	 * surface will have same dimensions as `s`.
 	 * Attention: after use of this constructor you change size of surface `s`
 	 * then `_orgin` will be invalid and use of this object will cause memory exception.
-     * @param s vector that are treated as surface
+     * @param s SDL surface
+     */
+	inline ShaderBase(const SDL_Surface* s):
+		_orgin((Uint8*) s->pixels),
+		_range_base(s->w, s->h),
+		_range_domain(s->w, s->h),
+		_pitch(s->pitch)
+	{
+
+	}
+
+	/**
+	 * create surface using surface `s` as data source.
+	 * surface will have same dimensions as `s`.
+	 * Attention: after use of this constructor you change size of surface `s`
+	 * then `_orgin` will be invalid and use of this object will cause memory exception.
+     * @param s OpenXcom surface
      */
 	inline ShaderBase(const Surface* s):
-		_orgin((Uint8*) s->getSurface()->pixels),
+		_orgin(s->getBuffer()),
 		_range_base(s->getWidth(), s->getHeight()),
 		_range_domain(s->getWidth(), s->getHeight()),
-		_pitch(s->getSurface()->pitch)
+		_pitch(s->getPitch())
 	{
 
 	}

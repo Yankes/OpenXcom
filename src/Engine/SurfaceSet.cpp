@@ -47,8 +47,7 @@ SurfaceSet::SurfaceSet(const SurfaceSet& other)
 	_frames.resize(other._frames.size());
 	for (size_t i = 0; i < _frames.size(); ++i)
 	{
-		if(other._frames[i])
-			_frames[i] = new Surface(*other._frames[i]);
+		_frames[i] = other._frames[i];
 	}
 }
 
@@ -57,10 +56,7 @@ SurfaceSet::SurfaceSet(const SurfaceSet& other)
  */
 SurfaceSet::~SurfaceSet()
 {
-	for (size_t i = 0; i < _frames.size(); ++i)
-	{
-		delete _frames[i];
-	}
+
 }
 
 /**
@@ -107,13 +103,13 @@ void SurfaceSet::loadPck(const std::string &pck, const std::string &tab)
 		offsetFile.close();
 		for (int frame = 0; frame < nframes; ++frame)
 		{
-			_frames.push_back(new Surface(_width, _height));
+			_frames.push_back(Surface(_width, _height));
 		}
 	}
 	else
 	{
 		nframes = 1;
-		_frames.push_back(new Surface(_width, _height));
+		_frames.push_back(Surface(_width, _height));
 	}
 
 	// Load PCK and put pixels in surfaces
@@ -130,14 +126,14 @@ void SurfaceSet::loadPck(const std::string &pck, const std::string &tab)
 		int x = 0, y = 0;
 
 		// Lock the surface
-		_frames[frame]->lock();
+		_frames[frame].lock();
 
 		imgFile.read((char*)&value, 1);
 		for (int i = 0; i < value; ++i)
 		{
 			for (int j = 0; j < _width; ++j)
 			{
-				_frames[frame]->setPixelIterative(&x, &y, 0);
+				_frames[frame].setPixelIterative(&x, &y, 0);
 			}
 		}
 
@@ -148,17 +144,17 @@ void SurfaceSet::loadPck(const std::string &pck, const std::string &tab)
 				imgFile.read((char*)&value, 1);
 				for (int i = 0; i < value; ++i)
 				{
-					_frames[frame]->setPixelIterative(&x, &y, 0);
+					_frames[frame].setPixelIterative(&x, &y, 0);
 				}
 			}
 			else
 			{
-				_frames[frame]->setPixelIterative(&x, &y, value);
+				_frames[frame].setPixelIterative(&x, &y, value);
 			}
 		}
 
 		// Unlock the surface
-		_frames[frame]->unlock();
+		_frames[frame].unlock();
 	}
 
 	imgFile.close();
@@ -192,23 +188,23 @@ void SurfaceSet::loadDat(const std::string &filename)
 	_frames.resize(nframes);
 	for (int i = 0; i < nframes; ++i)
 	{
-		_frames[i] = new Surface(_width, _height);
+		_frames[i] = Surface(_width, _height);
 	}
 
 	Uint8 value;
 	int x = 0, y = 0, frame = 0;
 
 	// Lock the surface
-	_frames[frame]->lock();
+	_frames[frame].lock();
 
 	while (imgFile.read((char*)&value, 1))
 	{
-		_frames[frame]->setPixelIterative(&x, &y, value);
+		_frames[frame].setPixelIterative(&x, &y, value);
 
 		if (y >= _height)
 		{
 			// Unlock the surface
-			_frames[frame]->unlock();
+			_frames[frame].unlock();
 
 			frame++;
 			x = 0;
@@ -217,7 +213,7 @@ void SurfaceSet::loadDat(const std::string &filename)
 			if (frame >= nframes)
 				break;
 			else
-				_frames[frame]->lock();
+				_frames[frame].lock();
 		}
 	}
 
@@ -234,9 +230,12 @@ Surface *SurfaceSet::getFrame(int i)
 	i += _offset;
 	if ((size_t)i < _frames.size())
 	{
-		return _frames[i];
+		if (_frames[i])
+		{
+			return &_frames[i];
+		}
 	}
-	return 0;
+	return nullptr;
 }
 
 /**
@@ -251,21 +250,21 @@ Surface *SurfaceSet::addFrame(int i)
 	{
 		if ((size_t)i < _frames.size())
 		{
-			delete _frames[i];
+			//nothing
 		}
 		else
 		{
-			_frames.resize(i + 1, 0);
+			_frames.resize(i + 1);
 		}
 	}
 	else
 	{
 		_offset -= i;
-		_frames.insert(_frames.begin(), (size_t)-i, 0);
+		_frames.insert(_frames.begin(), (size_t)-i, {});
 		i = 0;
 	}
-	_frames[i] = new Surface(_width, _height);
-	return _frames[i];
+	_frames[i] = Surface(_width, _height);
+	return &_frames[i];
 }
 
 /**
@@ -307,7 +306,7 @@ void SurfaceSet::setPalette(SDL_Color *colors, int firstcolor, int ncolors)
 	for (size_t i = 0; i < _frames.size(); ++i)
 	{
 		if (_frames[i])
-			_frames[i]->setPalette(colors, firstcolor, ncolors);
+			_frames[i].setPalette(colors, firstcolor, ncolors);
 	}
 }
 
