@@ -42,7 +42,7 @@ enum SpecialTileType{TILE=0,
 
 enum MovementType : int { MT_WALK, MT_FLY, MT_SLIDE, MT_FLOAT, MT_SINK};
 enum VoxelType : int { V_EMPTY = -1, V_FLOOR, V_WESTWALL, V_NORTHWALL, V_OBJECT, V_UNIT, V_OUTOFBOUNDS };
-enum TilePart : int { O_FLOOR, O_WESTWALL, O_NORTHWALL, O_OBJECT };
+enum TilePart : int { O_FLOOR, O_WESTWALL, O_NORTHWALL, O_OBJECT, O_MAX };
 
 /**
  * MapData is the smallest piece of a Battlescape terrain, holding info about a certain object, wall, floor, ...
