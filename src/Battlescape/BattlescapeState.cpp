@@ -1723,18 +1723,13 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 			}
 
 			// crop
-			surf->getCrop()->x = soldier->getRules()->getAvatarOffsetX();
-			surf->getCrop()->y = soldier->getRules()->getAvatarOffsetY();
-			surf->getCrop()->w = 26;
-			surf->getCrop()->h = 23;
+			auto crop = surf->getCrop();
+			crop.getCrop()->x = soldier->getRules()->getAvatarOffsetX();
+			crop.getCrop()->y = soldier->getRules()->getAvatarOffsetY();
+			crop.getCrop()->w = 26;
+			crop.getCrop()->h = 23;
 
 			surf->blit(_rank);
-
-			// reset crop
-			surf->getCrop()->x = 0;
-			surf->getCrop()->y = 0;
-			surf->getCrop()->w = surf->getWidth();
-			surf->getCrop()->h = surf->getHeight();
 		}
 	}
 	else
@@ -2728,7 +2723,7 @@ void BattlescapeState::finishBattle(bool abort, int inExitArea)
 			}
 			else if (cutscene == CutsceneState::LOSE_GAME)
 			{
-				_game->getSavedGame()->setEnding(END_LOSE);				
+				_game->getSavedGame()->setEnding(END_LOSE);
 			}
 			// Autosave if game is over
 			if (_game->getSavedGame()->getEnding() != END_NONE && _game->getSavedGame()->isIronman())
@@ -2992,7 +2987,7 @@ void BattlescapeState::txtTooltipInExtra(Action *action, bool leftHand, bool spe
 				}
 			}
 		}
-		else 
+		else
 		{
 			// weapon is not of medi-kit battle type
 			_currentTooltip = action->getSender()->getTooltip();
