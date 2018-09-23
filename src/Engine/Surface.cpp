@@ -340,8 +340,8 @@ void Surface::loadImage(const std::string &filename)
 					{
 						dest = src;
 					},
-					ShaderMove<Uint8>(this),
-					ShaderMove<unsigned char>(image, width, height)
+					ShaderSurface(this),
+					ShaderSurface(SurfaceRaw<unsigned char>(image, width, height))
 				);
 				int transparent = 0;
 				for (int c = 0; c < _surface->format->palette->ncolors; ++c)
@@ -911,18 +911,10 @@ void Surface::unlock()
 
 /**
  * Specific blit function to blit battlescape terrain data in different shades in a fast way.
- * Notice there is no surface locking here - you have to make sure you lock the surface yourself
- * at the start of blitting and unlock it when done.
- * @param surface to blit to
- * @param x
- * @param y
- * @param off
- * @param half some tiles are blitted only the right half
- * @param newBaseColor Attention: the actual color + 1, because 0 is no new base color.
  */
-void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int newBaseColor)
+void Surface::blitRaw(SurfaceRaw<Uint8> destSurf, SurfaceRaw<const Uint8> srcSurf, int x, int y, int shade, bool half, int newBaseColor)
 {
-	ShaderMove<Uint8> src(this, x, y);
+	ShaderMove<const Uint8> src(srcSurf, x, y);
 	if (half)
 	{
 		GraphSubset g = src.getDomain();
@@ -933,10 +925,26 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
 	{
 		--newBaseColor;
 		newBaseColor <<= 4;
-		ShaderDraw<helper::ColorReplace>(ShaderSurface(surface), src, ShaderScalar(off), ShaderScalar(newBaseColor));
+		ShaderDraw<helper::ColorReplace>(ShaderSurface(destSurf), src, ShaderScalar(shade), ShaderScalar(newBaseColor));
 	}
 	else
-		ShaderDraw<helper::StandardShade>(ShaderSurface(surface), src, ShaderScalar(off));
+		ShaderDraw<helper::StandardShade>(ShaderSurface(destSurf), src, ShaderScalar(shade));
+}
+
+/**
+ * Specific blit function to blit battlescape terrain data in different shades in a fast way.
+ * Notice there is no surface locking here - you have to make sure you lock the surface yourself
+ * at the start of blitting and unlock it when done.
+ * @param surface to blit to
+ * @param x
+ * @param y
+ * @param off
+ * @param half some tiles are blitted only the right half
+ * @param newBaseColor Attention: the actual color + 1, because 0 is no new base color.
+ */
+void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, bool half, int newBaseColor)
+{
+	blitRaw(surface, SurfaceRaw<const Uint8>(this), x, y, shade, half, newBaseColor);
 }
 
 /**
@@ -947,9 +955,9 @@ void Surface::blitNShade(Surface *surface, int x, int y, int off, bool half, int
  * @param shade shade offset
  * @param range area that limit draw surface
  */
-void Surface::blitNShade(Surface *surface, int x, int y, int shade, GraphSubset range)
+void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, GraphSubset range)
 {
-	ShaderMove<Uint8> src(this, x, y);
+	ShaderMove<const Uint8> src(this, x, y);
 	ShaderMove<Uint8> dest(surface);
 
 	dest.setDomain(range);

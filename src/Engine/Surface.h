@@ -20,6 +20,8 @@
 #include <SDL.h>
 #include <string>
 #include <memory>
+#include <vector>
+#include <assert.h>
 #include "GraphSubset.h"
 
 namespace OpenXcom
@@ -29,6 +31,7 @@ class Font;
 class Language;
 class ScriptWorkerBase;
 class SurfaceCrop;
+template<typename Pixel> class SurfaceRaw;
 
 /**
  * Element that is blit (rendered) onto the screen.
@@ -255,9 +258,11 @@ public:
 	/// Unlocks the surface.
 	void unlock();
 	/// Specific blit function to blit battlescape terrain data in different shades in a fast way.
-	void blitNShade(Surface *surface, int x, int y, int shade, bool half = false, int newBaseColor = 0);
+	static void blitRaw(SurfaceRaw<Uint8> dest, SurfaceRaw<const Uint8> src, int x, int y, int shade, bool half = false, int newBaseColor = 0);
 	/// Specific blit function to blit battlescape terrain data in different shades in a fast way.
-	void blitNShade(Surface *surface, int x, int y, int shade, GraphSubset range);
+	void blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, bool half = false, int newBaseColor = 0);
+	/// Specific blit function to blit battlescape terrain data in different shades in a fast way.
+	void blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, GraphSubset range);
 	/// Invalidate the surface: force it to be redrawn
 	void invalidate(bool valid = true);
 
@@ -269,6 +274,132 @@ public:
 	virtual void setBorderColor(Uint8 /*color*/) { /* empty by design */ };
 	/// Sets the high contrast color setting of the surface.
 	virtual void setHighContrast(bool /*contrast*/) { /* empty by design */ };
+};
+
+/**
+ * Raw pointer to surface buffer, can be created from diffrent sources
+ */
+template<typename Pixel>
+class SurfaceRaw
+{
+	Pixel* _buffer;
+	Uint16 _width, _height, _pitch;
+
+public:
+	/// Default constructor
+	SurfaceRaw() :
+		_buffer{ nullptr },
+		_width{ 0 },
+		_height{ 0 },
+		_pitch{ 0 }
+	{
+
+	}
+
+	/// Copy constructor
+	SurfaceRaw(const SurfaceRaw&) = default;
+
+	/// Move constructor
+	SurfaceRaw(SurfaceRaw&&) = default;
+
+	/// Constructor
+	SurfaceRaw(Pixel* buffer, int width, int height, int pitch) :
+		_buffer{ buffer },
+		_width{ static_cast<Uint16>(width) },
+		_height{ static_cast<Uint16>(height) },
+		_pitch{ static_cast<Uint16>(pitch) }
+	{
+
+	}
+
+	/// Constructor, SFINAE enable it only for `Uint8`
+	template<typename = std::enable_if<std::is_same<Uint8, Pixel>::value, void>>
+	SurfaceRaw(Surface* surf) : SurfaceRaw{ surf->getBuffer(), surf->getWidth(), surf->getHeight(), surf->getPitch() }
+	{
+
+	}
+
+	/// Constructor, SFINAE enable it only for `Uint8`
+	template<typename = std::enable_if<std::is_same<const Uint8, Pixel>::value, void>>
+	SurfaceRaw(const Surface* surf) : SurfaceRaw{ surf->getBuffer(), surf->getWidth(), surf->getHeight(), surf->getPitch() }
+	{
+
+	}
+
+	/// Constructor, SFINAE enable it only for `Uint8`
+	template<typename = std::enable_if<std::is_same<Uint8, Pixel>::value, void>>
+	SurfaceRaw(SDL_Surface* surf) : SurfaceRaw{ (Pixel*)surf->pixels, surf->w, surf->h, surf->pitch }
+	{
+
+	}
+
+	/// Constructor, SFINAE enable it only for `const Uint8`
+	template<typename = std::enable_if<std::is_same<const Uint8, Pixel>::value, void>>
+	SurfaceRaw(const SDL_Surface* surf) : SurfaceRaw{ (Pixel*)surf->pixels, surf->w, surf->h, surf->pitch }
+	{
+
+	}
+
+	/// Constructor, SFINAE enable it only for non const `PixelType`
+	template<typename = std::enable_if<std::is_const<Pixel>::value == false, void>>
+	SurfaceRaw(std::vector<Pixel>& vec, int width, int height) : SurfaceRaw{ vec.data(), width, height, width }
+	{
+		assert((size_t)(width*height) <= vec.size() && "Incorrect dimensions compared to vector size");
+	}
+
+	/// Constructor, SFINAE enable it only for `const PixelType`
+	template<typename = std::enable_if<std::is_const<Pixel>::value, void>>
+	SurfaceRaw(const std::vector<Pixel>& vec, int width, int height) : SurfaceRaw{ vec.data(), width, height, width }
+	{
+		assert((size_t)(width*height) <= vec.size() && "Incorrect dimensions compared to vector size");
+	}
+
+	/// Constructor
+	template<int I>
+	SurfaceRaw(Pixel (&buffer)[I], int width, int height) : SurfaceRaw{ buffer, width, height, width }
+	{
+		assert(width*height <= I && "Incorrect dimensions compared to array size");
+	}
+
+	/// Assigment from nullptr
+	SurfaceRaw& operator=(std::nullptr_t)
+	{
+		*this = SurfaceRaw{};
+		return *this;
+	}
+
+	/// Assigment
+	SurfaceRaw& operator=(const SurfaceRaw&) = default;
+
+	/// Is empty?
+	explicit operator bool() const
+	{
+		return _buffer;
+	}
+
+	/// Returns the width of the surface.
+	int getWidth() const
+	{
+		return _width;
+	}
+
+	/// Returns the height of the surface.
+	int getHeight() const
+	{
+		return _height;
+	}
+
+	/// Get surface pitch
+	int getPitch() const
+	{
+		return _pitch;
+	}
+
+	/// Get pointer to buffer
+	Pixel* getBuffer() const
+	{
+		return _buffer;
+	}
 };
 
 /**

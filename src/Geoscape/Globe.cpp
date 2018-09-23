@@ -980,8 +980,8 @@ Cord Globe::getSunDirection(double lon, double lat) const
 
 void Globe::drawShadow()
 {
-	ShaderMove<Cord> earth = ShaderMove<Cord>(_earthData[_zoom], getWidth(), getHeight());
-	ShaderRepeat<Sint16> noise = ShaderRepeat<Sint16>(_randomNoiseData, static_data.random_surf_size, static_data.random_surf_size);
+	auto earth = ShaderMove<Cord>(SurfaceRaw<Cord>(_earthData[_zoom], getWidth(), getHeight()));
+	auto noise = ShaderRepeat<Sint16>(SurfaceRaw<Sint16>(_randomNoiseData, static_data.random_surf_size, static_data.random_surf_size));
 
 	earth.setMove(_cenX-getWidth()/2, _cenY-getHeight()/2);
 
