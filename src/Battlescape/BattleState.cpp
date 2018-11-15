@@ -60,6 +60,14 @@ void BattleState::init()
 }
 
 /**
+ * Call when state get popout.
+ */
+void BattleState::deinit()
+{
+
+}
+
+/**
  * Cancels the current BattleState.
  */
 void BattleState::cancel()

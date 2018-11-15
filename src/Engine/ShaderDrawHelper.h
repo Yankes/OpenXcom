@@ -23,17 +23,10 @@
 
 namespace OpenXcom
 {
+
 namespace helper
 {
 
-/**
- * This is empty argument to `ShaderDraw`.
- * when used in `ShaderDraw` return always 0 to `ColorFunc::func` for every pixel
- */
-class Nothing
-{
-
-};
 
 /**
  * This is scalar argument to `ShaderDraw`.
@@ -70,7 +63,7 @@ protected:
 	const int _pitch;
 
 public:
-	///copy constructor
+	/// copy constructor
 	inline ShaderBase(const ShaderBase& s):
 		_orgin(s.ptr()),
 		_range_base(s._range_base),
@@ -80,84 +73,9 @@ public:
 
 	}
 
-	/**
-	 * create surface using vector `f` as data source.
-	 * surface will have `max_y` x `max_x` dimensions.
-	 * size of `f` should be bigger than `max_y*max_x`.
-	 * Attention: after use of this constructor you change size of `f` then `_orgin` will be invalid
-	 * and use of this object will cause memory exception.
-     * @param f vector that are treated as surface
-     * @param max_x x dimension of `f`
-     * @param max_y y dimension of `f`
-     */
-	inline ShaderBase(std::vector<Pixel>& f, int max_x, int max_y):
-		_orgin(&(f[0])),
-		_range_base(max_x, max_y),
-		_range_domain(max_x, max_y),
-		_pitch(max_x)
-	{
-
-	}
-
-	inline PixelPtr ptr() const
-	{
-		return _orgin;
-	}
-	inline int pitch() const
-	{
-		return _pitch;
-	}
-
-	inline void setDomain(const GraphSubset& g)
-	{
-		_range_domain = GraphSubset::intersection(g, _range_base);
-	}
-	inline const GraphSubset& getDomain() const
-	{
-		return _range_domain;
-	}
-	inline const GraphSubset& getBaseDomain() const
-	{
-		return _range_base;
-	}
-
-	inline const GraphSubset& getImage() const
-	{
-		return _range_domain;
-	}
-};
-
-/**
- * This is surface argument to `ShaderDraw`.
- * every pixel of this surface will have type `Pixel`.
- * You cant modify pixel in that surface.
- */
-template<typename Pixel>
-class ShaderBase<const Pixel>
-{
-public:
-	typedef const Pixel* PixelPtr;
-	typedef const Pixel& PixelRef;
-
-protected:
-	const PixelPtr _orgin;
-	const GraphSubset _range_base;
-	GraphSubset _range_domain;
-	const int _pitch;
-
-public:
-	///copy constructor
-	inline ShaderBase(const ShaderBase& s):
-		_orgin(s.ptr()),
-		_range_base(s.getBaseDomain()),
-		_range_domain(s.getDomain()),
-		_pitch(s.pitch())
-	{
-
-	}
-
-	///copy constructor
-	inline ShaderBase(const ShaderBase<Pixel>& s):
+	/// copy constructor
+	template<typename = std::enable_if<std::is_const<Pixel>::value, void>>
+	inline ShaderBase(const ShaderBase<typename std::remove_const<Pixel>::type>& s):
 		_orgin(s.ptr()),
 		_range_base(s.getBaseDomain()),
 		_range_domain(s.getDomain()),
@@ -167,224 +85,28 @@ public:
 	}
 
 	/**
-	 * create surface using vector `f` as data source.
-	 * surface will have `max_y` x `max_x` dimensions.
-	 * size of `f` should be bigger than `max_y*max_x`.
-	 * Attention: after use of this constructor you change size of `f` then `_orgin` will be invalid
-	 * and use of this object will cause memory exception.
-     * @param f vector that are treated as surface
-     * @param max_x x dimension of `f`
-     * @param max_y y dimension of `f`
-     */
-	inline ShaderBase(const std::vector<Pixel>& f, int max_x, int max_y):
-		_orgin(&(f[0])),
-		_range_base(max_x, max_y),
-		_range_domain(max_x, max_y),
-		_pitch(max_x)
-	{
-
-	}
-
-	inline PixelPtr ptr() const
-	{
-		return _orgin;
-	}
-	inline int pitch() const
-	{
-		return _pitch;
-	}
-
-	inline void setDomain(const GraphSubset& g)
-	{
-		_range_domain = GraphSubset::intersection(g, _range_base);
-	}
-	inline const GraphSubset& getDomain() const
-	{
-		return _range_domain;
-	}
-	inline const GraphSubset& getBaseDomain() const
-	{
-		return _range_base;
-	}
-
-	inline const GraphSubset& getImage() const
-	{
-		return _range_domain;
-	}
-};
-
-/**
- * This is surface argument to `ShaderDraw`.
- * every pixel of this surface will have type `Uint8`.
- * Can be constructed from `Surface*`.
- * Modify pixels of this surface, that will modifying original data.
- */
-template<>
-class ShaderBase<Uint8>
-{
-public:
-	typedef Uint8* PixelPtr;
-	typedef Uint8& PixelRef;
-
-protected:
-	const PixelPtr _orgin;
-	const GraphSubset _range_base;
-	GraphSubset _range_domain;
-	const int _pitch;
-
-public:
-	///copy constructor
-	inline ShaderBase(const ShaderBase& s):
-		_orgin(s.ptr()),
-		_range_base(s.getBaseDomain()),
-		_range_domain(s.getDomain()),
-		_pitch(s.pitch())
-	{
-
-	}
-
-	/**
-	 * create surface using surface `s` as data source.
+	 * create surface using raw surface `s` as data source.
 	 * surface will have same dimensions as `s`.
 	 * Attention: after use of this constructor you change size of surface `s`
 	 * then `_orgin` will be invalid and use of this object will cause memory exception.
-     * @param s vector that are treated as surface
+     * @param s Raw Surface
      */
-	inline ShaderBase(Surface* s):
-		_orgin((Uint8*) s->getSurface()->pixels),
-		_range_base(s->getWidth(), s->getHeight()),
-		_range_domain(s->getWidth(), s->getHeight()),
-		_pitch(s->getSurface()->pitch)
+	inline ShaderBase(SurfaceRaw<Pixel> s):
+		_orgin(s.getBuffer()),
+		_range_base(s.getWidth(), s.getHeight()),
+		_range_domain(s.getWidth(), s.getHeight()),
+		_pitch(s.getPitch())
 	{
 
 	}
 
-	/**
-	 * create surface using vector `f` as data source.
-	 * surface will have `max_y` x `max_x` dimensions.
-	 * size of `f` should be bigger than `max_y*max_x`.
-	 * Attention: after use of this constructor you change size of `f` then `_orgin` will be invalid
-	 * and use of this object will cause memory exception.
-     * @param f vector that are treated as surface
-     * @param max_x x dimension of `f`
-     * @param max_y y dimension of `f`
-     */
-	inline ShaderBase(std::vector<Uint8>& f, int max_x, int max_y):
-		_orgin(&(f[0])),
-		_range_base(max_x, max_y),
-		_range_domain(max_x, max_y),
-		_pitch(max_x)
-	{
-
-	}
-
+	/// Get pointer to begining of surface
 	inline PixelPtr ptr() const
 	{
 		return _orgin;
 	}
-	inline int pitch() const
-	{
-		return _pitch;
-	}
 
-	inline void setDomain(const GraphSubset& g)
-	{
-		_range_domain = GraphSubset::intersection(g, _range_base);
-	}
-	inline const GraphSubset& getDomain() const
-	{
-		return _range_domain;
-	}
-	inline const GraphSubset& getBaseDomain() const
-	{
-		return _range_base;
-	}
-
-	inline const GraphSubset& getImage() const
-	{
-		return _range_domain;
-	}
-};
-
-/**
- * This is surface argument to `ShaderDraw`.
- * every pixel of this surface will have type `const Uint8`.
- * Can be constructed from `const Surface*`.
- * You cant modify pixel in that surface.
- */
-template<>
-class ShaderBase<const Uint8>
-{
-public:
-	typedef const Uint8* PixelPtr;
-	typedef const Uint8& PixelRef;
-
-protected:
-	const PixelPtr _orgin;
-	const GraphSubset _range_base;
-	GraphSubset _range_domain;
-	const int _pitch;
-
-public:
-	///copy constructor
-	inline ShaderBase(const ShaderBase& s):
-		_orgin(s.ptr()),
-		_range_base(s.getBaseDomain()),
-		_range_domain(s.getDomain()),
-		_pitch(s.pitch())
-	{
-
-	}
-
-	///copy constructor
-	inline ShaderBase(const ShaderBase<Uint8>& s):
-		_orgin(s.ptr()),
-		_range_base(s.getBaseDomain()),
-		_range_domain(s.getDomain()),
-		_pitch(s.pitch())
-	{
-
-	}
-
-	/**
-	 * create surface using surface `s` as data source.
-	 * surface will have same dimensions as `s`.
-	 * Attention: after use of this constructor you change size of surface `s`
-	 * then `_orgin` will be invalid and use of this object will cause memory exception.
-     * @param s vector that are treated as surface
-     */
-	inline ShaderBase(const Surface* s):
-		_orgin((Uint8*) s->getSurface()->pixels),
-		_range_base(s->getWidth(), s->getHeight()),
-		_range_domain(s->getWidth(), s->getHeight()),
-		_pitch(s->getSurface()->pitch)
-	{
-
-	}
-
-	/**
-	 * create surface using vector `f` as data source.
-	 * surface will have `max_y` x `max_x` dimensions.
-	 * size of `f` should be bigger than `max_y*max_x`.
-	 * Attention: after use of this constructor you change size of `f` then `_orgin` will be invalid
-	 * and use of this object will case memory exception.
-     * @param f vector that are treated as surface
-     * @param max_x x dimension of `f`
-     * @param max_y y dimension of `f`
-     */
-	inline ShaderBase(const std::vector<Uint8>& f, int max_x, int max_y):
-		_orgin(&(f[0])),
-		_range_base(max_x, max_y),
-		_range_domain(max_x, max_y),
-		_pitch(max_x)
-	{
-
-	}
-
-	inline PixelPtr ptr() const
-	{
-		return _orgin;
-	}
+	/// Get real distance betwean lines
 	inline int pitch() const
 	{
 		return _pitch;
@@ -501,60 +223,6 @@ struct controler<Scalar<T> >
 	inline T& get_ref()
 	{
 		return ref;
-	}
-};
-
-/// implementation for not used arg
-template<>
-struct controler<Nothing>
-{
-	const int i;
-	inline controler(const Nothing&) : i(0)
-	{
-
-	}
-
-	//cant use this function
-	//inline GraphSubset get_range()
-
-	inline void mod_range(GraphSubset&)
-	{
-		//nothing
-	}
-	inline void set_range(const GraphSubset&)
-	{
-		//nothing
-	}
-
-	inline void mod_y(int&, int&)
-	{
-		//nothing
-	}
-	inline void set_y(const int&, const int&)
-	{
-		//nothing
-	}
-	inline void inc_y()
-	{
-		//nothing
-	}
-
-	inline void mod_x(int&, int&)
-	{
-		//nothing
-	}
-	inline void set_x(const int&, const int&)
-	{
-		//nothing
-	}
-	inline void inc_x()
-	{
-		//nothing
-	}
-
-	inline const int& get_ref()
-	{
-		return i;
 	}
 };
 

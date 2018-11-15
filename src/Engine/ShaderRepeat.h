@@ -34,13 +34,14 @@ public:
 	typedef helper::ShaderBase<const Pixel> _base;
 	friend struct helper::controler<ShaderRepeat<Pixel> >;
 
-	inline ShaderRepeat(const Surface* s):
+	inline ShaderRepeat(SurfaceRaw<Pixel> s):
 		_base(s)
 	{
 		setOffset(0, 0);
 	}
-	inline ShaderRepeat(const std::vector<Pixel>& f, int max_x, int max_y):
-		_base(f, max_x, max_y)
+
+	inline ShaderRepeat(SurfaceRaw<const Pixel> s):
+		_base(s)
 	{
 		setOffset(0, 0);
 	}

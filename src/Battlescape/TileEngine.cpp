@@ -4234,6 +4234,37 @@ void TileEngine::itemMoveInventory(Tile *t, BattleUnit *unit, BattleItem *item, 
 	item->setSlotY(y);
 }
 
+/**
+ * Add moving unit.
+ */
+void TileEngine::addMovingUnit(BattleUnit* unit)
+{
+	if (_movingUnit != nullptr)
+	{
+		throw Exception("There is already TileEngine movingUnit");
+	}
+	_movingUnit = unit;
+}
+
+/**
+ * Add moving unit.
+ */
+void TileEngine::removeMovingUnit(BattleUnit* unit)
+{
+	if (_movingUnit != unit)
+	{
+		throw Exception("Wrong unit is removed from TileEngine movingUnit");
+	}
+	_movingUnit = nullptr;
+}
+
+/**
+ * Get current moving unit.
+ */
+BattleUnit* TileEngine::getMovingUnit()
+{
+	return _movingUnit;
+}
 
 /**
  * Validates the melee range between two units.

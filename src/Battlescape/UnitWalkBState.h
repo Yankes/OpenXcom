@@ -54,11 +54,13 @@ public:
 	/// Cleans up the UnitWalkBState.
 	~UnitWalkBState();
 	/// Initializes the state.
-	void init();
+	void init() override;
+	/// Deinitializes the state.
+	void deinit() override;
 	/// Handles a cancels request.
-	void cancel();
+	void cancel() override;
 	/// Runs state functionality every cycle.
-	void think();
+	void think() override;
 };
 
 }

@@ -28,6 +28,7 @@ namespace OpenXcom
 class Game;
 class Surface;
 class InteractiveSurface;
+class Window;
 class Action;
 class LocalizedText;
 class SavedBattleGame;

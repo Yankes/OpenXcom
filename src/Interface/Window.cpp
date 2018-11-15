@@ -252,13 +252,14 @@ void Window::draw()
 
 	if (_bg != 0)
 	{
-		_bg->getCrop()->x = square.x - _dx;
-		_bg->getCrop()->y = square.y - _dy;
-		_bg->getCrop()->w = square.w ;
-		_bg->getCrop()->h = square.h ;
-		_bg->setX(square.x);
-		_bg->setY(square.y);
-		_bg->blit(this);
+		auto crop = _bg->getCrop();
+		crop.getCrop()->x = square.x - _dx;
+		crop.getCrop()->y = square.y - _dy;
+		crop.getCrop()->w = square.w ;
+		crop.getCrop()->h = square.h ;
+		crop.setX(square.x);
+		crop.setY(square.y);
+		crop.blit(this);
 	}
 }
 

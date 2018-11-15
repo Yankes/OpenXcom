@@ -37,7 +37,7 @@ class SurfaceSet
 {
 private:
 	int _width, _height, _offset;
-	std::vector<Surface*> _frames;
+	std::vector<Surface> _frames;
 public:
 	/// Crates a surface set with frames of the specified size.
 	SurfaceSet(int width, int height);

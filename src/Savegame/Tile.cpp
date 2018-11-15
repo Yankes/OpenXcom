@@ -680,6 +680,11 @@ void Tile::animate()
 				newframe = 0;
 			}
 			_currentFrame[i] = newframe;
+			_currentSurface[i] = _objects[i]->getDataset()->getSurfaceset()->getFrame(_objects[i]->getSprite(_currentFrame[i]));
+		}
+		else
+		{
+			_currentSurface[i] = nullptr;
 		}
 	}
 	for (std::list<Particle*>::iterator i = _particles.begin(); i != _particles.end();)
@@ -694,19 +699,6 @@ void Tile::animate()
 			++i;
 		}
 	}
-}
-
-/**
- * Get the sprite of a certain part of the tile.
- * @param part
- * @return Pointer to the sprite.
- */
-Surface *Tile::getSprite(int part) const
-{
-	if (_objects[part] == 0)
-		return 0;
-
-	return _objects[part]->getDataset()->getSurfaceset()->getFrame(_objects[part]->getSprite(_currentFrame[part]));
 }
 
 /**

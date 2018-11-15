@@ -82,10 +82,23 @@ static inline void ShaderDrawImpl(Func&& f, helper::controler<SrcType>... src)
 			(src.set_x(begin_x, end_x), 0)...
 		};
 
+		int size_x = end_x-begin_x;
 		//iteration on x-axis
-		for (int x = end_x-begin_x; x>0; --x, (void)helper::DummySeq{ (src.inc_x(), 0)... })
+		for (int x = size_x / 4; x>0; --x)
 		{
-			f(src.get_ref()...);
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
+		}
+		if (size_x & 2)
+		{
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
+		}
+		if (size_x & 1)
+		{
+			f(src.get_ref()...); (void)helper::DummySeq{ (src.inc_x(), 0)... };
 		}
 	}
 
@@ -137,8 +150,8 @@ struct ColorReplace
 	{
 		if (src)
 		{
-			const int newShade = (src & ColorShade) + shade;
-			if (newShade > ColorShade)
+			const Uint8 newShade = (src & ColorShade) + shade;
+			if (newShade & ColorGroup)
 				// so dark it would flip over to another color - make it black instead
 				dest = ColorShade;
 			else
@@ -166,12 +179,12 @@ struct StandardShade
 	{
 		if (src)
 		{
-			const int newShade = (src & ColorShade) + shade;
-			if (newShade > ColorShade)
+			const Uint8 newShade = src + shade;
+			if ((newShade ^ src) & ColorGroup)
 				// so dark it would flip over to another color - make it black instead
 				dest = ColorShade;
 			else
-				dest = (src & ColorGroup) | newShade;
+				dest = newShade;
 		}
 	}
 

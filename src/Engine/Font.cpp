@@ -168,13 +168,13 @@ void Font::init(size_t index, const UString &str)
  * @return Pointer to the font's surface with the respective
  * cropping rectangle set up.
  */
-Surface *Font::getChar(UCode c)
+SurfaceCrop Font::getChar(UCode c)
 {
 	if (_chars.find(c) == _chars.end())
 		c = '?';
-	Surface *surface = _images[_chars[c].first].surface;
-	*surface->getCrop() = _chars[c].second;
-	return surface;
+	auto surfaceCrop = _images[_chars[c].first].surface->getCrop();
+	*surfaceCrop.getCrop() = _chars[c].second;
+	return surfaceCrop;
 }
 
 /**
@@ -216,7 +216,7 @@ SDL_Rect Font::getCharSize(UCode c)
 	SDL_Rect size = { 0, 0, 0, 0 };
 	if (Unicode::isPrintable(c))
 	{
-		if (_chars.find(c) == _chars.end()) 
+		if (_chars.find(c) == _chars.end())
 			c = '?';
 
 		FontImage *image = &_images[_chars[c].first];

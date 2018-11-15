@@ -67,28 +67,29 @@ namespace OpenXcom
 		add(_image);
 
 		RuleInterface *dogfightInterface = _game->getMod()->getInterface("dogfight");
-		Surface *graphic = _game->getMod()->getSurface("INTERWIN.DAT");
-		graphic->setX(0);
-		graphic->setY(0);
-		graphic->getCrop()->x = 0;
-		graphic->getCrop()->y = 0;
-		graphic->getCrop()->w = _image->getWidth();
-		graphic->getCrop()->h = _image->getHeight();
-		_image->drawRect(graphic->getCrop(), 15);
-		graphic->blit(_image);
+
+		auto crop = _game->getMod()->getSurface("INTERWIN.DAT")->getCrop();
+		crop.setX(0);
+		crop.setY(0);
+		crop.getCrop()->x = 0;
+		crop.getCrop()->y = 0;
+		crop.getCrop()->w = _image->getWidth();
+		crop.getCrop()->h = _image->getHeight();
+		_image->drawRect(crop.getCrop(), 15);
+		crop.blit(_image);
 
 		if (ufo->getModSprite().empty())
 		{
-			graphic->getCrop()->y = dogfightInterface->getElement("previewMid")->y + dogfightInterface->getElement("previewMid")->h * ufo->getSprite();
-			graphic->getCrop()->h = dogfightInterface->getElement("previewMid")->h;
+			crop.getCrop()->y = dogfightInterface->getElement("previewMid")->y + dogfightInterface->getElement("previewMid")->h * ufo->getSprite();
+			crop.getCrop()->h = dogfightInterface->getElement("previewMid")->h;
 		}
 		else
 		{
-			graphic = _game->getMod()->getSurface(ufo->getModSprite());
+			crop = _game->getMod()->getSurface(ufo->getModSprite())->getCrop();
 		}
-		graphic->setX(0);
-		graphic->setY(0);
-		graphic->blit(_image);
+		crop.setX(0);
+		crop.setY(0);
+		crop.blit(_image);
 
 		_txtInfo = new Text(300, 50, 10, 140);
 		add(_txtInfo);

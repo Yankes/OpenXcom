@@ -19,6 +19,7 @@
  */
 #include <list>
 #include <vector>
+#include "../Engine/Surface.h"
 #include "../Battlescape/Position.h"
 #include "../Mod/MapData.h"
 #include "BattleUnit.h"
@@ -29,7 +30,6 @@
 namespace OpenXcom
 {
 
-class Surface;
 class MapData;
 class BattleUnit;
 class BattleItem;
@@ -60,10 +60,11 @@ public:
 	static const int NOT_CALCULATED = -1;
 
 protected:
-	MapData *_objects[4];
-	int _mapDataID[4];
-	int _mapDataSetID[4];
-	int _currentFrame[4];
+	MapData *_objects[O_MAX];
+	int _mapDataID[O_MAX];
+	int _mapDataSetID[O_MAX];
+	int _currentFrame[O_MAX];
+	SurfaceRaw<const Uint8> _currentSurface[O_MAX] = { };
 	bool _discovered[3];
 	int _light[LL_MAX];
 	int _smoke;
@@ -178,7 +179,10 @@ public:
 	/// Animated the tile parts.
 	void animate();
 	/// Get object sprites.
-	Surface *getSprite(int part) const;
+	SurfaceRaw<const Uint8> getSprite(int part) const
+	{
+		return _currentSurface[part];
+	}
 	/// Set a unit on this tile.
 	void setUnit(BattleUnit *unit, Tile *tileBelow = 0);
 	/**

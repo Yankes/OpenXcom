@@ -72,6 +72,15 @@ void UnitWalkBState::init()
 	{
 		_beforeFirstStep = true;
 	}
+	_terrain->addMovingUnit(_unit);
+}
+
+/**
+ * Deinitalize the state.
+ */
+void UnitWalkBState::deinit()
+{
+	_terrain->removeMovingUnit(_unit);
 }
 
 /**
@@ -103,7 +112,7 @@ void UnitWalkBState::think()
 			return;
 		}
 	}
-	
+
 
 	if (_unit->isOut())
 	{

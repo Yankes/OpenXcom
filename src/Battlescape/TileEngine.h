@@ -95,6 +95,7 @@ private:
 	const int _maxDynamicLightDistance;
 	const int _enhancedLighting;
 	Position _eventVisibilitySectorL, _eventVisibilitySectorR, _eventVisibilityObserverPos;
+	BattleUnit* _movingUnit = nullptr;
 
 	/// Add light source.
 	void addLight(GraphSubset gs, Position center, int power, LightLayers layer);
@@ -212,6 +213,13 @@ public:
 	void itemDropInventory(Tile *t, BattleUnit *unit, bool unprimeItems = false, bool deleteFixedItems = false);
 	/// Move item to other place in inventory or ground.
 	void itemMoveInventory(Tile *t, BattleUnit *unit, BattleItem *item, RuleInventory *slot, int x, int y);
+
+	/// Add moving unit.
+	void addMovingUnit(BattleUnit* unit);
+	/// Add moving unit.
+	void removeMovingUnit(BattleUnit* unit);
+	/// Get current moving unit.
+	BattleUnit* getMovingUnit();
 
 	/// Returns melee validity between two units.
 	bool validMeleeRange(BattleUnit *attacker, BattleUnit *target, int dir);

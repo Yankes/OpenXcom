@@ -176,7 +176,11 @@ void State::add(Surface *surface, const std::string &id, const std::string &cate
 				surface->setY(parent->getY() + element->y);
 			}
 
-			surface->setTFTDMode(element->TFTDMode);
+			auto inter = dynamic_cast<InteractiveSurface*>(surface);
+			if (inter)
+			{
+				inter->setTFTDMode(element->TFTDMode);
+			}
 
 			if (element->color != INT_MAX)
 			{

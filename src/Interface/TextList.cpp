@@ -340,12 +340,12 @@ void TextList::addRow(int cols, ...)
 			{
 				if (_align[i] != ALIGN_RIGHT)
 				{
-					w += _font->getChar('.')->getCrop()->w + _font->getSpacing();
+					w += _font->getChar('.').getCrop()->w + _font->getSpacing();
 					buf += '.';
 				}
 				if (_align[i] != ALIGN_LEFT)
 				{
-					w += _font->getChar('.')->getCrop()->w + _font->getSpacing();
+					w += _font->getChar('.').getCrop()->w + _font->getSpacing();
 					buf.insert(0, 1, '.');
 				}
 			}

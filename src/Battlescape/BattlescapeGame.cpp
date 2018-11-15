@@ -1157,7 +1157,8 @@ void BattlescapeGame::popState()
 
 	if (_states.empty()) return;
 
-	BattleAction action = _states.front()->getAction();
+	auto first = _states.front();
+	BattleAction action = first->getAction();
 
 	if (action.actor && !action.result.empty() && action.actor->getFaction() == FACTION_PLAYER
 		&& _playerPanicHandled && (_save->getSide() == FACTION_PLAYER || _debugPlay))
@@ -1165,8 +1166,9 @@ void BattlescapeGame::popState()
 		_parentState->warning(action.result);
 		actionFailed = true;
 	}
-	_deleted.push_back(_states.front());
+	_deleted.push_back(first);
 	_states.pop_front();
+	first->deinit();
 
 	// handle the end of this unit's actions
 	if (action.actor && noActionsPending(action.actor))
@@ -2165,7 +2167,7 @@ void BattlescapeGame::spawnFromPrimedItems()
 	{
 		spawnNewUnit(item);
 		_save->removeItem(item);
-	}	
+	}
 }
 
 /**
