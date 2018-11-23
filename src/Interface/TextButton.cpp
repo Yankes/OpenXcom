@@ -271,7 +271,7 @@ void TextButton::draw()
 	}
 	_text->setInvert(press);
 
-	_text->blit(this);
+	_text->blit(this->getSurface());
 }
 
 /**

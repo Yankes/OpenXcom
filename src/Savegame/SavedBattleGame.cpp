@@ -390,7 +390,7 @@ void SavedBattleGame::loadMapResources(Mod *mod)
 
 	for (int i = 0; i < _mapsize_z * _mapsize_y * _mapsize_x; ++i)
 	{
-		for (int part = O_FLOOR; part <= O_OBJECT; part++)
+		for (int part = O_FLOOR; part < O_MAX; part++)
 		{
 			TilePart tp = (TilePart)part;
 			_tiles[i].getMapData(&mdID, &mdsID, tp);

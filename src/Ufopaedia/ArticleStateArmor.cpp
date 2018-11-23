@@ -86,7 +86,7 @@ namespace OpenXcom
 			for (auto layer : layers)
 			{
 				auto surf = _game->getMod()->getSurface(layer, true);
-				surf->blit(_image);
+				surf->blitNShade(_image, 0, 0);
 			}
 		}
 		else
@@ -101,7 +101,7 @@ namespace OpenXcom
 			{
 				look = armor->getSpriteInventory();
 			}
-			_game->getMod()->getSurface(look, true)->blit(_image);
+			_game->getMod()->getSurface(look, true)->blitNShade(_image, 0, 0);
 		}
 
 

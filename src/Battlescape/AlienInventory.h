@@ -58,7 +58,7 @@ public:
 	/// Draws the inventory items.
 	void drawItems();
 	/// Blits the inventory onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Special handling for mouse clicks.
 	void mouseClick(Action *action, State *state);
 };

@@ -198,7 +198,7 @@ void BattlescapeButton::initSurfaces()
  * depending on whether the button is "pressed" or not.
  * @param surface Pointer to surface to blit onto.
  */
-void BattlescapeButton::blit(Surface *surface)
+void BattlescapeButton::blit(SDL_Surface *surface)
 {
 	if (_inverted)
 	{

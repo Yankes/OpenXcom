@@ -283,11 +283,11 @@ GraphsState::GraphsState() : _butRegionsOffset(0), _butCountriesOffset(0), _zoom
 	// Set up object
 	if (_game->getMod()->getSurface("GRAPH.BDY", false))
 	{
-		_game->getMod()->getSurface("GRAPH.BDY")->blit(_bg);
+		_game->getMod()->getSurface("GRAPH.BDY")->blitNShade(_bg, 0, 0);
 	}
 	else
 	{
-		_game->getMod()->getSurface("GRAPHS.SPK")->blit(_bg);
+		_game->getMod()->getSurface("GRAPHS.SPK")->blitNShade(_bg, 0, 0);
 	}
 
 	_txtTitle->setAlign(ALIGN_CENTER);

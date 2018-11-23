@@ -178,7 +178,7 @@ typedef struct
 	int sound;
 } introSoundEffect;
 
-static introSoundEffect introSoundTrack[] = 
+static introSoundEffect introSoundTrack[] =
 {
 {0, 0x200}, // inserting this to keep the code simple
 {149, 0x11},
@@ -478,7 +478,7 @@ void VideoState::init()
 	}
 
 	// We can only do a fade out in 8bpp, otherwise instantly end it
-	bool fade = (_game->getScreen()->getSurface()->getSurface()->format->BitsPerPixel == 8);
+	bool fade = (_game->getScreen()->getSurface()->format->BitsPerPixel == 8);
 	const int FADE_DELAY = 45;
 	const int FADE_STEPS = 20;
 

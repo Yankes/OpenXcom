@@ -219,6 +219,7 @@ void Tile::setMapData(MapData *dat, int mapDataID, int mapDataSetID, TilePart pa
 	_objects[part] = dat;
 	_mapDataID[part] = mapDataID;
 	_mapDataSetID[part] = mapDataSetID;
+	updateSprite(part);
 }
 
 /**
@@ -363,6 +364,7 @@ int Tile::openDoor(TilePart part, BattleUnit *unit, BattleActionType reserve)
 		if (unit && cost.Time && !cost.haveTU())
 			return 4;
 		_currentFrame[part] = 1; // start opening door
+		updateSprite((TilePart)part);
 		return 1;
 	}
 	if (_objects[part]->isUFODoor() && _currentFrame[part] != 7) // ufo door != part 7 - door is still opening
@@ -382,6 +384,7 @@ int Tile::closeUfoDoor()
 		{
 			_currentFrame[part] = 0;
 			retval = 1;
+			updateSprite((TilePart)part);
 		}
 	}
 
@@ -662,7 +665,7 @@ void Tile::ignite(int power)
 void Tile::animate()
 {
 	int newframe;
-	for (int i=0; i < 4; ++i)
+	for (int i = O_FLOOR; i < O_MAX; ++i)
 	{
 		if (_objects[i])
 		{
@@ -680,12 +683,8 @@ void Tile::animate()
 				newframe = 0;
 			}
 			_currentFrame[i] = newframe;
-			_currentSurface[i] = _objects[i]->getDataset()->getSurfaceset()->getFrame(_objects[i]->getSprite(_currentFrame[i]));
 		}
-		else
-		{
-			_currentSurface[i] = nullptr;
-		}
+		updateSprite((TilePart)i);
 	}
 	for (std::list<Particle*>::iterator i = _particles.begin(); i != _particles.end();)
 	{
@@ -698,6 +697,21 @@ void Tile::animate()
 		{
 			++i;
 		}
+	}
+}
+
+/**
+ * Update cached value of sprite.
+ */
+void Tile::updateSprite(TilePart part)
+{
+	if (_objects[part])
+	{
+		_currentSurface[part] = _objects[part]->getDataset()->getSurfaceset()->getFrame(_objects[part]->getSprite(_currentFrame[part]));
+	}
+	else
+	{
+		_currentSurface[part] = nullptr;
 	}
 }
 

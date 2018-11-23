@@ -161,7 +161,7 @@ void BuildNewBaseState::init()
 	State::init();
 	_globe->onMouseOver((ActionHandler)&BuildNewBaseState::globeHover);
 	_globe->rotateStop();
-	_globe->setNewBaseHover();
+	_globe->setNewBaseHover(true);
 }
 
 /**
@@ -201,8 +201,8 @@ void BuildNewBaseState::hoverRedraw(void)
 	_globe->cartToPolar(_mousex, _mousey, &lon, &lat);
 	_globe->setNewBaseHoverPos(lon,lat);
 
-	_globe->setNewBaseHover();
-	
+	_globe->setNewBaseHover(true);
+
 	if (Options::globeRadarLines && !(AreSame(_oldlat, lat) && AreSame(_oldlon, lon)) )
 	{
 		_oldlat=lat;

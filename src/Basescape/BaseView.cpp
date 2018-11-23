@@ -436,9 +436,9 @@ void BaseView::draw()
 		for (int y = 0; y < BASE_SIZE; ++y)
 		{
 			Surface *frame = _texture->getFrame(0);
-			frame->setX(x * GRID_SIZE);
-			frame->setY(y * GRID_SIZE);
-			frame->blit(this);
+			auto fx = (x * GRID_SIZE);
+			auto fy = (y * GRID_SIZE);
+			frame->blitNShade(this, fx, fy);
 		}
 	}
 
@@ -460,9 +460,9 @@ void BaseView::draw()
 				else
 					frame = _texture->getFrame((*i)->getRules()->getSpriteShape() + num + outline);
 
-				frame->setX(x * GRID_SIZE);
-				frame->setY(y * GRID_SIZE);
-				frame->blit(this);
+				auto fx = (x * GRID_SIZE);
+				auto fy = (y * GRID_SIZE);
+				frame->blitNShade(this, fx, fy);
 
 				num++;
 			}
@@ -483,9 +483,9 @@ void BaseView::draw()
 					if (_facilities[x][y] != 0 && (_facilities[x][y]->getBuildTime() == 0 || _facilities[x][y]->getIfHadPreviousFacility()))
 					{
 						Surface *frame = _texture->getFrame(7);
-						frame->setX(x * GRID_SIZE - GRID_SIZE / 2);
-						frame->setY(y * GRID_SIZE);
-						frame->blit(this);
+						auto fx = (x * GRID_SIZE - GRID_SIZE / 2);
+						auto fy = (y * GRID_SIZE);
+						frame->blitNShade(this, fx, fy);
 					}
 				}
 			}
@@ -499,9 +499,9 @@ void BaseView::draw()
 					if (_facilities[subX][y] != 0 && (_facilities[subX][y]->getBuildTime() == 0 || _facilities[subX][y]->getIfHadPreviousFacility()))
 					{
 						Surface *frame = _texture->getFrame(8);
-						frame->setX(subX * GRID_SIZE);
-						frame->setY(y * GRID_SIZE - GRID_SIZE / 2);
-						frame->blit(this);
+						auto fx = (subX * GRID_SIZE);
+						auto fy = (y * GRID_SIZE - GRID_SIZE / 2);
+						frame->blitNShade(this, fx, fy);
 					}
 				}
 			}
@@ -519,9 +519,9 @@ void BaseView::draw()
 				if ((*i)->getRules()->getSize() == 1)
 				{
 					Surface *frame = _texture->getFrame((*i)->getRules()->getSpriteFacility() + num);
-					frame->setX(x * GRID_SIZE);
-					frame->setY(y * GRID_SIZE);
-					frame->blit(this);
+					auto fx = (x * GRID_SIZE);
+					auto fy = (y * GRID_SIZE);
+					frame->blitNShade(this, fx, fy);
 				}
 
 				num++;
@@ -536,9 +536,9 @@ void BaseView::draw()
 				if ((*craft)->getStatus() != "STR_OUT")
 				{
 					Surface *frame = _texture->getFrame((*craft)->getRules()->getSprite() + 33);
-					frame->setX((*i)->getX() * GRID_SIZE + ((*i)->getRules()->getSize() - 1) * GRID_SIZE / 2 + 2);
-					frame->setY((*i)->getY() * GRID_SIZE + ((*i)->getRules()->getSize() - 1) * GRID_SIZE / 2 - 4);
-					frame->blit(this);
+					auto fx = ((*i)->getX() * GRID_SIZE + ((*i)->getRules()->getSize() - 1) * GRID_SIZE / 2 + 2);
+					auto fy = ((*i)->getY() * GRID_SIZE + ((*i)->getRules()->getSize() - 1) * GRID_SIZE / 2 - 4);
+					frame->blitNShade(this, fx, fy);
 					(*i)->setCraftForDrawing(*craft);
 				}
 				else
@@ -572,7 +572,7 @@ void BaseView::draw()
 			text->setAlign(ALIGN_CENTER);
 			text->setColor(_cellColor);
 			text->setText(ss.str());
-			text->blit(this);
+			text->blit(this->getSurface());
 			delete text;
 		}
 	}
@@ -582,7 +582,7 @@ void BaseView::draw()
  * Blits the base view and selector.
  * @param surface Pointer to surface to blit onto.
  */
-void BaseView::blit(Surface *surface)
+void BaseView::blit(SDL_Surface *surface)
 {
 	Surface::blit(surface);
 	if (_selector != 0)

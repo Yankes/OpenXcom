@@ -177,7 +177,7 @@ MedikitState::MedikitState (BattleUnit *targetUnit, BattleAction *action, TileEn
 		backgroundSprite = _game->getMod()->getSurface("MEDIBORD.PCK");
 	}
 
-	backgroundSprite->blit(_bg);
+	backgroundSprite->blitNShade(_bg, 0, 0);
 	_pkText->setBig();
 	_stimulantTxt->setBig();
 	_healTxt->setBig();

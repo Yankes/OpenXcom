@@ -23,7 +23,7 @@ namespace OpenXcom
 {
 
 enum InversionType {INVERT_NONE, INVERT_CLICK, INVERT_TOGGLE};
-	
+
 /**
  * Regular image that works like a button.
  * Unlike the TextButton, this button doesn't draw
@@ -63,7 +63,7 @@ public:
 	/// Sets up the "pressed" surface.
 	void initSurfaces();
 	/// Blits this surface onto another one.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Alters both versions of the button's X pos.
 	void setX(int x);
 	/// Alters both versions of the button's Y pos.

@@ -196,9 +196,7 @@ void CraftInfoState::init()
 
 	_sprite->clear();
 	SurfaceSet *texture = _game->getMod()->getSurfaceSet("BASEBITS.PCK");
-	texture->getFrame(_craft->getRules()->getSprite() + 33)->setX(0);
-	texture->getFrame(_craft->getRules()->getSprite() + 33)->setY(0);
-	texture->getFrame(_craft->getRules()->getSprite() + 33)->blit(_sprite);
+	texture->getFrame(_craft->getRules()->getSprite() + 33)->blitNShade(_sprite, 0, 0);
 
 	std::ostringstream firlsLine;
 	firlsLine << tr("STR_DAMAGE_UC_").arg(Unicode::formatPercentage(_craft->getDamagePercentage()));
@@ -243,7 +241,6 @@ void CraftInfoState::init()
 		_equip->clear();
 
 		Surface *frame1 = texture->getFrame(38);
-		frame1->setY(0);
 
 		SurfaceSet *customArmorPreviews = _game->getMod()->getSurfaceSet("CustomArmorPreviews");
 		int x = 0;
@@ -257,15 +254,12 @@ void CraftInfoState::init()
 					if (customFrame1)
 					{
 						// modded armor previews
-						customFrame1->setY(0);
-						customFrame1->setX(x);
-						customFrame1->blit(_crew);
+						customFrame1->blitNShade(_crew, x, 0);
 					}
 					else
 					{
 						// vanilla
-						frame1->setX(x);
-						frame1->blit(_crew);
+						frame1->blitNShade(_crew, x, 0);
 					}
 					x += 10;
 				}
@@ -273,7 +267,6 @@ void CraftInfoState::init()
 		}
 
 		Surface *frame2 = texture->getFrame(40);
-		frame2->setY(0);
 
 		SurfaceSet *customItemPreviews = _game->getMod()->getSurfaceSet("CustomItemPreviews");
 		x = 0;
@@ -285,15 +278,12 @@ void CraftInfoState::init()
 				if (customFrame2)
 				{
 					// modded HWP/auxiliary previews
-					customFrame2->setY(0);
-					customFrame2->setX(x);
-					customFrame2->blit(_equip);
+					customFrame2->blitNShade(_equip, x, 0);
 				}
 				else
 				{
 					// vanilla
-					frame2->setX(x);
-					frame2->blit(_equip);
+					frame2->blitNShade(_equip, x, 0);
 				}
 				x += 10;
 			}
@@ -302,8 +292,7 @@ void CraftInfoState::init()
 		Surface *frame3 = texture->getFrame(39);
 		for (int i = 0; i < _craft->getNumEquipment(); i += 4, x += 10)
 		{
-			frame3->setX(x);
-			frame3->blit(_equip);
+			frame3->blitNShade(_equip, x, 0);
 		}
 	}
 	else
@@ -324,9 +313,7 @@ void CraftInfoState::init()
 		if (w1 != 0)
 		{
 			Surface *frame = texture->getFrame(w1->getRules()->getSprite() + 48);
-			frame->setX(0);
-			frame->setY(0);
-			frame->blit(_weapon[i]);
+			frame->blitNShade(_weapon[i], 0, 0);
 
 			std::ostringstream weaponLine;
 			weaponLine << Unicode::TOK_COLOR_FLIP << tr(w1->getRules()->getType());

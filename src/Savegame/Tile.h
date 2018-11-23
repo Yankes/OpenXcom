@@ -178,8 +178,10 @@ public:
 	int getExplosiveType() const;
 	/// Animated the tile parts.
 	void animate();
+	/// Update cached value of sprite.
+	void updateSprite(TilePart part);
 	/// Get object sprites.
-	SurfaceRaw<const Uint8> getSprite(int part) const
+	SurfaceRaw<const Uint8> getSprite(TilePart part) const
 	{
 		return _currentSurface[part];
 	}

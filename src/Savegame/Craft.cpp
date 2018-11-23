@@ -848,6 +848,16 @@ int Craft::getFuelLimit(Base *base) const
 }
 
 /**
+ * Returns the maximum range the craft can travel
+ * from its origin base on its current fuel.
+ * @return Range in radians.
+ */
+double Craft::getBaseRange() const
+{
+	return _fuel / 2.0 / getFuelConsumption(_stats.speedMax, 0) * _speedMaxRadian;
+}
+
+/**
  * Sends the craft back to its origin base.
  */
 void Craft::returnToBase()

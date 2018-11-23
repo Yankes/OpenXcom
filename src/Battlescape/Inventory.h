@@ -113,7 +113,7 @@ public:
 	/// Handles timers.
 	void think();
 	/// Blits the inventory onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Special handling for mouse hovers.
 	void mouseOver(Action *action, State *state);
 	/// Special handling for mouse clicks.

@@ -141,7 +141,7 @@ void WarningMessage::draw()
 {
 	Surface::draw();
 	drawRect(0, 0, getWidth(), getHeight(), _color + (_fade > 12 ? 12 : _fade));
-	_text->blit(this);
+	_text->blit(this->getSurface());
 }
 
 }

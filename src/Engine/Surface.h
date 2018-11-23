@@ -61,6 +61,31 @@ public:
 	using UniqueBufferPtr = std::unique_ptr<Uint8, UniqueBufferDeleter>;
 	using UniqueSurfacePtr = std::unique_ptr<SDL_Surface, UniqueSurfaceDeleter>;
 
+	/// Create aligned buffer for surface.
+	static UniqueBufferPtr NewAlignedBuffer(int bpp, int width, int height);
+	/// Smart pointer for for SDL_Surface.
+	static UniqueSurfacePtr NewSdlSurface(SDL_Surface* surface);
+	/// Create surface from aligned buffer.
+	static UniqueSurfacePtr NewSdlSurface(const UniqueBufferPtr& buffer, int bpp, int width, int height);
+	/// Create buffer and surface.
+	static std::pair<UniqueBufferPtr, UniqueSurfacePtr> NewPair32Bit(int width, int height)
+	{
+		auto tempBuffer = Surface::NewAlignedBuffer(32, width, height);
+		auto tempSurface = Surface::NewSdlSurface(tempBuffer, 32, width, height);
+		return std::make_pair(std::move(tempBuffer), std::move(tempSurface));
+	}
+
+	/// Create buffer and surface.
+	static std::pair<UniqueBufferPtr, UniqueSurfacePtr> NewPair8Bit(int width, int height)
+	{
+		auto tempBuffer = Surface::NewAlignedBuffer(8, width, height);
+		auto tempSurface = Surface::NewSdlSurface(tempBuffer, 8, width, height);
+		return std::make_pair(std::move(tempBuffer), std::move(tempSurface));
+	}
+
+	/// Zero whole surface.
+	static void CleanSdlSurface(SDL_Surface* surface);
+
 protected:
 	UniqueBufferPtr _alignedBuffer;
 	UniqueSurfacePtr _surface;
@@ -77,7 +102,7 @@ public:
 	/// Default empy surface.
 	Surface();
 	/// Creates a new surface with the specified size and position.
-	Surface(int width, int height, int x = 0, int y = 0, int bpp = 8);
+	Surface(int width, int height, int x = 0, int y = 0);
 	/// Creates a new surface from an existing one.
 	Surface(const Surface& other);
 	/// Move surface to another place.
@@ -120,7 +145,7 @@ public:
 	/// Draws the surface's graphic.
 	virtual void draw();
 	/// Blits this surface onto another one.
-	virtual void blit(Surface *surface);
+	virtual void blit(SDL_Surface *surface);
 	/// Initializes the surface's various text resources.
 	virtual void initText(Font *, Font *, Language *) {};
 	/// Copies a portion of another surface into this one.
@@ -267,7 +292,7 @@ public:
 	}
 	/// Sets the height of the surface.
 	virtual void setHeight(int height);
-	/// Get surface pitch
+	/// Get surface pitch in bytes.
 	int getPitch() const
 	{
 		return _pitch;
@@ -291,9 +316,9 @@ public:
 	/// Specific blit function to blit battlescape terrain data in different shades in a fast way.
 	static void blitRaw(SurfaceRaw<Uint8> dest, SurfaceRaw<const Uint8> src, int x, int y, int shade, bool half = false, int newBaseColor = 0);
 	/// Specific blit function to blit battlescape terrain data in different shades in a fast way.
-	void blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, bool half = false, int newBaseColor = 0);
+	void blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade = 0, bool half = false, int newBaseColor = 0) const;
 	/// Specific blit function to blit battlescape terrain data in different shades in a fast way.
-	void blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, GraphSubset range);
+	void blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, GraphSubset range) const;
 	/// Invalidate the surface: force it to be redrawn
 	void invalidate(bool valid = true);
 
@@ -373,21 +398,21 @@ public:
 
 	/// Constructor, SFINAE enable it only for non const `PixelType`
 	template<typename = std::enable_if<std::is_const<Pixel>::value == false, void>>
-	SurfaceRaw(std::vector<Pixel>& vec, int width, int height) : SurfaceRaw{ vec.data(), width, height, width }
+	SurfaceRaw(std::vector<Pixel>& vec, int width, int height) : SurfaceRaw{ vec.data(), width, height, static_cast<Uint16>(width*sizeof(Pixel)) }
 	{
 		assert((size_t)(width*height) <= vec.size() && "Incorrect dimensions compared to vector size");
 	}
 
 	/// Constructor, SFINAE enable it only for `const PixelType`
 	template<typename = std::enable_if<std::is_const<Pixel>::value, void>>
-	SurfaceRaw(const std::vector<typename std::remove_const<Pixel>::type>& vec, int width, int height) : SurfaceRaw{ vec.data(), width, height, width }
+	SurfaceRaw(const std::vector<typename std::remove_const<Pixel>::type>& vec, int width, int height) : SurfaceRaw{ vec.data(), width, height, static_cast<Uint16>(width*sizeof(Pixel)) }
 	{
 		assert((size_t)(width*height) <= vec.size() && "Incorrect dimensions compared to vector size");
 	}
 
 	/// Constructor
 	template<int I>
-	SurfaceRaw(Pixel (&buffer)[I], int width, int height) : SurfaceRaw{ buffer, width, height, width }
+	SurfaceRaw(Pixel (&buffer)[I], int width, int height) : SurfaceRaw{ buffer, width, height, static_cast<Uint16>(width*sizeof(Pixel)) }
 	{
 		assert(width*height <= I && "Incorrect dimensions compared to array size");
 	}
@@ -420,7 +445,7 @@ public:
 		return _height;
 	}
 
-	/// Get surface pitch
+	/// Get surface pitch in bytes.
 	int getPitch() const
 	{
 		return _pitch;

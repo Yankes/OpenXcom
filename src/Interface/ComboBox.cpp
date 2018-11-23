@@ -335,7 +335,7 @@ void ComboBox::setOptions(const std::vector<std::string> &options, bool translat
  * Blits the combo box components.
  * @param surface Pointer to surface to blit onto.
  */
-void ComboBox::blit(Surface *surface)
+void ComboBox::blit(SDL_Surface *surface)
 {
 	Surface::blit(surface);
 	_list->invalidate();

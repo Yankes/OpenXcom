@@ -216,7 +216,7 @@ SoldierInfoState::SoldierInfoState(Base *base, size_t soldierId) : _base(base), 
 	centerAllSurfaces();
 
 	// Set up objects
-	_game->getMod()->getSurface("BACK06.SCR")->blit(_bg);
+	_game->getMod()->getSurface("BACK06.SCR")->blitNShade(_bg, 0, 0);
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&SoldierInfoState::btnOkClick);
@@ -351,9 +351,7 @@ void SoldierInfoState::init()
 	withArmor += *(_soldier->getArmor()->getStats());
 
 	SurfaceSet *texture = _game->getMod()->getSurfaceSet("BASEBITS.PCK");
-	texture->getFrame(_soldier->getRankSprite())->setX(0);
-	texture->getFrame(_soldier->getRankSprite())->setY(0);
-	texture->getFrame(_soldier->getRankSprite())->blit(_rank);
+	texture->getFrame(_soldier->getRankSprite())->blitNShade(_rank, 0, 0);
 
 	std::ostringstream flagId;
 	flagId << "Flag";
@@ -379,8 +377,7 @@ void SoldierInfoState::init()
 	_flag->clear();
 	if (flagTexture != 0)
 	{
-		flagTexture->setX(_flag->getWidth()-flagTexture->getWidth()); // align right
-		flagTexture->blit(_flag);
+		flagTexture->blitNShade(_flag, _flag->getWidth() - flagTexture->getWidth(), 0); // align right
 	}
 
 	std::ostringstream ss;
@@ -589,7 +586,7 @@ void SoldierInfoState::edtSoldierChange(Action *)
  */
 void SoldierInfoState::btnOkClick(Action *)
 {
-	
+
 	_game->popState();
 	if (_game->getSavedGame()->getMonthsPassed() > -1 && Options::storageLimitsEnforced && _base != 0 && _base->storesOverfull())
 	{

@@ -288,7 +288,7 @@ void Inventory::drawGridLabels(bool showTuCost)
 		{
 			text.setText(_game->getLanguage()->getString(i->second->getId()));
 		}
-		text.blit(_grid);
+		text.blit(_grid->getSurface());
 	}
 }
 
@@ -353,7 +353,7 @@ void Inventory::drawItems()
 					text.setX((*i)->getSlot()->getX() + RuleInventory::HAND_W * RuleInventory::SLOT_W - 5);
 					text.setY((*i)->getSlot()->getY() + RuleInventory::HAND_H * RuleInventory::SLOT_H - 7);
 					text.setValue(2);
-					text.blit(_items);
+					text.blit(_items->getSurface());
 				}
 			}
 
@@ -423,7 +423,7 @@ void Inventory::drawItems()
 				_stackNumber->setValue(fatalWounds);
 				_stackNumber->draw();
 				_stackNumber->setColor(color2);
-				_stackNumber->blit(&stackLayer);
+				_stackNumber->blit(stackLayer.getSurface());
 			}
 
 			// item stacking
@@ -438,11 +438,11 @@ void Inventory::drawItems()
 				_stackNumber->setValue(_stackLevel[(*i)->getSlotX()][(*i)->getSlotY()]);
 				_stackNumber->draw();
 				_stackNumber->setColor(color);
-				_stackNumber->blit(&stackLayer);
+				_stackNumber->blit(stackLayer.getSurface());
 			}
 		}
 
-		stackLayer.blit(_items);
+		stackLayer.blitNShade(_items, 0, 0);
 	}
 }
 
@@ -614,13 +614,13 @@ void Inventory::think()
  * Blits the inventory elements.
  * @param surface Pointer to surface to blit onto.
  */
-void Inventory::blit(Surface *surface)
+void Inventory::blit(SDL_Surface *surface)
 {
 	clear();
-	_grid->blit(this);
-	_items->blit(this);
-	_selection->blit(this);
-	_warning->blit(this);
+	_grid->blitNShade(this, 0, 0);
+	_items->blitNShade(this, 0, 0);
+	_selection->blitNShade(this, 0, 0);
+	_warning->blit(this->getSurface());
 	Surface::blit(surface);
 }
 

@@ -69,7 +69,7 @@ void ScannerView::draw()
 						t->getUnit()->setScannedTurn(_game->getSavedGame()->getSavedBattle()->getTurn());
 						if (frame > 5) frame = 5;
 						surface = set->getFrame(frame + _frame);
-						surface->blitNShade(this, Surface::getX()+((9+x)*8)-4, Surface::getY()+((9+y)*8)-4, 0);
+						surface->blitNShade(this, ((9+x)*8)-4, ((9+y)*8)-4, 0);
 					}
 				}
 			}
@@ -79,7 +79,7 @@ void ScannerView::draw()
 	// the arrow of the direction the unit is pointed
 	surface = set->getFrame(7 + _unit->getDirection());
 
-	surface->blitNShade(this, Surface::getX()+(9*8)-4, Surface::getY()+(9*8)-4, 0);
+	surface->blitNShade(this, (9*8)-4, (9*8)-4, 0);
 	this->unlock();
 
 

@@ -427,7 +427,7 @@ void BattlescapeGenerator::nextStage()
 	{
 		script = _game->getMod()->getMapScript(ruleDeploy->getScript());
 	}
-	else if (ruleDeploy->getScript() != "")
+	else if (!ruleDeploy->getScript().empty())
 	{
 		throw Exception("Map generator encountered an error: " + ruleDeploy->getScript() + " script not found.");
 	}
@@ -514,7 +514,7 @@ void BattlescapeGenerator::nextStage()
 	_alienRace = ruleDeploy->getRace();
 
 	for (std::vector<MissionSite*>::iterator i = _game->getSavedGame()->getMissionSites()->begin();
-		_alienRace == "" && i != _game->getSavedGame()->getMissionSites()->end(); ++i)
+		_alienRace.empty() && i != _game->getSavedGame()->getMissionSites()->end(); ++i)
 	{
 		if ((*i)->isInBattlescape())
 		{
@@ -523,7 +523,7 @@ void BattlescapeGenerator::nextStage()
 	}
 
 	for (std::vector<AlienBase*>::iterator i = _game->getSavedGame()->getAlienBases()->begin();
-		_alienRace == "" && i != _game->getSavedGame()->getAlienBases()->end(); ++i)
+		_alienRace.empty() && i != _game->getSavedGame()->getAlienBases()->end(); ++i)
 	{
 		if ((*i)->isInBattlescape())
 		{
@@ -613,7 +613,7 @@ void BattlescapeGenerator::run()
 	{
 		script = _game->getMod()->getMapScript(ruleDeploy->getScript());
 	}
-	else if (ruleDeploy->getScript() != "")
+	else if (!ruleDeploy->getScript().empty())
 	{
 		throw Exception("Map generator encountered an error: " + ruleDeploy->getScript() + " script not found.");
 	}
@@ -1126,7 +1126,7 @@ bool BattlescapeGenerator::canPlaceXCOMUnit(Tile *tile)
 void BattlescapeGenerator::deployAliens(const AlienDeployment *deployment)
 {
 	// race defined by deployment if there is one.
-	if (deployment->getRace() != "" && _game->getSavedGame()->getMonthsPassed() > -1)
+	if (!deployment->getRace().empty() && _game->getSavedGame()->getMonthsPassed() > -1)
 	{
 		_alienRace = deployment->getRace();
 	}
@@ -1182,7 +1182,7 @@ void BattlescapeGenerator::deployAliens(const AlienDeployment *deployment)
 				_save->initUnit(unit, itemLevel);
 				if (!rule->isLivingWeapon())
 				{
-					if ((*d).itemSets.size() == 0)
+					if ((*d).itemSets.empty())
 					{
 						throw Exception("Unit generator encountered an error: item set not defined");
 					}
@@ -1475,7 +1475,7 @@ int BattlescapeGenerator::loadMAP(MapBlock *mapblock, int xoff, int yoff, int zo
 
 	while (mapFile.read((char*)&value, sizeof(value)))
 	{
-		for (int part = O_FLOOR; part <= O_OBJECT; ++part)
+		for (int part = O_FLOOR; part < O_MAX; ++part)
 		{
 			terrainObjectID = ((unsigned char)value[part]);
 			if (terrainObjectID>0)
@@ -2980,7 +2980,7 @@ void BattlescapeGenerator::clearModule(int x, int y, int sizeX, int sizeY)
 			for (int dy = y; dy != y + sizeY; ++dy)
 			{
 				Tile *tile = _save->getTile(Position(dx,dy,z));
-				for (int i = O_FLOOR; i <= O_OBJECT; i++)
+				for (int i = O_FLOOR; i < O_MAX; i++)
 					tile->setMapData(0, -1, -1, (TilePart)i);
 			}
 		}
@@ -3722,7 +3722,7 @@ void BattlescapeGenerator::setupObjectives(const AlienDeployment *ruleDeploy)
 
 		for (int i = 0; i < _save->getMapSizeXYZ(); ++i)
 		{
-			for (int j = O_FLOOR; j <= O_OBJECT; ++j)
+			for (int j = O_FLOOR; j < O_MAX; ++j)
 			{
 				TilePart tp = (TilePart)j;
 				if (_save->getTile(i)->getMapData(tp) && _save->getTile(i)->getMapData(tp)->getSpecialType() == targetType)

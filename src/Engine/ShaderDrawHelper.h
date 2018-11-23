@@ -27,6 +27,23 @@ namespace OpenXcom
 namespace helper
 {
 
+/***
+ * Calcualte pointer offset using bytes
+ */
+template<typename Ptr>
+Ptr* pointerByteOffset(Ptr* base, int offset)
+{
+	return reinterpret_cast<Ptr*>(reinterpret_cast<unsigned char*>(base) + offset);
+}
+
+/***
+ * Calcualte pointer offset using bytes
+ */
+template<typename Ptr>
+const Ptr* pointerByteOffset(const Ptr* base, int offset)
+{
+	return reinterpret_cast<const Ptr*>(reinterpret_cast<const unsigned char*>(base) + offset);
+}
 
 /**
  * This is scalar argument to `ShaderDraw`.
@@ -106,7 +123,7 @@ public:
 		return _orgin;
 	}
 
-	/// Get real distance betwean lines
+	/// Get real distance betwean lines in bytes
 	inline int pitch() const
 	{
 		return _pitch;
@@ -241,7 +258,7 @@ struct controler_base
 
 
 	controler_base(PixelPtr base, const GraphSubset& d, const GraphSubset& r, const std::pair<int, int>& s) :
-		data(base + d.beg_x*s.first + d.beg_y*s.second),
+		data(pointerByteOffset(base, d.beg_x*s.first + d.beg_y*s.second)),
 		ptr_pos_y(0), ptr_pos_x(0),
 		range(r),
 		start_x(), start_y(),
@@ -270,15 +287,15 @@ struct controler_base
 
 	inline void mod_y(int&, int&)
 	{
-		ptr_pos_y = data + step.first * start_x + step.second * start_y;
+		ptr_pos_y = pointerByteOffset(data, step.first * start_x + step.second * start_y);
 	}
 	inline void set_y(const int& begin, const int&)
 	{
-		ptr_pos_y += step.second*begin;
+		ptr_pos_y = pointerByteOffset(ptr_pos_y, step.second * begin);
 	}
 	inline void inc_y()
 	{
-		ptr_pos_y += step.second;
+		ptr_pos_y = pointerByteOffset(ptr_pos_y, step.second);
 	}
 
 
@@ -288,11 +305,11 @@ struct controler_base
 	}
 	inline void set_x(const int& begin, const int&)
 	{
-		ptr_pos_x += step.first*begin;
+		ptr_pos_x = pointerByteOffset(ptr_pos_x, step.first * begin);
 	}
 	inline void inc_x()
 	{
-		ptr_pos_x += step.first;
+		ptr_pos_x = pointerByteOffset(ptr_pos_x, step.first);
 	}
 
 	inline PixelRef get_ref()
@@ -311,7 +328,7 @@ struct controler<ShaderBase<Pixel> > : public controler_base<typename ShaderBase
 
 	typedef controler_base<PixelPtr, PixelRef> base_type;
 
-	controler(const ShaderBase<Pixel>& f) : base_type(f.ptr(), f.getDomain(), f.getImage(), std::make_pair(1, f.pitch()))
+	controler(const ShaderBase<Pixel>& f) : base_type(f.ptr(), f.getDomain(), f.getImage(), std::make_pair(sizeof(Pixel), f.pitch()))
 	{
 
 	}

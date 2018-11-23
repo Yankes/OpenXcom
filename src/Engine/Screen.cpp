@@ -107,7 +107,7 @@ void Screen::makeVideoFlags()
  * Initializes a new display screen for the game to render contents to.
  * The screen is set up based on the current options.
  */
-Screen::Screen() : _baseWidth(ORIGINAL_WIDTH), _baseHeight(ORIGINAL_HEIGHT), _scaleX(1.0), _scaleY(1.0), _numColors(0), _firstColor(0), _pushPalette(false), _surface(0), _window(NULL), _renderer(NULL), _texture(NULL)
+Screen::Screen() : _baseWidth(ORIGINAL_WIDTH), _baseHeight(ORIGINAL_HEIGHT), _scaleX(1.0), _scaleY(1.0), _numColors(0), _firstColor(0), _pushPalette(false), _window(NULL), _renderer(NULL), _texture(NULL)
 	, _prevWidth(0), _prevHeight(0)
 {
 	resetDisplay();
@@ -120,8 +120,7 @@ Screen::Screen() : _baseWidth(ORIGINAL_WIDTH), _baseHeight(ORIGINAL_HEIGHT), _sc
  */
 Screen::~Screen()
 {
-	delete _renderer;	
-	delete _surface;
+	delete _renderer;
 }
 
 /**
@@ -129,10 +128,10 @@ Screen::~Screen()
  * contents that need to be shown will be blitted to this.
  * @return Pointer to the buffer surface.
  */
-Surface *Screen::getSurface()
+SDL_Surface *Screen::getSurface()
 {
 	_pushPalette = true;
-	return _surface;
+	return _surface.get();
 }
 
 /**
@@ -153,7 +152,7 @@ void Screen::handle(Action *action)
 			}
 		}
 	}
-	
+
 	if (action->getDetails()->type == SDL_KEYDOWN && action->getDetails()->key.keysym.sym == SDLK_RETURN && (SDL_GetModState() & KMOD_ALT) != 0)
 	{
 		Options::fullscreen = !Options::fullscreen;
@@ -185,7 +184,7 @@ void Screen::handle(Action *action)
  */
 void Screen::flip()
 {
-	_renderer->flip(_surface->getSurface());
+	_renderer->flip(_surface.get());
 }
 
 /**
@@ -193,11 +192,10 @@ void Screen::flip()
  */
 void Screen::clear()
 {
-	_surface->clear();
+	Surface::CleanSdlSurface(_surface.get());
 
 #if 0
-	if (_screen->flags & SDL_SWSURFACE) memset(_screen->pixels, 0, _screen->h*_screen->pitch);
-	else SDL_FillRect(_screen, &_clear, 0);
+	Surface::CleanSdlSurface(_screen);
 #endif
 }
 
@@ -217,14 +215,15 @@ void Screen::setPalette(SDL_Color* colors, int firstcolor, int ncolors, bool imm
 		memmove(&(deferredPalette[firstcolor]), colors, sizeof(SDL_Color)*ncolors);
 		_numColors = 256; // all the use cases are just a full palette with 16-color follow-ups
 		_firstColor = 0;
-	} else
+	}
+	else
 	{
 		memmove(&(deferredPalette[firstcolor]), colors, sizeof(SDL_Color) * ncolors);
 		_numColors = ncolors;
 		_firstColor = firstcolor;
 	}
 
-	_surface->setPalette(colors, firstcolor, ncolors);
+	SDL_SetColors(_surface.get(), colors, firstcolor, ncolors);
 
 #if 0
 	// defer actual update of screen until SDL_Flip()
@@ -314,17 +313,13 @@ void Screen::resetDisplay(bool resetVideo)
 
 	Log(LOG_INFO) << "Current _baseWidth x _baseHeight: " << _baseWidth << "x" << _baseHeight;
 
-	if (!_surface || (_surface->getSurface()->format->BitsPerPixel != _bpp || 
-		_surface->getSurface()->w != _baseWidth ||
-		_surface->getSurface()->h != _baseHeight)) // don't reallocate _surface if not necessary, it's a waste of CPU cycles
+	if (!_surface || (_surface->format->BitsPerPixel != _bpp || 
+		_surface->w != _baseWidth ||
+		_surface->h != _baseHeight)) // don't reallocate _surface if not necessary, it's a waste of CPU cycles
 	{
-		if (_surface) delete _surface;
-		//_surface = new Surface(_baseWidth, _baseHeight, 0, 0, Screen::use32bitScaler() ? 32 : 8); // only HQX/XBRZ needs 32bpp for this surface; the OpenGL class has its own 32bpp buffer
-		/* So why exactly does the new surface have fixed size? */
-		_surface = new Surface(_baseWidth, _baseHeight, 0, 0, 32);
-		if (_surface->getSurface()->format->BitsPerPixel == 8) _surface->setPalette(deferredPalette);
+		std::tie(_buffer, _surface) = Surface::NewPair32Bit(_baseWidth, _baseHeight);
 	}
-	SDL_SetColorKey(_surface->getSurface(), 0, 0); // turn off color key! 
+	SDL_SetColorKey(_surface.get(), 0, 0); // turn off color key!
 
 	if (resetVideo /*|| _screen->format->BitsPerPixel != _bpp */)
 	{
@@ -449,17 +444,6 @@ void Screen::resetDisplay(bool resetVideo)
 	_scaleX = getWidth() / (double)_baseWidth;
 	_scaleY = getHeight() / (double)_baseHeight;
 	Log(LOG_INFO) << "Pre-bar scales: _scaleX = " << _scaleX << ", _scaleY = " << _scaleY;
-	//_scale = std::min(getWidth() / (double) _baseWidth, getHeight() / (double) _baseHeight);
-	//_scaleX = _scale;
-	//_scaleY = _scale;
-#if 1
-	_clear.x = 0;
-	_clear.y = 0;
-	/* _clear.w = getWidth();
-	_clear.h = getHeight(); */
-	_clear.w = _baseWidth;
-	_clear.h = _baseHeight;
-#endif
 
 	double pixelRatioY = 1.0;
 	if (Options::nonSquarePixelRatio && !Options::allowResize)
@@ -605,7 +589,7 @@ void Screen::screenshot(const std::string &filename) const
 #if 0
 	SDL_Surface *screenshot = SDL_CreateRGBSurface(0, getWidth(), getHeight(), 24, 0xff, 0xff00, 0xff0000, 0);
 	SDL_Surface *screenshot = SDL_AllocSurface(0, getWidth() - getWidth()%4, getHeight(), 24, 0xff, 0xff00, 0xff0000, 0);
-	
+
 	if (useOpenGL())
 	{
 #ifndef __NO_OPENGL

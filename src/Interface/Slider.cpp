@@ -249,7 +249,7 @@ int Slider::getValue() const
  * Blits the slider contents
  * @param surface Pointer to surface to blit onto.
  */
-void Slider::blit(Surface *surface)
+void Slider::blit(SDL_Surface *surface)
 {
 	Surface::blit(surface);
 	if (_visible && !_hidden)

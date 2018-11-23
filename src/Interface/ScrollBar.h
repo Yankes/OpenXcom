@@ -65,7 +65,7 @@ public:
 	/// Sets the scrollbar's palette.
 	void setPalette(SDL_Color *colors, int firstcolor = 0, int ncolors = 256);
 	/// Blits the scrollbar onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Moves the scrollbar.
 	void handle(Action *action, State *state);
 	/// Special handling for mouse presses.

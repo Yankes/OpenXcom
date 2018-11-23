@@ -63,7 +63,7 @@ namespace OpenXcom
 		add(_txtTitle);
 
 		// Set up objects
-		_game->getMod()->getSurface(defs->image_id)->blit(_bg);
+		_game->getMod()->getSurface(defs->image_id)->blitNShade(_bg, 0, 0);
 		_btnOk->setColor(_buttonColor);
 		_btnPrev->setColor(_buttonColor);
 		_btnNext->setColor(_buttonColor);

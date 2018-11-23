@@ -154,7 +154,7 @@ namespace OpenXcom
 		add(_txtWeight);
 
 		// Set up objects
-		_game->getMod()->getSurface("BACK08.SCR")->blit(_bg);
+		_game->getMod()->getSurface("BACK08.SCR")->blitNShade(_bg, 0, 0);
 		_btnOk->setColor(_buttonColor);
 		_btnPrev->setColor(_buttonColor);
 		_btnNext->setColor(_buttonColor);

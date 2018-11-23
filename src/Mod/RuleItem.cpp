@@ -1563,9 +1563,7 @@ void RuleItem::drawHandSprite(SurfaceSet *texture, Surface *surface, BattleItem 
 	else
 	{
 		frame = texture->getFrame(this->getBigSprite());
-		frame->setX(this->getHandSpriteOffX());
-		frame->setY(this->getHandSpriteOffY());
-		frame->blit(surface);
+		frame->blitNShade(surface, this->getHandSpriteOffX(), this->getHandSpriteOffY());
 	}
 }
 

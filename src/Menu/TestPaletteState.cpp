@@ -68,10 +68,8 @@ TestPaletteState::TestPaletteState(const std::string &palette, PaletteActionType
 			{
 				int index = row * 16 + column;
 				if (index >= maxColors) return;
-				surf.setX(column * 20);
-				surf.setY(row * 11);
 				surf.drawRect(0, 0, 20, 11, index);
-				surf.blit(_bg);
+				surf.blitNShade(_bg, column * 20, row * 11);
 			}
 		}
 		return;
@@ -94,7 +92,7 @@ TestPaletteState::TestPaletteState(const std::string &palette, PaletteActionType
 				text.setX(column * 26);
 				text.setY(row * 9);
 				text.setValue(index);
-				text.blit(_bg);
+				text.blit(_bg->getSurface());
 			}
 		}
 		return;
@@ -120,7 +118,7 @@ TestPaletteState::TestPaletteState(const std::string &palette, PaletteActionType
 				std::ostringstream ss;
 				ss << index % 10;
 				text.setText(ss.str().c_str());
-				text.blit(_bg);
+				text.blit(_bg->getSurface());
 			}
 		}
 		return;
@@ -143,7 +141,7 @@ TestPaletteState::TestPaletteState(const std::string &palette, PaletteActionType
 			std::ostringstream ss;
 			ss << index;
 			text.setText(ss.str().c_str());
-			text.blit(_bg);
+			text.blit(_bg->getSurface());
 		}
 	}
 }

@@ -60,98 +60,6 @@ inline int GetPitch(int bpp, int width)
 	return ((bpp/8) * width + 15) & ~0xF;
 }
 
-/**
- * Helper function creating aligned buffer
- * @param bpp bits per pixel
- * @param width number of pixel in row
- * @param height number of rows
- * @return pointer to memory
- */
-inline Surface::UniqueBufferPtr NewAligned(int bpp, int width, int height)
-{
-	const int pitch = GetPitch(bpp, width);
-	const int total = pitch * height;
-	void* buffer = 0;
-
-#ifndef _WIN32
-
-	#if defined(__MORPHOS__) || defined(__ANDROID__)
-
-	buffer = calloc( total, 1 );
-	if (!buffer)
-	{
-		throw Exception("Failed to allocate surface");
-	}
-
-	#else
-	int rc;
-	if ((rc = posix_memalign(&buffer, 16, total)))
-	{
-		throw Exception(strerror(rc));
-	}
-	#endif
-
-#else
-
-	// of course Windows has to be difficult about this!
-	buffer = _aligned_malloc(total, 16);
-	if (!buffer)
-	{
-		throw Exception("Failed to allocate surface");
-	}
-
-#endif
-
-	memset(buffer, 0, total);
-	return Surface::UniqueBufferPtr((Uint8*)buffer);
-}
-
-/**
- * Helper function creating new unique pointer
- * @param surface
- * @return Unique pointer
- */
-inline Surface::UniqueSurfacePtr NewSurface(SDL_Surface* surface)
-{
-	return Surface::UniqueSurfacePtr(surface);
-}
-
-/**
- * Helper function creating new  SDL surface in unique pointer
- * @param buffer memory buffer
- * @param width width of surface
- * @param height height of surface
- * @return Unique pointer
- */
-inline Surface::UniqueSurfacePtr NewSurface8bit(const Surface::UniqueBufferPtr& buffer, int width, int height)
-{
-	auto surface = SDL_CreateRGBSurfaceFrom(buffer.get(), width, height, 8, GetPitch(8, width), 0, 0, 0, 0);
-	if (!surface)
-	{
-		throw Exception(SDL_GetError());
-	}
-
-	return NewSurface(surface);
-}
-
-/**
- * Helper function creating new 32bit SDL surface in unique pointer
- * @param buffer memory buffer
- * @param bpp bit depth
- * @param width width of surface
- * @param height height of surface
- * @return Unique pointer
- */
-inline Surface::UniqueSurfacePtr NewSurface32bit(const Surface::UniqueBufferPtr& buffer, int width, int height)
-{
-	auto surface = SDL_CreateRGBSurfaceFrom(buffer.get(), width, height, 32, GetPitch(32, width), Surface::RMASK, Surface::GMASK, Surface::BMASK, Surface::AMASK);
-	if (!surface)
-	{
-		throw Exception(SDL_GetError());
-	}
-
-	return NewSurface(surface);
-}
 
 /**
  * Raw copy witout any change of pixel index value between two SDL surface, palette is ignored
@@ -200,6 +108,104 @@ inline void FixTransparent(const Surface::UniqueSurfacePtr& dest, int currentTra
 
 } //namespace
 
+/**
+ * Helper function creating aligned buffer
+ * @param bpp bits per pixel
+ * @param width number of pixel in row
+ * @param height number of rows
+ * @return pointer to memory
+ */
+Surface::UniqueBufferPtr Surface::NewAlignedBuffer(int bpp, int width, int height)
+{
+	const int pitch = GetPitch(bpp, width);
+	const int total = pitch * height;
+	void* buffer = 0;
+
+#ifndef _WIN32
+
+	#if defined(__MORPHOS__) || defined(__ANDROID__)
+
+	buffer = calloc( total, 1 );
+	if (!buffer)
+	{
+		throw Exception("Failed to allocate surface");
+	}
+
+	#else
+	int rc;
+	if ((rc = posix_memalign(&buffer, 16, total)))
+	{
+		throw Exception(strerror(rc));
+	}
+	#endif
+
+#else
+
+	// of course Windows has to be difficult about this!
+	buffer = _aligned_malloc(total, 16);
+	if (!buffer)
+	{
+		throw Exception("Failed to allocate surface");
+	}
+
+#endif
+
+	memset(buffer, 0, total);
+	return Surface::UniqueBufferPtr((Uint8*)buffer);
+}
+
+/**
+ * Helper function creating new unique pointer
+ * @param surface
+ * @return Unique pointer
+ */
+Surface::UniqueSurfacePtr Surface::NewSdlSurface(SDL_Surface* surface)
+{
+	return Surface::UniqueSurfacePtr(surface);
+}
+
+/**
+ * Helper function creating new  SDL surface in unique pointer
+ * @param buffer memory buffer
+ * @param bpp bit depth
+ * @param width width of surface
+ * @param height height of surface
+ * @return Unique pointer
+ */
+Surface::UniqueSurfacePtr Surface::NewSdlSurface(const Surface::UniqueBufferPtr& buffer, int bpp, int width, int height)
+{
+	SDL_Surface surface;
+	if (bpp == 32)
+		surface = SDL_CreateRGBSurfaceFrom(buffer.get(), width, height, 32, GetPitch(32, width), Surface::RMASK, Surface::GMASK, Surface::BMASK, Surface::AMASK);
+	else
+		surface = SDL_CreateRGBSurfaceFrom(buffer.get(), width, height, bpp, GetPitch(bpp, width), 0, 0, 0, 0);
+	if (!surface)
+	{
+		throw Exception(SDL_GetError());
+	}
+
+	return NewSdlSurface(surface);
+}
+
+/**
+ * Zero whole surface.
+ */
+void Surface::CleanSdlSurface(SDL_Surface* surface)
+{
+	if (surface->flags & SDL_SWSURFACE)
+	{
+		memset(surface->pixels, 0, surface->h * surface->pitch);
+	}
+	else
+	{
+		SDL_Rect c;
+		c.x = 0;
+		c.y = 0;
+		c.w = surface->w;
+		c.h = surface->h;
+		SDL_FillRect(surface, &c, 0);
+	}
+}
 /**
  * Default deleter for aligment buffer
  * @param buffer
@@ -252,13 +258,9 @@ const int Surface::AMASK = 0xFF000000;
  * @param y Y position in pixels.
  * @param bpp Bits-per-pixel depth.
  */
-Surface::Surface(int width, int height, int x, int y, int bpp) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false)
+Surface::Surface(int width, int height, int x, int y) : _x(x), _y(y), _visible(true), _hidden(false), _redraw(false)
 {
-	_alignedBuffer = NewAligned(bpp, width, height);
-	if (bpp == 32)
-		_surface = NewSurface32bit(_alignedBuffer, width, height);
-	else
-		_surface = NewSurface8bit(_alignedBuffer, bpp, width, height);
+	std::tie(_alignedBuffer, _surface) = Surface::NewPair8Bit(width, height);
 	_width = _surface->w;
 	_height = _surface->h;
 	_pitch = _surface->pitch;
@@ -275,11 +277,10 @@ Surface::Surface(const Surface& other) : Surface{ }
 	{
 		return;
 	}
-	Uint8 bpp = other._surface->format->BitsPerPixel;
 	int width = other.getWidth();
 	int height = other.getHeight();
 	//move copy
-	*this = Surface(width, height, other._x, other._y, bpp);
+	*this = Surface(width, height, other._x, other._y);
 	//cant call `setPalette` because its virtual function and it dont work correctly in constructor
 	SDL_SetPaletteColors(_surface->format->palette, other.getPalette(), 0, 255);
 	RawCopySurf(_surface, other._surface);
@@ -401,7 +402,7 @@ void Surface::loadImage(const std::string &filename)
 				unsigned bpp = lodepng_get_bpp(color);
 				if (bpp == 8)
 				{
-					*this = Surface(width, height, 0, 0, bpp);
+					*this = Surface(width, height, 0, 0);
 					setPalette((SDL_Color*)color->palette, 0, color->palettesize);
 
 					ShaderDrawFunc(
@@ -432,7 +433,7 @@ void Surface::loadImage(const std::string &filename)
 	if (!_surface)
 	{
 		std::string utf8 = Unicode::convPathToUtf8(filename);
-		auto surface = NewSurface(IMG_Load(utf8.c_str()));
+		auto surface = NewSdlSurface(IMG_Load(utf8.c_str()));
 		if (!surface)
 		{
 			std::string err = filename + ":" + IMG_GetError();
@@ -444,7 +445,7 @@ void Surface::loadImage(const std::string &filename)
 			throw Exception(err);
 		}
 
-		*this = Surface(surface->w, surface->h, 0, 0, surface->format->BitsPerPixel);
+		*this = Surface(surface->w, surface->h, 0, 0);
 		setPalette(surface->format->palette->colors, 0, surface->format->palette->ncolors);
 		RawCopySurf(_surface, surface);
 		FixTransparent(_surface, surface->format->colorkey);
@@ -571,16 +572,7 @@ void Surface::loadBdy(const std::string &filename)
  */
 void Surface::clear(Uint32 color)
 {
-	if (_surface->flags & SDL_SWSURFACE) memset(_surface->pixels, color, _surface->h*_surface->pitch);
-	else
-	{
-		SDL_Rect c;
-		c.x = 0;
-		c.y = 0;
-		c.w = getWidth();
-		c.h = getHeight();
-		SDL_FillRect(_surface.get(), &c, color);
-	}
+	CleanSdlSurface(_surface.get());
 }
 
 /**
@@ -742,7 +734,7 @@ void Surface::draw()
  * that is blitted.
  * @param surface Pointer to surface to blit onto.
  */
-void Surface::blit(Surface *surface)
+void Surface::blit(SDL_Surface *surface)
 {
 	if (_visible && !_hidden)
 	{
@@ -752,7 +744,7 @@ void Surface::blit(Surface *surface)
 		SDL_Rect target {};
 		target.x = getX();
 		target.y = getY();
-		SDL_BlitSurface(_surface.get(), nullptr, surface->getSurface(), &target);
+		SDL_BlitSurface(_surface.get(), nullptr, surface, &target);
 	}
 }
 
@@ -1012,7 +1004,7 @@ void Surface::blitRaw(SurfaceRaw<Uint8> destSurf, SurfaceRaw<const Uint8> srcSur
  * @param half some tiles are blitted only the right half
  * @param newBaseColor Attention: the actual color + 1, because 0 is no new base color.
  */
-void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, bool half, int newBaseColor)
+void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, bool half, int newBaseColor) const
 {
 	blitRaw(surface, SurfaceRaw<const Uint8>(this), x, y, shade, half, newBaseColor);
 }
@@ -1025,7 +1017,7 @@ void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, boo
  * @param shade shade offset
  * @param range area that limit draw surface
  */
-void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, GraphSubset range)
+void Surface::blitNShade(SurfaceRaw<Uint8> surface, int x, int y, int shade, GraphSubset range) const
 {
 	ShaderMove<const Uint8> src(this, x, y);
 	ShaderMove<Uint8> dest(surface);
@@ -1055,8 +1047,8 @@ void Surface::resize(int width, int height)
 {
 	// Set up new surface
 	Uint8 bpp = _surface->format->BitsPerPixel;
-	auto alignedBuffer = NewAligned(bpp, width, height);
-	auto surface = NewSurface8bit(alignedBuffer, bpp, width, height);
+	auto alignedBuffer = NewAlignedBuffer(bpp, width, height);
+	auto surface = NewSdlSurface(alignedBuffer, bpp, width, height);
 
 	// Copy old contents
 	SDL_SetColorKey(surface.get(), SDL_TRUE, 0);

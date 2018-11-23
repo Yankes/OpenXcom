@@ -257,7 +257,7 @@ struct CreateShadow
  * @param x X position in pixels.
  * @param y Y position in pixels.
  */
-Globe::Globe(Game* game, int cenX, int cenY, int width, int height, int x, int y) : InteractiveSurface(width, height, x, y), _rotLon(0.0), _rotLat(0.0), _hoverLon(0.0), _hoverLat(0.0), _cenX(cenX), _cenY(cenY), _game(game), _hover(false), _blink(-1),
+Globe::Globe(Game* game, int cenX, int cenY, int width, int height, int x, int y) : InteractiveSurface(width, height, x, y), _cenX(cenX), _cenY(cenY), _rotLon(0.0), _rotLat(0.0), _hoverLon(0.0), _hoverLat(0.0), _craftLon(0.0), _craftLat(0.0), _craftRange(0.0), _game(game), _hover(false), _craft(false), _blink(-1),
 																					_isMouseScrolling(false), _isMouseScrolled(false), _xBeforeMouseScrolling(0), _yBeforeMouseScrolling(0), _lonBeforeMouseScrolling(0.0), _latBeforeMouseScrolling(0.0), _mouseScrollingStartTime(0), _totalMouseMoveX(0), _totalMouseMoveY(0), _mouseMovedOverThreshold(false)
 {
 	_rules = game->getMod()->getGlobe();
@@ -1075,6 +1075,22 @@ void Globe::XuLine(Surface* surface, Surface* src, double x1, double y1, double 
 void Globe::drawRadars()
 {
 	_radars->clear();
+
+	// Draw craft circle instead of radar circles to avoid confusion
+	if (_craft)
+	{
+		_radars->lock();
+
+		if (_craftRange < M_PI)
+		{
+			drawGlobeCircle(_craftLat, _craftLon, _craftRange, 64);
+			drawGlobeCircle(_craftLat, _craftLon, _craftRange - 0.025, 64, 2);
+		}
+
+		_radars->unlock();
+		return;
+	}
+
 	if (!Options::globeRadarLines)
 		return;
 
@@ -1129,7 +1145,7 @@ void Globe::drawRadars()
 		// Draw radars around player craft
 		for (std::vector<Craft*>::iterator j = (*i)->getCrafts()->begin(); j != (*i)->getCrafts()->end(); ++j)
 		{
-			if ((*j)->getStatus()!= "STR_OUT")
+			if ((*j)->getStatus() != "STR_OUT")
 				continue;
 			lat=(*j)->getLatitude();
 			lon=(*j)->getLongitude();
@@ -1174,11 +1190,12 @@ void Globe::drawRadars()
 /**
  *	Draw globe range circle
  */
-void Globe::drawGlobeCircle(double lat, double lon, double radius, int segments)
+void Globe::drawGlobeCircle(double lat, double lon, double radius, int segments, int frac)
 {
 	double x, y, x2 = 0, y2 = 0;
 	double lat1, lon1;
 	double seg = M_PI / (static_cast<double>(segments) / 2);
+	int i = 0;
 	for (double az = 0; az <= M_PI*2+0.01; az+=seg) //48 circle segments
 	{
 		//calculating sphere-projected circle
@@ -1191,25 +1208,16 @@ void Globe::drawGlobeCircle(double lat, double lon, double radius, int segments)
 			y2=y;
 			continue;
 		}
-		if (!pointBack(lon1,lat1))
+		if (!pointBack(lon1,lat1) && i % frac == 0)
 			XuLine(_radars, this, x, y, x2, y2, 6);
 		x2=x; y2=y;
+		i++;
 	}
 }
 
-void Globe::setNewBaseHover(void)
+void Globe::setNewBaseHover(bool hover)
 {
-	_hover=true;
-}
-
-void Globe::unsetNewBaseHover(void)
-{
-	_hover=false;
-}
-
-bool Globe::getNewBaseHover(void) const
-{
-	return _hover;
+	_hover=hover;
 }
 
 void Globe::setNewBaseHoverPos(double lon, double lat)
@@ -1323,7 +1331,7 @@ void Globe::drawDetail()
 			{
 				label->setColor((*i)->getRules()->getLabelColor());
 			}
-			label->blit(_countries);
+			label->blit(_countries->getSurface());
 		}
 
 		delete label;
@@ -1356,7 +1364,7 @@ void Globe::drawDetail()
 			{
 				label->setColor(rule->getLabelColor());
 			}
-			label->blit(_countries);
+			label->blit(_countries->getSurface());
 		}
 	}
 	delete label;
@@ -1387,7 +1395,7 @@ void Globe::drawDetail()
 				label->setX(x - 50);
 				label->setY(y + 2);
 				label->setText((*j)->getName(_game->getLanguage()));
-				label->blit(_countries);
+				label->blit(_countries->getSurface());
 			}
 		}
 		// Draw bases names
@@ -1400,7 +1408,7 @@ void Globe::drawDetail()
 			label->setY(y + 2);
 			label->setColor(BASE_LABEL_COLOR);
 			label->setText((*j)->getName());
-			label->blit(_countries);
+			label->blit(_countries->getSurface());
 		}
 
 		delete label;
@@ -1673,7 +1681,7 @@ void Globe::drawMarkers()
  * Blits the globe onto another surface.
  * @param surface Pointer to another surface.
  */
-void Globe::blit(Surface *surface)
+void Globe::blit(SDL_Surface *surface)
 {
 	Surface::blit(surface);
 	_radars->blit(surface);
@@ -2054,6 +2062,14 @@ void Globe::multiGesture(Action *action, State *state)
 		  }
 		  accumulatedPinch = 0;
 	}
+}
+
+void Globe::setCraftRange(double lon, double lat, double range)
+{
+	_craft = (range > 0.0);
+	_craftLon = lon;
+	_craftLat = lat;
+	_craftRange = range;
 }
 
 }

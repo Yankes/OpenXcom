@@ -267,7 +267,7 @@ void Map::draw()
 	}
 	else
 	{
-		_message->blit(this);
+		_message->blit(this->getSurface());
 	}
 }
 

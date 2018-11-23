@@ -70,11 +70,11 @@ namespace OpenXcom
 		// Set up objects
 		if (!defs->image_id.empty())
 		{
-			_game->getMod()->getSurface(defs->image_id)->blit(_bg);
+			_game->getMod()->getSurface(defs->image_id)->blitNShade(_bg, 0, 0);
 		}
 		else
 		{
-			_game->getMod()->getSurface("BACK10.SCR")->blit(_bg);
+			_game->getMod()->getSurface("BACK10.SCR")->blitNShade(_bg, 0, 0);
 		}
 		_btnOk->setColor(Palette::blockOffset(5));
 		_btnPrev->setColor(Palette::blockOffset(5));

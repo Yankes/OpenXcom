@@ -143,7 +143,7 @@ void SoldierAvatarState::initPreview(Soldier *s)
 		for (auto layer : layers)
 		{
 			auto surf = _game->getMod()->getSurface(layer, true);
-			surf->blit(_soldierSurface);
+			surf->blitNShade(_soldierSurface, 0, 0);
 		}
 	}
 	else
@@ -174,7 +174,7 @@ void SoldierAvatarState::initPreview(Soldier *s)
 			ss << ".SPK";
 			surf = _game->getMod()->getSurface(ss.str(), true);
 		}
-		surf->blit(_soldierSurface);
+		surf->blitNShade(_soldierSurface, 0, 0);
 	}
 }
 

@@ -243,9 +243,7 @@ BattlescapeState::BattlescapeState() : _reserve(0), _firstInit(true), _paletteRe
 	if (_game->getMod()->getSurface("TFTDReserve", false))
 	{
 		Surface *tftdIcons = _game->getMod()->getSurface("TFTDReserve");
-		tftdIcons->setX(48);
-		tftdIcons->setY(176);
-		tftdIcons->blit(icons);
+		tftdIcons->blitNShade(icons, 48, 176);
 	}
 
 	// there is some cropping going on here, because the icons image is 320x200 while we only need the bottom of it.
@@ -346,11 +344,11 @@ BattlescapeState::BattlescapeState() : _reserve(0), _firstInit(true), _paletteRe
 	add(_txtDebug);
 	add(_txtTooltip, "textTooltip", "battlescape", _icons);
 	add(_btnLaunch);
-	_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(0)->blit(_btnLaunch);
+	_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(0)->blitNShade(_btnLaunch, 0, 0);
 	add(_btnPsi);
-	_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(1)->blit(_btnPsi);
+	_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(1)->blitNShade(_btnPsi, 0, 0);
 	add(_btnSpecial);
-	_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(1)->blit(_btnSpecial); // use psi button for default
+	_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(1)->blitNShade(_btnSpecial, 0, 0); // use psi button for default
 
 	// Set up objects
 	_save = _game->getSavedGame()->getSavedBattle();
@@ -607,7 +605,7 @@ BattlescapeState::BattlescapeState() : _reserve(0), _firstInit(true), _paletteRe
 	// Set music
 	if (!Options::playBriefingMusicDuringEquipment)
 	{
-		if (_save->getMusic() == "")
+		if (_save->getMusic().empty())
 		{
 			_game->getMod()->playMusic("GMTACTIC");
 		}
@@ -1257,7 +1255,7 @@ void BattlescapeState::toggleKneelButton(BattleUnit* unit)
 	}
 	else
 	{
-		_game->getMod()->getSurfaceSet("KneelButton")->getFrame((unit && unit->isKneeled()) ? 1 : 0)->blit(_btnKneel);
+		_game->getMod()->getSurfaceSet("KneelButton")->getFrame((unit && unit->isKneeled()) ? 1 : 0)->blitNShade(_btnKneel, 0, 0);
 	}
 }
 
@@ -1834,7 +1832,7 @@ void BattlescapeState::drawItem(BattleItem* item, Surface* hand, std::vector<Num
 			Surface *tempSurface = _game->getMod()->getSurfaceSet("SCANG.DAT")->getFrame(6);
 			int x = (RuleInventory::HAND_W - rule->getInventoryWidth()) * RuleInventory::SLOT_W / 2;
 			int y = (RuleInventory::HAND_H - rule->getInventoryHeight()) * RuleInventory::SLOT_H / 2;
-			tempSurface->blitNShade(hand, hand->getX() + x, hand->getY() + y, Pulsate[_save->getAnimFrame() % 8], false, item->isFuseEnabled() ? 0 : 32);
+			tempSurface->blitNShade(hand, x, y, Pulsate[_save->getAnimFrame() % 8], false, item->isFuseEnabled() ? 0 : 32);
 		}
 	}
 }
@@ -1906,7 +1904,7 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 		{
 			// show rank (vanilla behaviour)
 			SurfaceSet *texture = _game->getMod()->getSurfaceSet("SMOKE.PCK");
-			texture->getFrame(soldier->getRankSpriteBattlescape())->blit(_rank);
+			texture->getFrame(soldier->getRankSpriteBattlescape())->blitNShade(_rank, 0, 0);
 		}
 		else
 		{
@@ -1915,11 +1913,11 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 			Surface *spr = texture->getFrame(soldier->getRankSpriteTiny());
 			if (spr)
 			{
-				spr->blit(_rankTiny);
+				spr->blitNShade(_rankTiny, 0, 0);
 			}
 
 			// use custom background (modded)
-			customBg->blit(_rank);
+			customBg->blitNShade(_rank, 0, 0);
 
 			// show avatar
 			auto defaultPrefix = soldier->getArmor()->getLayersDefaultPrefix();
@@ -3064,7 +3062,7 @@ void BattlescapeState::showSpecialButton(bool show, int sprite)
 {
 	if (show)
 	{
-		_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(sprite)->blit(_btnSpecial);
+		_game->getMod()->getSurfaceSet("SPICONS.DAT")->getFrame(sprite)->blitNShade(_btnSpecial, 0, 0);
 	}
 	_btnSpecial->setVisible(show);
 }
@@ -3492,7 +3490,7 @@ void BattlescapeState::stopScrolling(Action *action)
 	{
 		/* FIXME: Mouse warping still doesn't work as intended */
 		SDL_WarpMouseInWindow(NULL, _cursorPosition.x, _cursorPosition.y);
-		action->setMouseAction(_cursorPosition.x/action->getXScale(), _cursorPosition.y/action->getYScale(), _game->getScreen()->getSurface()->getX(), _game->getScreen()->getSurface()->getY());
+		action->setMouseAction(_cursorPosition.x/action->getXScale(), _cursorPosition.y/action->getYScale(), 0, 0);
 		_map->setSelectorPosition(_cursorPosition.x / action->getXScale(), _cursorPosition.y / action->getYScale());
 	}
 #endif

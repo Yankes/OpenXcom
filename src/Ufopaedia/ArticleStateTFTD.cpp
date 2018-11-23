@@ -102,13 +102,13 @@ namespace OpenXcom
 		ArticleState::initLayout();
 
 		// Step 1: background image
-		_game->getMod()->getSurface(ruleInterface->getBackgroundImage())->blit(_bg);
+		_game->getMod()->getSurface(ruleInterface->getBackgroundImage())->blitNShade(_bg, 0, 0);
 
 		// Step 2: article image (optional)
 		Surface *image = _game->getMod()->getSurface(defs->image_id, false);
 		if (image)
 		{
-			image->blit(_bg);
+			image->blitNShade(_bg, 0, 0);
 		}
 
 		// Step 3: info button image
@@ -122,7 +122,7 @@ namespace OpenXcom
 				case UFOPAEDIA_TYPE_TFTD_BASE_FACILITY:
 				case UFOPAEDIA_TYPE_TFTD_CRAFT:
 				case UFOPAEDIA_TYPE_TFTD_USO:
-					button->blit(_bg);
+					button->blitNShade(_bg, 0, 0);
 					break;
 				default:
 					break;

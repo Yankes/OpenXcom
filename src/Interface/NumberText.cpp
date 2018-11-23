@@ -281,9 +281,7 @@ void NumberText::draw()
 	{
 		for (std::string::iterator i = s.begin(); i != s.end(); ++i)
 		{
-			_chars[*i - '0']->setX(x);
-			_chars[*i - '0']->setY(0);
-			_chars[*i - '0']->blit(this);
+			_chars[*i - '0']->blitNShade(this, x, 0);
 			x += _chars[*i - '0']->getWidth() + 1;
 		}
 	}
@@ -291,9 +289,7 @@ void NumberText::draw()
 	{
 		for (std::string::iterator i = s.begin(); i != s.end(); ++i)
 		{
-			_borderedChars[*i - '0']->setX(x);
-			_borderedChars[*i - '0']->setY(0);
-			_borderedChars[*i - '0']->blit(this);
+			_borderedChars[*i - '0']->blitNShade(this, x, 0);
 			x += _chars[*i - '0']->getWidth() + 1; // no this isn't a typo, i want to use the same spacing regardless.
 		}
 	}

@@ -76,10 +76,10 @@ void MiniMapView::draw()
 	for (int lvl = 0; lvl <= _camera->getCenterPosition().z; lvl++)
 	{
 		int py = _startY;
-		for (int y = Surface::getY(); y < getHeight() + Surface::getY(); y += CELL_HEIGHT)
+		for (int y = 0; y < getHeight(); y += CELL_HEIGHT)
 		{
 			int px = _startX;
-			for (int x = Surface::getX(); x < getWidth() + Surface::getX(); x += CELL_WIDTH)
+			for (int x = 0; x < getWidth(); x += CELL_WIDTH)
 			{
 				MapData * data = 0;
 				Tile * t = 0;
@@ -94,7 +94,7 @@ void MiniMapView::draw()
 					px++;
 					continue;
 				}
-				for (int i = O_FLOOR; i <= O_OBJECT; i++)
+				for (int i = O_FLOOR; i < O_MAX; i++)
 				{
 					data = t->getMapData((TilePart)i);
 
@@ -449,9 +449,9 @@ void MiniMapView::stopScrolling(Action *action)
 	{
 		SDL_WarpMouseInWindow(NULL, _cursorPosition.x, _cursorPosition.y);
 #ifndef __MOBILE__
-		action->setMouseAction(_cursorPosition.x/action->getXScale(), _cursorPosition.y/action->getYScale(), _game->getScreen()->getSurface()->getX(), _game->getScreen()->getSurface()->getY());
+		action->setMouseAction(_cursorPosition.x/action->getXScale(), _cursorPosition.y/action->getYScale(), 0, 0);
 #else
-		action->setMouseAction(_xBeforeMouseScrolling, _yBeforeMouseScrolling, _game->getScreen()->getSurface()->getX(), _game->getScreen()->getSurface()->getY());
+		action->setMouseAction(_xBeforeMouseScrolling, _yBeforeMouseScrolling, 0, 0);
 #endif
 	}
 	// reset our "mouse position stored" flag

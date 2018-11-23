@@ -118,7 +118,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 	add(_bg);
 
 	// Set up objects
-	_game->getMod()->getSurface("TAC01.SCR")->blit(_bg);
+	_game->getMod()->getSurface("TAC01.SCR")->blitNShade(_bg, 0, 0);
 	add(_btnArmor, "buttonOK", "inventory", _bg);
 
 	add(_soldier);
@@ -391,9 +391,7 @@ void InventoryState::init()
 		}
 
 		SurfaceSet *texture = _game->getMod()->getSurfaceSet("SMOKE.PCK");
-		texture->getFrame(s->getRankSpriteBattlescape())->setX(0);
-		texture->getFrame(s->getRankSpriteBattlescape())->setY(0);
-		texture->getFrame(s->getRankSpriteBattlescape())->blit(_btnRank);
+		texture->getFrame(s->getRankSpriteBattlescape())->blitNShade(_btnRank, 0, 0);
 
 		auto defaultPrefix = s->getArmor()->getLayersDefaultPrefix();
 		if (!defaultPrefix.empty())
@@ -401,8 +399,7 @@ void InventoryState::init()
 			auto layers = s->getArmorLayers();
 			for (auto layer : layers)
 			{
-				auto surf = _game->getMod()->getSurface(layer, true);
-				surf->blit(_soldier);
+				_game->getMod()->getSurface(layer, true)->blitNShade(_soldier, 0, 0);
 			}
 		}
 		else
@@ -432,7 +429,7 @@ void InventoryState::init()
 				ss << ".SPK";
 				surf = _game->getMod()->getSurface(ss.str(), true);
 			}
-			surf->blit(_soldier);
+			surf->blitNShade(_soldier, 0, 0);
 		}
 	}
 	else
@@ -448,7 +445,7 @@ void InventoryState::init()
 		}
 		if (armorSurface)
 		{
-			armorSurface->blit(_soldier);
+			armorSurface->blitNShade(_soldier, 0, 0);
 		}
 	}
 
@@ -1698,15 +1695,15 @@ void InventoryState::updateTemplateButtons(bool isVisible)
 		if (_curInventoryTemplate.empty())
 		{
 			// use "empty template" icons
-			_game->getMod()->getSurface("InvCopy")->blit(_btnCreateTemplate);
-			_game->getMod()->getSurface("InvPasteEmpty")->blit(_btnApplyTemplate);
+			_game->getMod()->getSurface("InvCopy")->blitNShade(_btnCreateTemplate, 0, 0);
+			_game->getMod()->getSurface("InvPasteEmpty")->blitNShade(_btnApplyTemplate, 0, 0);
 			_btnApplyTemplate->setTooltip("STR_CLEAR_INVENTORY");
 		}
 		else
 		{
 			// use "active template" icons
-			_game->getMod()->getSurface("InvCopyActive")->blit(_btnCreateTemplate);
-			_game->getMod()->getSurface("InvPaste")->blit(_btnApplyTemplate);
+			_game->getMod()->getSurface("InvCopyActive")->blitNShade(_btnCreateTemplate, 0, 0);
+			_game->getMod()->getSurface("InvPaste")->blitNShade(_btnApplyTemplate, 0, 0);
 			_btnApplyTemplate->setTooltip("STR_APPLY_INVENTORY_TEMPLATE");
 		}
 		_btnCreateTemplate->initSurfaces();

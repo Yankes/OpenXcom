@@ -42,7 +42,7 @@ private:
 	bool _pressed;
 	ActionHandler _change;
 	int _thickness, _textness, _minX, _maxX, _offsetX;
-	
+
 	/// Sets the slider's position.
 	void setPosition(double pos);
 public:
@@ -71,7 +71,7 @@ public:
 	/// Gets the slider's value.
 	int getValue() const;
 	/// Blits the slider onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Moves the slider.
 	void handle(Action *action, State *state);
 	/// Special handling for mouse presses.

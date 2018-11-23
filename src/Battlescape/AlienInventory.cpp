@@ -153,9 +153,9 @@ void AlienInventory::drawItems()
 		SurfaceSet *texture = _game->getMod()->getSurfaceSet("BIGOBS.PCK");
 		for (std::vector<BattleItem*>::iterator i = _selUnit->getInventory()->begin(); i != _selUnit->getInventory()->end(); ++i)
 		{
-			Surface *frame = texture->getFrame((*i)->getRules()->getBigSprite());
 			if ((*i)->getSlot()->getType() == INV_HAND)
 			{
+				Surface *frame = texture->getFrame((*i)->getRules()->getBigSprite());
 				int x = (*i)->getSlot()->getX() + (*i)->getRules()->getHandSpriteOffX();
 				x += ALIEN_INVENTORY_STATIC_OFFSET;
 
@@ -164,14 +164,12 @@ void AlienInventory::drawItems()
 				else if ((*i)->getSlot()->getId() == "STR_LEFT_HAND")
 					x += _dynamicOffset;
 
-				frame->setX(x);
-				frame->setY((*i)->getSlot()->getY() + (*i)->getRules()->getHandSpriteOffY());
+				frame->blitNShade(_items, x, (*i)->getSlot()->getY() + (*i)->getRules()->getHandSpriteOffY());
 			}
 			else
 			{
 				continue;
 			}
-			frame->blit(_items);
 		}
 	}
 }
@@ -198,11 +196,11 @@ RuleInventory *AlienInventory::getSlotInPosition(int *x, int *y) const
  * Blits the inventory elements.
  * @param surface Pointer to surface to blit onto.
  */
-void AlienInventory::blit(Surface *surface)
+void AlienInventory::blit(SDL_Surface *surface)
 {
 	clear();
-	_grid->blit(this);
-	_items->blit(this);
+	_grid->blitNShade(this, 0, 0);
+	_items->blitNShade(this, 0, 0);
 	Surface::blit(surface);
 }
 

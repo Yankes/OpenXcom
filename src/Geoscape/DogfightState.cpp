@@ -456,9 +456,7 @@ DogfightState::DogfightState(GeoscapeState *state, Craft *craft, Ufo *ufo, bool 
 
 	// Create the minimized dogfight icon.
 	Surface *frame = set->getFrame(_craft->getRules()->getSprite());
-	frame->setX(0);
-	frame->setY(0);
-	frame->blit(_btnMinimizedIcon);
+	frame->blitNShade(_btnMinimizedIcon, 0, 0);
 	_btnMinimizedIcon->onMouseClick((ActionHandler)&DogfightState::btnMinimizedIconClick);
 	_btnMinimizedIcon->setVisible(false);
 
@@ -521,10 +519,7 @@ DogfightState::DogfightState(GeoscapeState *state, Craft *craft, Ufo *ufo, bool 
 
 		// Draw weapon icon
 		frame = set->getFrame(w->getRules()->getSprite() + 5);
-
-		frame->setX(0);
-		frame->setY(0);
-		frame->blit(weapon);
+		frame->blitNShade(weapon, 0, 0);
 
 		// Draw ammo
 		std::ostringstream ss;
@@ -576,9 +571,7 @@ DogfightState::DogfightState(GeoscapeState *state, Craft *craft, Ufo *ufo, bool 
 
 	// Draw damage indicator.
 	frame = set->getFrame(_craft->getRules()->getSprite() + 11);
-	frame->setX(0);
-	frame->setY(0);
-	frame->blit(_craftSprite);
+	frame->blitNShade(_craftSprite, 0, 0);
 
 	_craftDamageAnimTimer->onTimer((StateHandler)&DogfightState::animateCraftDamage);
 

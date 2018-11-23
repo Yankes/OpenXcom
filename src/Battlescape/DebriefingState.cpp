@@ -1287,7 +1287,7 @@ void DebriefingState::prepareDebriefing()
 			success = destroyAlienBase;
 			if (destroyAlienBase)
 			{
-				if (objectiveCompleteText != "")
+				if (!objectiveCompleteText.empty())
 				{
 					addStat(objectiveCompleteText, 1, objectiveCompleteScore);
 				}
@@ -1578,7 +1578,7 @@ void DebriefingState::prepareDebriefing()
 		else
 		{
 			_txtTitle->setText(tr("STR_ALIENS_DEFEATED"));
-			if (objectiveCompleteText != "")
+			if (!objectiveCompleteText.empty())
 			{
 				int victoryStat = 0;
 				if (ruleDeploy->getEscapeType() != ESCAPE_NONE)
@@ -1614,7 +1614,7 @@ void DebriefingState::prepareDebriefing()
 			for (int i = 0; i < battle->getMapSizeXYZ(); ++i)
 			{
 				// get recoverable map data objects from the battlescape map
-				for (int part = O_FLOOR; part <= O_OBJECT; ++part)
+				for (int part = O_FLOOR; part < O_MAX; ++part)
 				{
 					TilePart tp = (TilePart)part;
 					if (battle->getTile(i)->getMapData(tp))
@@ -1661,7 +1661,7 @@ void DebriefingState::prepareDebriefing()
 		else
 		{
 			_txtTitle->setText(tr("STR_TERROR_CONTINUES"));
-			if (objectiveFailedText != "")
+			if (!objectiveFailedText.empty())
 			{
 				addStat(objectiveFailedText, 1, objectiveFailedScore);
 			}

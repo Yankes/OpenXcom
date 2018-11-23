@@ -135,10 +135,10 @@ void ActionMenuItem::setPalette(SDL_Color *colors, int firstcolor, int ncolors)
  */
 void ActionMenuItem::draw()
 {
-	_frame->blit(this);
-	_txtDescription->blit(this);
-	_txtAcc->blit(this);
-	_txtTU->blit(this);
+	_frame->blit(this->getSurface());
+	_txtDescription->blit(this->getSurface());
+	_txtAcc->blit(this->getSurface());
+	_txtTU->blit(this->getSurface());
 }
 
 /**

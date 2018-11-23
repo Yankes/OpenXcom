@@ -54,7 +54,7 @@ public:
 	/// Sets the Battlescape message's palette.
 	void setPalette(SDL_Color *colors, int firstcolor = 0, int ncolors = 256);
 	/// Blits the warning message.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Special handling for setting the height of the battlescape message.
 	void setHeight(int height);
 	/// Sets the text color of the battlescape message.

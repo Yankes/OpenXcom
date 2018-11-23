@@ -20,6 +20,7 @@
 #include <SDL.h>
 #include <string>
 #include <vector>
+#include "Surface.h"
 
 namespace OpenXcom
 {
@@ -51,9 +52,8 @@ private:
 	SDL_Color deferredPalette[256];
 	int _numColors, _firstColor;
 	bool _pushPalette;
-	//OpenGL glOutput;
-	Surface *_surface;
-	SDL_Rect _clear;
+	Surface::UniqueBufferPtr _buffer;
+	Surface::UniqueSurfacePtr _surface;
 	/// Sets the _flags and _bpp variables based on game options; needed in more than one place now
 	void makeVideoFlags();
 	SDL_Texture *_texture;
@@ -72,7 +72,7 @@ public:
 	/// Get vertical offset.
 	int getDY() const;
 	/// Gets the internal buffer.
-	Surface *getSurface();
+	SDL_Surface *getSurface();
 	/// Handles keyboard events.
 	void handle(Action *action);
 	/// Renders the screen onto the game window.

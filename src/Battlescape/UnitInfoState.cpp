@@ -248,7 +248,7 @@ UnitInfoState::UnitInfoState(BattleUnit *unit, BattlescapeState *parent, bool fr
 	centerAllSurfaces();
 
 	// Set up objects
-	_game->getMod()->getSurface("UNIBORD.PCK")->blit(_bg);
+	_game->getMod()->getSurface("UNIBORD.PCK")->blitNShade(_bg, 0, 0);
 
 	_exit->onMouseClick((ActionHandler)&UnitInfoState::exitClick);
 	_exit->onKeyboardPress((ActionHandler)&UnitInfoState::exitClick, Options::keyCancel);

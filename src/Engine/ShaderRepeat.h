@@ -126,16 +126,16 @@ struct controler<ShaderRepeat<Pixel> >
 	inline void set_y(const int& begin, const int&)
 	{
 		_curr_y = (_curr_y + begin)%_size_y;
-		_ptr_curr_y += (_range_domain.beg_y+_curr_y)*_pitch;
+		_ptr_curr_y = pointerByteOffset(_ptr_curr_y, (_range_domain.beg_y + _curr_y) * _pitch);
 	}
 	inline void inc_y()
 	{
 		++_curr_y;
-		_ptr_curr_y += _pitch;
+		_ptr_curr_y = pointerByteOffset(_ptr_curr_y, _pitch);
 		if (_curr_y == _size_y)
 		{
 			_curr_y = 0;
-			_ptr_curr_y -= _size_y*_pitch;
+			_ptr_curr_y = pointerByteOffset(_ptr_curr_y, -_size_y*_pitch);
 		}
 	}
 

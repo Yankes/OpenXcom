@@ -51,7 +51,7 @@ namespace OpenXcom
 		add(_txtTitle);
 
 		// Set up objects
-		_game->getMod()->getSurface("BACK09.SCR")->blit(_bg);
+		_game->getMod()->getSurface("BACK09.SCR")->blitNShade(_bg, 0, 0);
 		_btnOk->setColor(Palette::blockOffset(4));
 		_btnPrev->setColor(Palette::blockOffset(4));
 		_btnNext->setColor(Palette::blockOffset(4));
@@ -90,16 +90,12 @@ namespace OpenXcom
 			for (int x = 0; x < facility->getSize(); ++x)
 			{
 				frame = graphic->getFrame(facility->getSpriteShape() + num);
-				frame->setX(x_pos);
-				frame->setY(y_pos);
-				frame->blit(_image);
+				frame->blitNShade(_image, x_pos, y_pos);
 
 				if (facility->getSize()==1)
 				{
 					frame = graphic->getFrame(facility->getSpriteFacility() + num);
-					frame->setX(x_pos);
-					frame->setY(y_pos);
-					frame->blit(_image);
+					frame->blitNShade(_image, x_pos, y_pos);
 				}
 
 				x_pos += tile_size;

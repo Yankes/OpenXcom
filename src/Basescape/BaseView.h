@@ -87,7 +87,7 @@ public:
 	/// Draws the base view.
 	void draw();
 	/// Blits the base view onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Special handling for mouse hovers.
 	void mouseOver(Action *action, State *state);
 	/// Special handling for mouse hovering out.

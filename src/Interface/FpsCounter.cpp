@@ -113,7 +113,7 @@ void FpsCounter::update()
 void FpsCounter::draw()
 {
 	Surface::draw();
-	_text->blit(this);
+	_text->blit(this->getSurface());
 }
 
 void FpsCounter::addFrame()

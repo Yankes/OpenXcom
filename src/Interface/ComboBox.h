@@ -92,7 +92,7 @@ public:
 	/// Sets the list of options.
 	void setOptions(const std::vector<std::string> &options, bool translate = false);
 	/// Blits the combo box onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Thinks arrow buttons.
 	void think();
 	/// Handle arrow buttons.

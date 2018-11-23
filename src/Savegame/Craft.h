@@ -168,6 +168,8 @@ public:
 	int getFuelLimit() const;
 	/// Gets the craft's minimum fuel limit to go to a base.
 	int getFuelLimit(Base *base) const;
+
+	double getBaseRange() const;
 	/// Returns the craft to its base.
 	void returnToBase();
 	/// Returns the crew to their base (using transfers).

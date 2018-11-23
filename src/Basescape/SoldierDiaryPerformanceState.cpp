@@ -364,16 +364,12 @@ void SoldierDiaryPerformanceState::drawSprites()
 		int _decorationSprite = (*i)->getDecorationLevelInt();
 
 		// Handle commendation sprites
-		_commendationSprite->getFrame(_sprite)->setX(0);
-		_commendationSprite->getFrame(_sprite)->setY(0);
-		_commendationSprite->getFrame(_sprite)->blit(_commendations[vectorIterator - scrollDepth]);
+		_commendationSprite->getFrame(_sprite)->blitNShade(_commendations[vectorIterator - scrollDepth], 0, 0);
 
 		// Handle commendation decoration sprites
 		if (_decorationSprite != 0)
 		{
-			_commendationDecoration->getFrame(_decorationSprite)->setX(0);
-			_commendationDecoration->getFrame(_decorationSprite)->setY(0);
-			_commendationDecoration->getFrame(_decorationSprite)->blit(_commendationDecorations[vectorIterator - scrollDepth]);
+			_commendationDecoration->getFrame(_decorationSprite)->blitNShade(_commendationDecorations[vectorIterator - scrollDepth], 0, 0);
 		}
 
 		vectorIterator++;

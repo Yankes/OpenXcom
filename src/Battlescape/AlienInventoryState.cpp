@@ -68,7 +68,7 @@ AlienInventoryState::AlienInventoryState(BattleUnit *unit)
 	Surface *tmp = _game->getMod()->getSurface("AlienInventory", false);
 	if (tmp)
 	{
-		tmp->blit(_bg);
+		tmp->blitNShade(_bg, 0, 0);
 	}
 
 	_txtName->setBig();
@@ -115,7 +115,7 @@ AlienInventoryState::AlienInventoryState(BattleUnit *unit)
 			for (auto layer : layers)
 			{
 				auto surf = _game->getMod()->getSurface(layer, true);
-				surf->blit(_soldier);
+				surf->blitNShade(_soldier->getSurface(), 0, 0);
 			}
 		}
 		else
@@ -145,7 +145,7 @@ AlienInventoryState::AlienInventoryState(BattleUnit *unit)
 				ss << ".SPK";
 				surf = _game->getMod()->getSurface(ss.str(), true);
 			}
-			surf->blit(_soldier);
+			surf->blitNShade(_soldier, 0, 0);
 		}
 	}
 	else
@@ -161,7 +161,7 @@ AlienInventoryState::AlienInventoryState(BattleUnit *unit)
 		}
 		if (armorSurface)
 		{
-			armorSurface->blit(_soldier);
+			armorSurface->blitNShade(_soldier, 0, 0);
 		}
 	}
 
@@ -172,9 +172,7 @@ AlienInventoryState::AlienInventoryState(BattleUnit *unit)
 	tmp = _game->getMod()->getSurface("BigWoundIndicator", false);
 	if (tmp && unit->getFatalWounds() > 0)
 	{
-		tmp->setX(32);
-		tmp->setY(32);
-		tmp->blit(_soldier);
+		tmp->blitNShade(_soldier, 32, 32);
 	}
 }
 

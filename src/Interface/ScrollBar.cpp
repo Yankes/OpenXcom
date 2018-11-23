@@ -169,7 +169,7 @@ void ScrollBar::handle(Action *action, State *state)
  * Blits the scrollbar contents.
  * @param surface Pointer to surface to blit onto.
  */
-void ScrollBar::blit(Surface *surface)
+void ScrollBar::blit(SDL_Surface *surface)
 {
 	Surface::blit(surface);
 	if (_visible && !_hidden)
@@ -276,7 +276,7 @@ void ScrollBar::drawThumb()
 	_thumbRect.y = (int)floor(_list->getScroll() * scale);
 	_thumbRect.w = _thumb->getWidth();
 	_thumbRect.h = (int)ceil(_list->getVisibleRows() * scale);
-	
+
 	// Draw base button
 	_thumb->clear();
 	_thumb->lock();

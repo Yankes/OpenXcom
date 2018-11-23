@@ -1,4 +1,4 @@
-// This file was copied from the bsnes project. 
+// This file was copied from the bsnes project.
 
 // This is the license info, from ruby.hpp:
 
@@ -17,7 +17,6 @@
 
 #include "OpenGLRenderer.h"
 #include "Logger.h"
-#include "Surface.h"
 #include "Options.h"
 #include "CrossPlatform.h"
 #include "FileMap.h"
@@ -107,12 +106,9 @@ void OpenGLRenderer::resize(unsigned width, unsigned height)
 {
     if(gltexture == 0) glGenTextures(1, &gltexture);
 	glErrorCheck();
-	
+
 	iwidth = width;
 	iheight = height;
-    //if(buffer_surface) delete buffer_surface;
-    //buffer_surface = new Surface(iwidth, iheight, 0, 0, ibpp); // use OpenXcom's Surface class to get an aligned buffer with bonus SDL_Surface
-	//buffer = (uint32_t*) buffer_surface->getSurface()->pixels;
 
     glBindTexture(GL_TEXTURE_2D, gltexture);
 	glErrorCheck();
@@ -197,7 +193,7 @@ void OpenGLRenderer::clear() {
  void OpenGLRenderer::refresh(bool smooth, unsigned inwidth, unsigned inheight, unsigned outwidth, unsigned outheight) {
     while (glGetError() != GL_NO_ERROR); // clear possible error from who knows where
 	clear();
-    if(shader_support && (fragmentshader || vertexshader)) {    
+    if(shader_support && (fragmentshader || vertexshader)) {
       glUseProgram(glprogram);
       GLint location;
 
@@ -252,7 +248,7 @@ void OpenGLRenderer::clear() {
     int u2 = _dstRect.w + _dstRect.x;
     int v1 = _dstRect.h + _dstRect.y;
     int v2 = _dstRect.y;;
-	
+
     glBegin(GL_QUADS);
 		glTexCoord2f(0, 0); glVertex2i(u1, v1);
 		glTexCoord2f(w, 0); glVertex2i(u2, v1);
@@ -308,7 +304,7 @@ void OpenGLRenderer::clear() {
     && glDeleteShader && glShaderSource && glCompileShader && glAttachShader
     && glDetachShader && glLinkProgram && glGetUniformLocation
     && glUniform1i && glUniform2fv && glUniform4fv;
-	
+
     if(shader_support) glprogram = glCreateProgram();
 
     //create surface texture

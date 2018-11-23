@@ -176,7 +176,7 @@ public:
 	/// Draws the text onto the text list.
 	void draw();
 	/// Blits the text list onto another surface.
-	void blit(Surface *surface);
+	void blit(SDL_Surface *surface) override;
 	/// Thinks arrow buttons.
 	void think();
 	/// Handles arrow buttons.

@@ -928,7 +928,7 @@ void TextList::updateArrows()
 	_down->setVisible(_rows.size() > _visibleRows /*&& _scroll < _rows.size() - _visibleRows*/);
 	_scrollbar->setVisible(_rows.size() > _visibleRows);
 	_scrollbar->invalidate();
-	_scrollbar->blit(this);
+	_scrollbar->blit(this->getSurface());
 }
 
 /**
@@ -982,7 +982,7 @@ void TextList::draw()
 			for (std::vector<Text*>::iterator j = _texts[i].begin(); j < _texts[i].end(); ++j)
 			{
 				(*j)->setY(y);
-				(*j)->blit(this);
+				(*j)->blit(this->getSurface());
 			}
 			if (!_texts[i].empty())
 			{
@@ -1000,7 +1000,7 @@ void TextList::draw()
  * Blits the text list and selector.
  * @param surface Pointer to surface to blit onto.
  */
-void TextList::blit(Surface *surface)
+void TextList::blit(SDL_Surface *surface)
 {
 	if (_visible && !_hidden)
 	{

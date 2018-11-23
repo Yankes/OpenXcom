@@ -118,7 +118,7 @@ HelloCommanderState::HelloCommanderState()
 	// Set up objects
 	if (bruce)
 	{
-		bruce->blit(_bg);
+		bruce->blitNShade(_bg, 0, 0);
 	}
 
 	_btnOk->setColor(239);
