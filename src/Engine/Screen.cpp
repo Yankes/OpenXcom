@@ -85,7 +85,7 @@ void Screen::makeVideoFlags()
 
 	// Try fixing the Samsung devices - see https://bugzilla.libsdl.org/show_bug.cgi?id=2291
 #ifdef __ANDROID__
-	if (Options::forceGLMode) 
+	if (Options::forceGLMode)
 	{
 		Log(LOG_INFO) << "Setting GL format to RGB565";
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
@@ -223,7 +223,7 @@ void Screen::setPalette(SDL_Color* colors, int firstcolor, int ncolors, bool imm
 		_firstColor = firstcolor;
 	}
 
-	SDL_SetColors(_surface.get(), colors, firstcolor, ncolors);
+	SDL_SetPaletteColors(_surface->format->palette, colors, firstcolor, ncolors);
 
 #if 0
 	// defer actual update of screen until SDL_Flip()
@@ -313,7 +313,7 @@ void Screen::resetDisplay(bool resetVideo)
 
 	Log(LOG_INFO) << "Current _baseWidth x _baseHeight: " << _baseWidth << "x" << _baseHeight;
 
-	if (!_surface || (_surface->format->BitsPerPixel != _bpp || 
+	if (!_surface || (_surface->format->BitsPerPixel != _bpp ||
 		_surface->w != _baseWidth ||
 		_surface->h != _baseHeight)) // don't reallocate _surface if not necessary, it's a waste of CPU cycles
 	{
@@ -420,7 +420,7 @@ void Screen::resetDisplay(bool resetVideo)
 			_renderer = new SDLRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
 #endif
 			//_renderer = new OpenGLRenderer(_window/*, -1, SDL_RENDERER_ACCELERATED */);
-			_renderer->setPixelFormat(_surface->getSurface()->format->format);
+			_renderer->setPixelFormat(_surface->format->format);
 		}
 		SDL_Rect baseRect;
 		baseRect.x = baseRect.y = 0;
@@ -428,7 +428,7 @@ void Screen::resetDisplay(bool resetVideo)
 		baseRect.h = _baseHeight;
 		_renderer->setInternalRect(&baseRect);
 		Log(LOG_INFO) << "Display set to " << getWidth() << "x" << getHeight() << "x32";
-		
+
 		/* Save new baseWidth and baseHeight */
 		_prevWidth = _baseWidth;
 		_prevHeight = _baseHeight;

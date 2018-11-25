@@ -174,7 +174,7 @@ Surface::UniqueSurfacePtr Surface::NewSdlSurface(SDL_Surface* surface)
  */
 Surface::UniqueSurfacePtr Surface::NewSdlSurface(const Surface::UniqueBufferPtr& buffer, int bpp, int width, int height)
 {
-	SDL_Surface surface;
+	SDL_Surface* surface;
 	if (bpp == 32)
 		surface = SDL_CreateRGBSurfaceFrom(buffer.get(), width, height, 32, GetPitch(32, width), Surface::RMASK, Surface::GMASK, Surface::BMASK, Surface::AMASK);
 	else
@@ -417,7 +417,7 @@ void Surface::loadImage(const std::string &filename)
 					for (int c = 0; c < _surface->format->palette->ncolors; ++c)
 					{
 						SDL_Color *palColor = _surface->format->palette->colors + c;
-						if (palColor->unused == 0)
+						if (palColor->a == 0)
 						{
 							transparent = c;
 							break;
@@ -448,7 +448,9 @@ void Surface::loadImage(const std::string &filename)
 		*this = Surface(surface->w, surface->h, 0, 0);
 		setPalette(surface->format->palette->colors, 0, surface->format->palette->ncolors);
 		RawCopySurf(_surface, surface);
-		FixTransparent(_surface, surface->format->colorkey);
+		Uint32 colorkey;
+		SDL_GetColorKey(surface.get(), &colorkey);
+		FixTransparent(_surface, colorkey);
 	}
 }
 
