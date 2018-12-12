@@ -78,34 +78,6 @@ inline void RawCopySurf(const Surface::UniqueSurfacePtr& dest, const Surface::Un
 	);
 }
 
-/**
- * Helper function correcting graphic that should have index 0 as transparent,
- * but some do not have, we swap correcnt with incorecct
- * for maintain 0 as correct transparent index.
- * @param dest Surface to fix
- * @param currentTransColor current transparent color index
- */
-inline void FixTransparent(const Surface::UniqueSurfacePtr& dest, int currentTransColor)
-{
-	if (currentTransColor != 0)
-	{
-		ShaderDrawFunc(
-			[&](Uint8& dest)
-			{
-				if (dest == 0)
-				{
-					dest = currentTransColor;
-				}
-				else if (dest == currentTransColor)
-				{
-					dest = 0;
-				}
-			},
-			ShaderMove<Uint8>(dest.get())
-		);
-	}
-}
-
 } //namespace
 
 /**
@@ -414,7 +386,6 @@ void Surface::loadImage(const std::string &filename)
 							break;
 						}
 					}
-					FixTransparent(_surface, transparent);
 					if (transparent != 0)
 					{
 						Log(LOG_WARNING) << "Image " << filename << " (from lodepng) have set incorrect transparent color index " << transparent << " instead of 0";
@@ -443,7 +414,6 @@ void Surface::loadImage(const std::string &filename)
 		*this = Surface(surface->w, surface->h, 0, 0);
 		setPalette(surface->format->palette->colors, 0, surface->format->palette->ncolors);
 		RawCopySurf(_surface, surface);
-		FixTransparent(_surface, surface->format->colorkey);
 		if (surface->format->colorkey != 0)
 		{
 			Log(LOG_WARNING) << "Image " << filename << " (from SDL) have set incorrect transparent color index " << surface->format->colorkey << " instead of 0";
