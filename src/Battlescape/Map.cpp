@@ -354,11 +354,17 @@ static bool positionInRangeXY(Position a, Position b, int diff)
  * @param obstacleShade
  * @param topLayer
  */
-void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Position currTileScreenPosition, int shade, int obstacleShade, bool topLayer)
+void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *drawTile, Position drawTileScreenPosition, int shade, int obstacleShade, bool topLayer)
 {
 	const int tileFoorWidth = 32;
 	const int tileFoorHeight = 16;
 	const int tileHeight = 40;
+
+	auto reShadeWithDiscover = [&](Tile* t)
+	{
+		return t->isDiscovered(2) ? reShade(t) : 16;
+	};
+
 
 	if (!unitTile)
 	{
@@ -366,11 +372,28 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 	}
 	BattleUnit* bu = unitTile->getOverlappingUnit(_save, TUO_ALWAYS);
 	Position unitOffset;
+
+	struct multiShade
+	{
+		int lower;
+		int curr;
+		int upper;
+	};
+
+//	multiShade unitShade = { };
+//	multiShade destShade = { };
+	multiShade drawShade = { };
+
+//	unitShade.curr = reShadeWithDiscover(unitTile);
+	drawShade.curr = reShadeWithDiscover(drawTile);
+
 	bool unitFromBelow = false;
 	if (bu)
 	{
 		if (bu != unitTile->getUnit())
 		{
+//			unitShade.lower = reShadeWithDiscover(below);
+//			drawShade.lower = reShadeWithDiscover(_save->getTile(drawTile->getPosition() + Position(0,0,-1)));
 			unitFromBelow = true;
 		}
 	}
@@ -416,23 +439,24 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 		}
 	}
 
-	GraphSubset mask = GraphSubset(tileFoorWidth + bonusWidth, tileHeight + topMargin + bottomMargin).offset(currTileScreenPosition.x - bonusWidth / 2, currTileScreenPosition.y - topMargin);
+	GraphSubset mask = GraphSubset(tileFoorWidth + bonusWidth, tileHeight + topMargin + bottomMargin).offset(drawTileScreenPosition.x - bonusWidth / 2, drawTileScreenPosition.y - topMargin);
+
 
 	if (moving)
 	{
 		GraphSubset leftMask = mask.offset(-tileFoorWidth/2, 0);
 		GraphSubset rightMask = mask.offset(+tileFoorWidth/2, 0);
 		int direction = bu->getDirection();
-		Position partCurr = currTile->getPosition();
+		Position partDraw = drawTile->getPosition();
 		Position partDest = bu->getDestination() + unitOffset;
 		Position partLast = bu->getLastPosition() + unitOffset;
-		bool isTileDestPos = positionHaveSameXY(partDest, partCurr);
-		bool isTileLastPos = positionHaveSameXY(partLast, partCurr);
+		bool isTileDestPos = positionHaveSameXY(partDest, partDraw);
+		bool isTileLastPos = positionHaveSameXY(partLast, partDraw);
 
 		//adjusting mask
 		if (positionHaveSameXY(partLast, partDest))
 		{
-			if (currTile == unitTile)
+			if (drawTile == unitTile)
 			{
 				//no change
 			}
@@ -498,9 +522,9 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 		}
 		else
 		{
-			Position leftPos = partCurr + Position(-1, 0, 0);
-			Position rightPos = partCurr + Position(0, -1, 0);
-			if (!topLayer && (partDest.z > partCurr.z || partLast.z > partCurr.z))
+			Position leftPos = partDraw + Position(-1, 0, 0);
+			Position rightPos = partDraw + Position(0, -1, 0);
+			if (!topLayer && (partDest.z > partDraw.z || partLast.z > partDraw.z))
 			{
 				//unit change layers, it will be drawn by upper layer not lower.
 				return;
@@ -509,7 +533,7 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 				(direction == 1 && (partDest == rightPos || partLast == leftPos)) ||
 				(direction == 5 && (partDest == leftPos || partLast == rightPos)))
 			{
-				mask = GraphSubset(tileFoorWidth, tileHeight + 2 * tileFoorHeight).offset(currTileScreenPosition.x, currTileScreenPosition.y - 2 * tileFoorHeight);
+				mask = GraphSubset(tileFoorWidth, tileHeight + 2 * tileFoorHeight).offset(drawTileScreenPosition.x, drawTileScreenPosition.y - 2 * tileFoorHeight);
 			}
 			else
 			{
@@ -518,7 +542,7 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 			}
 		}
 	}
-	else if (unitTile != currTile)
+	else if (unitTile != drawTile)
 	{
 		return;
 	}
@@ -531,11 +555,20 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 	Position offset;
 	int shadeOffset;
 	calculateWalkingOffset(bu, &offset, &shadeOffset);
-	int tileShade = currTile->isDiscovered(2) ? reShade(currTile) : 16;
-	int unitShade = (tileShade * (16 - shadeOffset) + shade * shadeOffset) / 16;
+	int currShade = drawTile->isDiscovered(2) ? reShade(drawTile) : 16;
+	int unitShade = 0;
 	if (!moving && unitTile->getObstacle(4))
 	{
 		unitShade = obstacleShade;
+	}
+	else if (moving)
+	{
+		unitShade = (currShade * (16 - shadeOffset) + shade * shadeOffset) / 16;
+	}
+	else
+	{
+//		Tile* upper =
+		unitShade = (currShade * (16 - shadeOffset) + shade * shadeOffset) / 16;
 	}
 	unitSprite.draw(bu, part, tileScreenPosition.x + offset.x, tileScreenPosition.y + offset.y, unitShade, mask, _isAltPressed);
 }
