@@ -81,6 +81,10 @@ class ModScript
 	{
 		SelectUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
+	struct SelectMoveSoundUnitParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleUnit*, int, int, int>
+	{
+		SelectMoveSoundUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
 
 	struct ReactionUnitParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int, const BattleUnit*, int>
 	{

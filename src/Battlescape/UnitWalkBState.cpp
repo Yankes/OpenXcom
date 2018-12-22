@@ -525,45 +525,48 @@ void UnitWalkBState::playMovementSound()
 	int size = _unit->getArmor()->getSize() - 1;
 	if ((!_unit->getVisible() && !_parent->getSave()->getDebugMode()) || !_parent->getMap()->getCamera()->isOnScreen(_unit->getPosition(), true, size, false)) return;
 
-	if (_unit->getMoveSound() != -1)
+	Tile *tile = _unit->getTile();
+	int sound = -1;
+	int unitSound = _unit->getMoveSound();
+	int tileSoundOffset = tile->getFootstepSound(_parent->getSave()->getBelowTile(tile));
+	if (unitSound != -1)
 	{
 		// if a sound is configured in the ruleset, play that one
 		if (_unit->getWalkingPhase() == 0)
 		{
-			_parent->getMod()->getSoundByDepth(_parent->getDepth(), _unit->getMoveSound())->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+			sound = unitSound;
 		}
 	}
 	else
 	{
 		if (_unit->getStatus() == STATUS_WALKING)
 		{
-			Tile *tile = _unit->getTile();
-			Tile *tileBelow = _parent->getSave()->getTile(tile->getPosition() + Position(0,0,-1));
-			// play footstep sound 1
-			if (_unit->getWalkingPhase() == 3)
+			if (tileSoundOffset > -1)
 			{
-				if (tile->getFootstepSound(tileBelow) > -1)
+				// play footstep sound 1
+				if (_unit->getWalkingPhase() == 3)
 				{
-					_parent->getMod()->getSoundByDepth(_parent->getDepth(), Mod::WALK_OFFSET + (tile->getFootstepSound(tileBelow)*2))->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+					sound = Mod::WALK_OFFSET + (tileSoundOffset*2);
 				}
-			}
-			// play footstep sound 2
-			if (_unit->getWalkingPhase() == 7)
-			{
-				if (tile->getFootstepSound(tileBelow) > -1)
+				// play footstep sound 2
+				if (_unit->getWalkingPhase() == 7)
 				{
-					_parent->getMod()->getSoundByDepth(_parent->getDepth(), 1 + Mod::WALK_OFFSET + (tile->getFootstepSound(tileBelow)*2))->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+					sound = Mod::WALK_OFFSET + (tileSoundOffset*2) + 1;
 				}
 			}
 		}
-		else if (_unit->getMovementType() == MT_FLY)
+		else if (_unit->getStatus() == STATUS_FLYING)
 		{
 			// play default flying sound
-			if (_unit->getWalkingPhase() == 1 && !_falling)
+			if (_unit->getWalkingPhase() == 1)
 			{
-				_parent->getMod()->getSoundByDepth(_parent->getDepth(), Mod::FLYING_SOUND)->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
+				sound = Mod::FLYING_SOUND;
 			}
 		}
+	}
+	if (sound >= 0)
+	{
+		_parent->getMod()->getSoundByDepth(_parent->getDepth(), sound)->play(-1, _parent->getMap()->getSoundAngle(_unit->getPosition()));
 	}
 }
 
