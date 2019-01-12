@@ -1881,7 +1881,7 @@ bool SavedBattleGame::setUnitPosition(BattleUnit *bu, Position position, bool te
 		getPathfinding()->setUnit(bu);
 		for (int dir = 2; dir <= 4; ++dir)
 		{
-			if (getPathfinding()->isBlocked(getTile(position + zOffset), 0, dir, 0))
+			if (getPathfinding()->isBlockedDirection(getTile(position + zOffset), dir, 0))
 				return false;
 		}
 	}
@@ -2116,7 +2116,7 @@ bool SavedBattleGame::placeUnitNearPosition(BattleUnit *unit, const Position& en
 	{
 		Position offset = Position (xArray[dir], yArray[dir], 0);
 		Tile *t = getTile(entryPoint + offset);
-		if (t && !getPathfinding()->isBlocked(getTile(entryPoint + (offset / 2)), t, dir, 0)
+		if (t && !getPathfinding()->isBlockedDirection(getTile(entryPoint + (offset / 2)), dir, 0)
 			&& setUnitPosition(unit, entryPoint + offset))
 		{
 			return true;

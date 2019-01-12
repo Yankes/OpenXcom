@@ -26,6 +26,7 @@
 #include "../Savegame/BattleUnit.h"
 #include "../Engine/Options.h"
 #include "BattlescapeGame.h"
+#include "TileEngine.h"
 
 namespace OpenXcom
 {
@@ -129,36 +130,36 @@ void Pathfinding::calculate(BattleUnit *unit, Position endPosition, BattleUnit *
 	}
 	// check if destination is not blocked
 	if (isBlocked(destinationTile, O_FLOOR, target) || isBlocked(destinationTile, O_OBJECT, target)) return;
-	int size = unit->getArmor()->getSize()-1;
-	if (size >= 1)
-	{
-		int its = 0;
-		const int dir[3] = {4,2,3};
-		for (int x = 0; x <= size; x += size)
-		{
-			for (int y = 0; y <= size; y += size)
-			{
-				if (x || y)
-				{
-					Tile *checkTile = _save->getTile(endPosition + Position(x, y, 0));
-					if ((isBlocked(destinationTile, checkTile, dir[its], unit) &&
-						isBlocked(destinationTile, checkTile, dir[its], target))||
-						(checkTile->getUnit() &&
-						checkTile->getUnit() != unit &&
-						checkTile->getUnit()->getVisible() &&
-						checkTile->getUnit() != target))
-						return;
-					if (x && y)
-					{
-						if ((checkTile->getMapData(O_NORTHWALL) && checkTile->getMapData(O_NORTHWALL)->isDoor()) ||
-							(checkTile->getMapData(O_WESTWALL) && checkTile->getMapData(O_WESTWALL)->isDoor()))
-							return;
-					}
-					++its;
-				}
-			}
-		}
-	}
+//	int size = unit->getArmor()->getSize()-1;
+//	if (size >= 1)
+//	{
+//		int its = 0;
+//		const int dir[3] = {4,2,3};
+//		for (int x = 0; x <= size; x += size)
+//		{
+//			for (int y = 0; y <= size; y += size)
+//			{
+//				if (x || y)
+//				{
+//					Tile *checkTile = _save->getTile(endPosition + Position(x, y, 0));
+//					if ((isBlocked(destinationTile, checkTile, dir[its], unit) &&
+//						isBlocked(destinationTile, checkTile, dir[its], target))||
+//						(checkTile->getUnit() &&
+//						checkTile->getUnit() != unit &&
+//						checkTile->getUnit()->getVisible() &&
+//						checkTile->getUnit() != target))
+//						return;
+//					if (x && y)
+//					{
+//						if ((checkTile->getMapData(O_NORTHWALL) && checkTile->getMapData(O_NORTHWALL)->isDoor()) ||
+//							(checkTile->getMapData(O_WESTWALL) && checkTile->getMapData(O_WESTWALL)->isDoor()))
+//							return;
+//					}
+//					++its;
+//				}
+//			}
+//		}
+//	}
 	// Strafing move allowed only to adjacent squares on same z. "Same z" rule mainly to simplify walking render.
 	_strafeMove = Options::strafe && (SDL_GetModState() & KMOD_CTRL) != 0 && (startPosition.z == endPosition.z) &&
 							(abs(startPosition.x - endPosition.x) <= 1) && (abs(startPosition.y - endPosition.y) <= 1);
@@ -262,248 +263,286 @@ int Pathfinding::getTUCost(Position startPosition, int direction, Position *endP
 	_unit = unit;
 	directionToVector(direction, endPosition);
 	*endPosition += startPosition;
-	bool fellDown = false;
-	bool triedStairs = false;
-	int size = _unit->getArmor()->getSize() - 1;
+	const int size = _unit->getArmor()->getSize() - 1;
+	const int numberOfParts = _unit->getArmor()->getTotalSize();
 	bool armorAllowsStrafing = _unit->getArmor()->allowsStrafing(!size);
-	int cost = 0;
-	int numberOfPartsGoingUp = 0;
-	int numberOfPartsGoingDown = 0;
-	int numberOfPartsFalling = 0;
-	int numberOfPartsChangingHeight = 0;
-	int totalCost = 0;
+	int maskOfPartsGoingUp = 0x0;
+	int maskOfPartsHoleUp = 0x0;
+	int maskOfPartsGoingDown = 0x0;
+	int maskOfPartsFalling = 0x0;
+	int maskOfPartsGround = 0x0;
+	int maskArmor = size ? 0xF : 0x1;
 
-	for (int x = 0; x <= size; ++x)
-		for (int y = 0; y <= size; ++y)
+	Position offsets[4] =
+	{
+		{ 0, 0, 0 },
+		{ 1, 0, 0 },
+		{ 0, 1, 0 },
+		{ 1, 1, 0 },
+	};
+	Tile* startTile[4] = { };
+	Tile* destinationTile[4] = { };
+	Tile* aboveDestination[4] = { };
+	Tile* belowDestination[4] = { };
+
+	// init variables
+	for (int i = 0; i < numberOfParts; ++i)
+	{
+		Tile* st = _save->getTile(startPosition + offsets[i]);
+		Tile* dt = _save->getTile(*endPosition + offsets[i]);
+		if (!st || !dt)
 		{
-			Position offset = Position (x, y, 0);
-			Tile *startTile = _save->getTile(startPosition + offset);
-			Tile *destinationTile = _save->getTile(*endPosition + offset);
+			return 255;
+		}
+		startTile[i] = st;
+		destinationTile[i] = dt;
+		aboveDestination[i] = _save->getAboveTile(dt);
+		belowDestination[i] = _save->getBelowTile(dt);
+	}
 
-			// this means the destination is probably outside the map
-			if (startTile == 0 || destinationTile == 0)
+	// check move up or down
+	for (int i = 0; i < numberOfParts; ++i)
+	{
+		auto maskCurrentPart = 1 << i;
+		if (direction < DIR_UP && startTile[i]->getTerrainLevel() > - 16)
+		{
+			// check if we can go this way
+			if (isBlockedDirection(startTile[i], direction, target))
 				return 255;
-
-			if (!x && !y && _movementType != MT_FLY && canFallDown(startTile, size+1))
-			{
-				if (direction != DIR_DOWN)
-				{
-					return 255; //cannot walk on air
-				}
-				else
-				{
-					fellDown = true;
-				}
-			}
-			if (direction < DIR_UP && startTile->getTerrainLevel() > - 16)
-			{
-				// check if we can go this way
-				if (isBlocked(startTile, destinationTile, direction, target))
-					return 255;
-				if (startTile->getTerrainLevel() - destinationTile->getTerrainLevel() > 8)
-					return 255;
-			}
-
-			// this will later be used to re-cast the start tile again.
-			Position verticalOffset (0, 0, 0);
-
-			{
-				Tile *aboveDestination = _save->getAboveTile(destinationTile);
-				Tile *belowDestination = _save->getBelowTile(destinationTile);
-				// if we are on a stairs try to go up a level
-				if (direction < DIR_UP && startTile->getTerrainLevel() <= -16 && aboveDestination && !aboveDestination->hasNoFloor(_save))
-				{
-					numberOfPartsGoingUp++;
-					verticalOffset.z++;
-
-					if (!triedStairs)
-					{
-						endPosition->z++;
-						destinationTile = _save->getTile(*endPosition + offset);
-						triedStairs = true;
-					}
-				}
-				else if (direction < DIR_UP && !fellDown && _movementType != MT_FLY && belowDestination && canFallDown(destinationTile) && belowDestination->getTerrainLevel() <= -12)
-				{
-					numberOfPartsGoingDown++;
-
-					if (numberOfPartsGoingDown == (size + 1)*(size + 1))
-					{
-						endPosition->z--;
-						destinationTile = _save->getTile(*endPosition + offset);
-						fellDown = true;
-					}
-				}
-				else if (!missile && _movementType == MT_FLY && destinationTile)
-				{
-					// 2 or more voxels poking into this tile = no go
-					auto overlaping = destinationTile->getOverlappingUnit(_save, TUO_IGNORE_SMALL);
-					if (overlaping && overlaping != unit)
-					{
-						return 255;
-					}
-				}
-			}
-
-			// this means the destination is probably outside the map
-			if (!destinationTile)
+			if (startTile[i]->getTerrainLevel() - destinationTile[i]->getTerrainLevel() > 8)
 				return 255;
+		}
 
-			if (direction < DIR_UP && endPosition->z == startTile->getPosition().z)
-			{
-				// check if we can go this way
-				if (isBlocked(startTile, destinationTile, direction, target))
-					return 255;
-				if (startTile->getTerrainLevel() - destinationTile->getTerrainLevel() > 8)
-					return 255;
-			}
-			else if (direction >= DIR_UP && !fellDown)
-			{
-				// check if we can go up or down through gravlift or fly
-				if (validateUpDown(unit, startPosition + offset, direction, missile))
-				{
-					cost = 8; // vertical movement by flying suit or grav lift
-				}
-				else
-				{
-					return 255;
-				}
-			}
+		// if we are on a stairs try to go up a level
+		if (direction < DIR_UP && startTile[i]->getTerrainLevel() <= -16 && aboveDestination[i] && !aboveDestination[i]->hasNoFloor(_save))
+		{
+			maskOfPartsGoingUp |= maskCurrentPart;
 
-			// check if we have floor, else fall down
-			if (_movementType != MT_FLY && !fellDown && canFallDown(startTile))
-			{
-				numberOfPartsFalling++;
+		}
+		else if (direction < DIR_UP && _movementType != MT_FLY && belowDestination[i] && canFallDown(destinationTile[i]) && belowDestination[i]->getTerrainLevel() <= -12)
+		{
+			maskOfPartsGoingDown |= maskCurrentPart;
 
-				if (numberOfPartsFalling == (size+1)*(size+1) && direction != DIR_DOWN)
-				{
-						return 0;
-				}
-			}
-			startTile = _save->getTile(startTile->getPosition() + verticalOffset);
-
-
-			if (direction < DIR_UP && numberOfPartsGoingUp != 0)
-			{
-				// check if we can go this way
-				if (isBlocked(startTile, destinationTile, direction, target))
-					return 255;
-				if (startTile->getTerrainLevel() - destinationTile->getTerrainLevel() > 8)
-					return 255;
-			}
-
-			int wallcost = 0; // walking through rubble walls, but don't charge for walking diagonally through doors (which is impossible),
-							// they're a special case unto themselves, if we can walk past them diagonally, it means we can go around,
-							// as there is no wall blocking us.
-			if (direction == 0 || direction == 7 || direction == 1)
-				wallcost += startTile->getTUCost(O_NORTHWALL, _movementType);
-			if (!fellDown && (direction == 2 || direction == 1 || direction == 3))
-				wallcost += destinationTile->getTUCost(O_WESTWALL, _movementType);
-			if (!fellDown && (direction == 4 || direction == 3 || direction == 5))
-				wallcost += destinationTile->getTUCost(O_NORTHWALL, _movementType);
-			if (direction == 6 || direction == 5 || direction == 7)
-				wallcost += startTile->getTUCost(O_WESTWALL, _movementType);
-			// don't let tanks phase through doors.
-			if (x && y)
-			{
-				if ((destinationTile->getMapData(O_NORTHWALL) && destinationTile->getMapData(O_NORTHWALL)->isDoor()) ||
-					(destinationTile->getMapData(O_WESTWALL) && destinationTile->getMapData(O_WESTWALL)->isDoor()))
-				{
-					return 255;
-				}
-			}
-			// check if the destination tile can be walked over
-			if (isBlocked(destinationTile, O_FLOOR, target) || isBlocked(destinationTile, O_OBJECT, target))
+		}
+		else if (!missile && _movementType == MT_FLY)
+		{
+			// 2 or more voxels poking into this tile = no go
+			auto overlaping = destinationTile[i]->getOverlappingUnit(_save, TUO_IGNORE_SMALL);
+			if (overlaping && overlaping != unit)
 			{
 				return 255;
 			}
+		}
 
-			// if we don't want to fall down and there is no floor, we can't know the TUs so it's default to 4
-			if (direction < DIR_UP && !fellDown && destinationTile->hasNoFloor(0))
+		auto aboveStart =_save->getAboveTile(startTile[i]);
+		if (aboveStart && aboveStart->hasNoFloor(_save))
+		{
+			maskOfPartsHoleUp |= maskCurrentPart;
+		}
+		// check if we have floor, else fall down
+		if (_movementType != MT_FLY && canFallDown(startTile[i]))
+		{
+			maskOfPartsFalling |= maskCurrentPart;
+		}
+		if (!canFallDown(destinationTile[i]))
+		{
+			maskOfPartsGround |= maskCurrentPart;
+		}
+	}
+
+	if (_movementType != MT_FLY && (maskOfPartsFalling == maskArmor))
+	{
+		if (direction != DIR_DOWN)
+		{
+			return 255; //cannot walk on air
+		}
+	}
+
+	bool triedStairs = maskOfPartsGoingUp && ((maskOfPartsGoingUp | maskOfPartsHoleUp) == maskArmor);
+	bool fellDown = !maskOfPartsGround && (maskOfPartsGoingDown | maskOfPartsFalling) == maskArmor;
+
+	for (int i = 0; i < numberOfParts; ++i)
+	{
+		if (triedStairs)
+		{
+			destinationTile[i] = aboveDestination[i];
+		}
+		else if (fellDown)
+		{
+			destinationTile[i] = belowDestination[i];
+		}
+
+		// check if the destination tile can be walked over
+		if (isBlocked(destinationTile[i], O_FLOOR, target) || isBlocked(destinationTile[i], O_OBJECT, target))
+		{
+			return 255;
+		}
+	}
+
+	// don't let tanks phase through doors.
+	if (size)
+	{
+		auto t = destinationTile[3];
+		if ((t->getMapData(O_NORTHWALL) && t->getMapData(O_NORTHWALL)->isDoor()) ||
+			(t->getMapData(O_WESTWALL) && t->getMapData(O_WESTWALL)->isDoor()))
+		{
+			return 255;
+		}
+	}
+
+	// calcualte cost and some final checks
+	auto totalCost = 0;
+	for (int i = 0; i < numberOfParts; ++i)
+	{
+		auto cost = 0;
+		auto upperLevel = destinationTile[i]->getPosition().z > startTile[i]->getPosition().z;
+		auto sameLevel = destinationTile[i]->getPosition().z == startTile[i]->getPosition().z;
+		if (direction < DIR_UP && sameLevel)
+		{
+			// check if we can go this way
+			if (isBlockedDirection(startTile[i], direction, target))
+				return 255;
+			if (startTile[i]->getTerrainLevel() - destinationTile[i]->getTerrainLevel() > 8)
+				return 255;
+		}
+		else if (direction >= DIR_UP && !fellDown)
+		{
+			// check if we can go up or down through gravlift or fly
+			if (validateUpDown(unit, startTile[i]->getPosition(), direction, missile))
 			{
-				cost = 4;
+				cost = 8; // vertical movement by flying suit or grav lift
 			}
-			// calculate the cost by adding floor walk cost and object walk cost
+			else
+			{
+				return 255;
+			}
+		}
+		if (upperLevel)
+		{
+			startTile[i] = _save->getAboveTile(startTile[i]);
+
 			if (direction < DIR_UP)
 			{
-				cost += destinationTile->getTUCost(O_FLOOR, _movementType);
-				if (!fellDown && !triedStairs && destinationTile->getMapData(O_OBJECT))
-				{
-					cost += destinationTile->getTUCost(O_OBJECT, _movementType);
-				}
-				// climbing up a level costs one extra
-				if (verticalOffset.z > 0)
-				{
-					cost++;
-				}
+				// check if we can go this way
+				if (isBlockedDirection(startTile[i], direction, target))
+					return 255;
+				if (startTile[i]->getTerrainLevel() - destinationTile[i]->getTerrainLevel() > 8)
+					return 255;
 			}
-
-			// diagonal walking (uneven directions) costs 50% more tu's
-			if (direction < DIR_UP && direction & 1)
-			{
-				wallcost /= 2;
-				cost = (int)((double)cost * 1.5);
-			}
-			cost += wallcost;
-			if (_unit->getFaction() != FACTION_PLAYER &&
-				_unit->getSpecialAbility() < SPECAB_BURNFLOOR &&
-				destinationTile->getFire() > 0)
-				cost += 32; // try to find a better path, but don't exclude this path entirely.
-
-			// TFTD thing: underwater tiles on fire or filled with smoke cost 2 TUs more for whatever reason.
-			if (_save->getDepth() > 0 && (destinationTile->getFire() > 0 || destinationTile->getSmoke() > 0))
-			{
-				cost += 2;
-			}
-
-			// Strafing costs +1 for forwards-ish or sidewards, propose +2 for backwards-ish directions
-			// Maybe if flying then it makes no difference?
-			if (Options::strafe && _strafeMove) {
-				if (!armorAllowsStrafing)
-				{
-					// Armor doesn't support strafing, turn off strafe move and continue
-					_strafeMove = false;
-				}
-				else
-				{
-					if (std::min(abs(8 + direction - _unit->getDirection()), std::min( abs(_unit->getDirection() - direction), abs(8 + _unit->getDirection() - direction))) > 2) {
-						// Strafing backwards-ish currently unsupported, turn it off and continue.
-						_strafeMove = false;
-					}
-					else
-					{
-						if (_unit->getDirection() != direction) {
-							cost += 1;
-						}
-					}
-				}
-			}
-			totalCost += cost;
-			cost = 0;
 		}
+
+		int wallcost = 0; // walking through rubble walls, but don't charge for walking diagonally through doors (which is impossible),
+						// they're a special case unto themselves, if we can walk past them diagonally, it means we can go around,
+						// as there is no wall blocking us.
+		if (direction == 0 || direction == 7 || direction == 1)
+			wallcost += startTile[i]->getTUCost(O_NORTHWALL, _movementType);
+		if (!fellDown && (direction == 2 || direction == 1 || direction == 3))
+			wallcost += destinationTile[i]->getTUCost(O_WESTWALL, _movementType);
+		if (!fellDown && (direction == 4 || direction == 3 || direction == 5))
+			wallcost += destinationTile[i]->getTUCost(O_NORTHWALL, _movementType);
+		if (direction == 6 || direction == 5 || direction == 7)
+			wallcost += startTile[i]->getTUCost(O_WESTWALL, _movementType);
+
+		// if we don't want to fall down and there is no floor, we can't know the TUs so it's default to 4
+		if (direction < DIR_UP && !fellDown && destinationTile[i]->hasNoFloor(0))
+		{
+			cost = 4;
+		}
+
+		// calculate the cost by adding floor walk cost and object walk cost
+		if (direction < DIR_UP)
+		{
+			cost += destinationTile[i]->getTUCost(O_FLOOR, _movementType);
+			if (!fellDown && !triedStairs && destinationTile[i]->getMapData(O_OBJECT))
+			{
+				cost += destinationTile[i]->getTUCost(O_OBJECT, _movementType);
+			}
+			// climbing up a level costs one extra
+			if (upperLevel)
+			{
+				cost++;
+			}
+		}
+
+		// diagonal walking (uneven directions) costs 50% more tu's
+		if (direction < DIR_UP && direction & 1)
+		{
+			wallcost /= 2;
+			cost = (int)((double)cost * 1.5);
+		}
+
+		cost += wallcost;
+		if (_unit->getFaction() != FACTION_PLAYER &&
+			_unit->getSpecialAbility() < SPECAB_BURNFLOOR &&
+			destinationTile[i]->getFire() > 0)
+			cost += 32; // try to find a better path, but don't exclude this path entirely.
+
+		// TFTD thing: underwater tiles on fire or filled with smoke cost 2 TUs more for whatever reason.
+		if (_save->getDepth() > 0 && (destinationTile[i]->getFire() > 0 || destinationTile[i]->getSmoke() > 0))
+		{
+			cost += 2;
+		}
+		totalCost += cost;
+	}
+
+	// becasue unit move up or down we adjust final position
+	if (triedStairs)
+	{
+		endPosition->z++;
+	}
+	else if (direction != DIR_DOWN && fellDown)
+	{
+		endPosition->z--;
+	}
+	else if (direction != DIR_DOWN && maskOfPartsFalling == maskArmor)
+	{
+		return 0;
+	}
 
 	// for bigger sized units, check the path between parts in an X shape at the end position
 	if (size)
 	{
-		totalCost /= (size+1)*(size+1);
+		totalCost /= numberOfParts;
 		Tile *startTile = _save->getTile(*endPosition + Position(1,1,0));
 		Tile *destinationTile = _save->getTile(*endPosition);
 		int tmpDirection = 7;
-		if (isBlocked(startTile, destinationTile, tmpDirection, target))
+		if (isBlockedDirection(startTile, tmpDirection, target))
 			return 255;
 		if (!fellDown && abs(startTile->getTerrainLevel() - destinationTile->getTerrainLevel()) > 10)
 			return 255;
 		startTile = _save->getTile(*endPosition + Position(1,0,0));
 		destinationTile = _save->getTile(*endPosition + Position(0,1,0));
 		tmpDirection = 5;
-		if (isBlocked(startTile, destinationTile, tmpDirection, target))
+		if (isBlockedDirection(startTile, tmpDirection, target))
 			return 255;
 		if (!fellDown && abs(startTile->getTerrainLevel() - destinationTile->getTerrainLevel()) > 10)
 			return 255;
-		// also check if we change level, that there are two parts changing level,
-		// so a big sized unit can not go up a small sized stairs
-		if (numberOfPartsChangingHeight == 1)
-			return 255;
+	}
+
+	// Strafing costs +1 for forwards-ish or sidewards, propose +2 for backwards-ish directions
+	// Maybe if flying then it makes no difference?
+	if (Options::strafe && _strafeMove)
+	{
+		if (!armorAllowsStrafing)
+		{
+			// Armor doesn't support strafing, turn off strafe move and continue
+			_strafeMove = false;
+		}
+		else
+		{
+			if (std::min(abs(8 + direction - _unit->getDirection()), std::min( abs(_unit->getDirection() - direction), abs(8 + _unit->getDirection() - direction))) > 2)
+			{
+				// Strafing backwards-ish currently unsupported, turn it off and continue.
+				_strafeMove = false;
+			}
+			else
+			{
+				if (_unit->getDirection() != direction)
+				{
+					totalCost += 1;
+				}
+			}
+		}
 	}
 
 	if (missile)
@@ -653,12 +692,11 @@ bool Pathfinding::isBlocked(Tile *tile, const int part, BattleUnit *missileTarge
 /**
  * Determines whether going from one tile to another blocks movement.
  * @param startTile The tile to start from.
- * @param endTile The tile we want to reach.
  * @param direction The direction we are facing.
  * @param missileTarget Target for a missile.
  * @return True if the movement is blocked.
  */
-bool Pathfinding::isBlocked(Tile *startTile, Tile * /* endTile */, const int direction, BattleUnit *missileTarget)
+bool Pathfinding::isBlockedDirection(Tile *startTile, const int direction, BattleUnit *missileTarget)
 {
 
 	// check if the difference in height between start and destination is not too high
@@ -1077,7 +1115,7 @@ bool Pathfinding::bresenhamPath(Position origin, Position target, BattleUnit *ta
 			int lastTUCostDiagonal = lastTUCost + lastTUCost / 2;
 			int tuCostDiagonal = tuCost + tuCost / 2;
 			if (nextPoint == realNextPoint && tuCost < 255 && (tuCost == lastTUCost || (isDiagonal && tuCost == lastTUCostDiagonal) || (!isDiagonal && tuCostDiagonal == lastTUCost) || lastTUCost == -1)
-				&& !isBlocked(_save->getTile(lastPoint), _save->getTile(nextPoint), dir, targetUnit))
+				&& !isBlockedDirection(_save->getTile(lastPoint), dir, targetUnit))
 			{
 				_path.push_back(dir);
 			}
