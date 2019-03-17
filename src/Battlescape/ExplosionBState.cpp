@@ -193,10 +193,15 @@ void ExplosionBState::init()
 		_areaOfEffect = true;
 	}
 
+
+	bool range = !(_hit || (_attack.weapon_item && _attack.weapon_item->getRules()->getBattleType() == BT_PSIAMP));
+
 	if (_areaOfEffect)
 	{
 		if (_power > 0)
 		{
+			_parent->getSave()->getTileEngine()->explode(_attack, _center, _power, _damageType, _radius, range);
+
 			int frame = Mod::EXPLOSION_OFFSET;
 			int sound = _power <= 80 ? Mod::SMALL_EXPLOSION : Mod::LARGE_EXPLOSION;
 
@@ -240,6 +245,8 @@ void ExplosionBState::init()
 	else
 	// create a bullet hit
 	{
+		_parent->getSave()->getTileEngine()->hit(_attack, _center, _power, _damageType, range);
+
 		_parent->setStateInterval(std::max(1, ((BattlescapeState::DEFAULT_ANIM_SPEED/2) - (10 * itemRule->getExplosionSpeed()))));
 		int anim = -1;
 		int sound = -1;
@@ -386,17 +393,6 @@ void ExplosionBState::explode()
 			optValue(sound, _attack.damage_item->getRules()->getMeleeHitSound());
 		}
 		_parent->playSound(sound, _center.toTile());
-	}
-
-	bool range = !(_hit || (_attack.weapon_item && _attack.weapon_item->getRules()->getBattleType() == BT_PSIAMP));
-
-	if (_areaOfEffect)
-	{
-		save->getTileEngine()->explode(_attack, _center, _power, _damageType, _radius, range);
-	}
-	else
-	{
-		save->getTileEngine()->hit(_attack, _center, _power, _damageType, range);
 	}
 
 	if (_tile)
