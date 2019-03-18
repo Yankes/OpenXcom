@@ -298,8 +298,8 @@ public:
 	bool spendEnergy(int energy);
 	/// Force to spend resources cost without checking.
 	void spendCost(const RuleItemUseCost& cost);
-	/// Set time units.
-	void setTimeUnits(int tu);
+	/// Clear time units.
+	void clearTimeUnits();
 	/// Add unit to visible units.
 	bool addToVisibleUnits(BattleUnit *unit);
 	/// Remove a unit from the list of visible units.

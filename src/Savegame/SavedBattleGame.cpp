@@ -1820,7 +1820,7 @@ void SavedBattleGame::reviveUnconsciousUnits(bool noTU)
 					(*i)->turn(false); // makes the unit stand up again
 					(*i)->kneel(false);
 					(*i)->setAlreadyExploded(false);
-					if (noTU) (*i)->setTimeUnits(0);
+					if (noTU) (*i)->clearTimeUnits();
 					removeUnconsciousBodyItem((*i));
 				}
 			}

@@ -2321,8 +2321,7 @@ inline void BattlescapeState::handle(Action *action)
 								unit->setPosition(newPos);
 
 								//free refreash as bonus
-								unit->setTimeUnits(unit->getBaseStats()->tu);
-								unit->setEnergy(unit->getBaseStats()->stamina);
+								unit->updateUnitStats(true, false);
 								_save->getTileEngine()->calculateLighting(LL_UNITS);
 								_save->getBattleGame()->handleState();
 								updateSoldierInfo(true);
@@ -2920,7 +2919,7 @@ void BattlescapeState::btnZeroTUsClick(Action *action)
 		action->getSender()->mousePress(&a, this);
 		if (_battleGame->getSave()->getSelectedUnit())
 		{
-			_battleGame->getSave()->getSelectedUnit()->setTimeUnits(0);
+			_battleGame->getSave()->getSelectedUnit()->clearTimeUnits();
 			updateSoldierInfo();
 		}
 	}

@@ -2060,7 +2060,7 @@ BattleUnit *BattlescapeGame::convertUnit(BattleUnit *unit)
 	newUnit->setTile(tile, _save);
 	newUnit->setPosition(unit->getPosition());
 	newUnit->setDirection(unit->getDirection());
-	newUnit->setTimeUnits(0);
+	newUnit->clearTimeUnits();
 	getSave()->getUnits()->push_back(newUnit);
 	newUnit->setAIModule(new AIModule(getSave(), newUnit, 0));
 	newUnit->setVisible(visible);
@@ -2161,7 +2161,7 @@ void BattlescapeGame::spawnNewUnit(BattleActionAttack attack, Position position)
 		newUnit->setTile(_save->getTile(position), _save);
 		newUnit->setPosition(position);
 		newUnit->setDirection(unitDirection);
-		newUnit->setTimeUnits(0);
+		newUnit->clearTimeUnits();
 		getSave()->getUnits()->push_back(newUnit);
 		if (faction != FACTION_PLAYER)
 			newUnit->setAIModule(new AIModule(getSave(), newUnit, 0));

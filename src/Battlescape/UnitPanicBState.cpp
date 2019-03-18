@@ -132,7 +132,7 @@ void UnitPanicBState::think()
 			_unit->abortTurn(); // set the unit status to standing in case it wasn't otherwise changed from berserk/panicked
 		}
 		// reset the unit's time units when all panicking is done
-		_unit->setTimeUnits(0);
+		_unit->clearTimeUnits();
 		_unit->moraleChange(+15);
 	}
 	_parent->popState();

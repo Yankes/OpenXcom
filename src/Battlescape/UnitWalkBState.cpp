@@ -496,7 +496,7 @@ void UnitWalkBState::postPathProcedures()
 	else if (!_parent->getPanicHandled())
 	{
 		//todo: set the unit to aggrostate and try to find cover?
-		_unit->setTimeUnits(0);
+		_unit->clearTimeUnits();
 	}
 
 	_terrain->calculateLighting(LL_UNITS, _unit->getPosition());
