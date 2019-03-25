@@ -26,6 +26,7 @@
 #include <cstring>
 #include <yaml-cpp/yaml.h>
 #include <SDL_stdinc.h>
+#include <cassert>
 
 #include "HelperMeta.h"
 #include "Logger.h"
@@ -895,6 +896,9 @@ public:
 	{
 		const auto size_a = a.size();
 		const auto size_b = b.size();
+
+		assert(size_a < SIZE_MAX/2);
+
 		if (size_a == size_b)
 		{
 			return memcmp(a._begin, b._begin, size_a);
