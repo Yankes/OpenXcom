@@ -666,17 +666,19 @@ int Mod::getModOffset() const
  */
 int Mod::getSpriteOffset(int sprite, const std::string& set) const
 {
-	if ((size_t)sprite > _modSize)
+	if (sprite != -1)
 	{
-		std::ostringstream err;
-		err << "Sprite " << sprite << " in " << set << " excess mod size limit " << _modSize;
-		throw Exception(err.str());
+		if ((size_t)sprite > _modSize)
+		{
+			std::ostringstream err;
+			err << "Sprite " << sprite << " in " << set << " excess mod size limit " << _modSize;
+			throw Exception(err.str());
+		}
+		std::map<std::string, SurfaceSet*>::const_iterator i = _sets.find(set);
+		if (i != _sets.end() && sprite >= (int)i->second->getTotalFrames())
+			return sprite + _modOffset;
 	}
-	std::map<std::string, SurfaceSet*>::const_iterator i = _sets.find(set);
-	if (i != _sets.end() && sprite >= (int)i->second->getTotalFrames())
-		return sprite + _modOffset;
-	else
-		return sprite;
+	return sprite;
 }
 
 /**
@@ -687,11 +689,19 @@ int Mod::getSpriteOffset(int sprite, const std::string& set) const
  */
 int Mod::getSoundOffset(int sound, const std::string& set) const
 {
-	std::map<std::string, SoundSet*>::const_iterator i = _sounds.find(set);
-	if (i != _sounds.end() && sound >= (int)i->second->getTotalSounds())
-		return sound + _modOffset;
-	else
-		return sound;
+	if (sound != -1)
+	{
+		if ((size_t)sound > _modSize)
+		{
+			std::ostringstream err;
+			err << "Sound " << sound << " in " << set << " excess mod size limit " << _modSize;
+			throw Exception(err.str());
+		}
+		std::map<std::string, SoundSet*>::const_iterator i = _sounds.find(set);
+		if (i != _sounds.end() && sound >= (int)i->second->getTotalSounds())
+			return sound + _modOffset;
+	}
+	return sound;
 }
 
 /**
