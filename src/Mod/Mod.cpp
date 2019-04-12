@@ -190,7 +190,7 @@ void Mod::resetGlobalStatics()
  * Creates an empty mod.
  */
 Mod::Mod() : _costEngineer(0), _costScientist(0), _timePersonnel(0), _initialFunding(0), _turnAIUseGrenade(3), _turnAIUseBlaster(3), _defeatScore(0), _defeatFunds(0), _startingTime(6, 1, 1, 1999, 12, 0, 0),
-			 _facilityListOrder(0), _craftListOrder(0), _itemListOrder(0), _researchListOrder(0),  _manufactureListOrder(0), _ufopaediaListOrder(0), _invListOrder(0), _modOffset(0), _statePalette(0)
+			 _facilityListOrder(0), _craftListOrder(0), _itemListOrder(0), _researchListOrder(0),  _manufactureListOrder(0), _ufopaediaListOrder(0), _invListOrder(0), _modOffset(0), _modSize(0), _statePalette(0)
 {
 	_muteMusic = new Music();
 	_muteSound = new Sound();
@@ -666,6 +666,12 @@ int Mod::getModOffset() const
  */
 int Mod::getSpriteOffset(int sprite, const std::string& set) const
 {
+	if ((size_t)sprite > _modSize)
+	{
+		std::ostringstream err;
+		err << "Sprite " << sprite << " in " << set << " excess mod size limit " << _modSize;
+		throw Exception(err.str());
+	}
 	std::map<std::string, SurfaceSet*>::const_iterator i = _sets.find(set);
 	if (i != _sets.end() && sprite >= (int)i->second->getTotalFrames())
 		return sprite + _modOffset;
@@ -710,25 +716,25 @@ void Mod::loadAll(const std::vector< std::pair< std::string, std::vector<std::st
 {
 	Log(LOG_INFO) << "Loading rulesets...";
 	std::vector<size_t> modOffsets(mods.size());
+	std::vector<size_t> modSizes(mods.size());
 	size_t offset = 0;
 	for (size_t i = 0; mods.size() > i; ++i)
 	{
 		modOffsets[i] = offset;
+		size_t size = 1;
 		std::map<std::string, ModInfo>::const_iterator it = Options::getModInfos().find(mods[i].first);
 		if (it != Options::getModInfos().end())
 		{
-			offset += it->second.getReservedSpace();
+			size = it->second.getReservedSpace();
 		}
-		else
-		{
-			offset += 1;
-		}
+		offset += size;
+		modSizes[i] = size;
 	}
 	for (size_t i = 0; mods.size() > i; ++i)
 	{
 		try
 		{
-			loadMod(mods[i].second, modOffsets[i]);
+			loadMod(mods[i].second, modOffsets[i], modSizes[i]);
 		}
 		catch (Exception &e)
 		{
@@ -774,9 +780,10 @@ void Mod::loadAll(const std::vector< std::pair< std::string, std::vector<std::st
  * @param rulesetFiles List of rulesets to load.
  * @param modIdx Mod index number.
  */
-void Mod::loadMod(const std::vector<std::string> &rulesetFiles, size_t modIdx)
+void Mod::loadMod(const std::vector<std::string> &rulesetFiles, size_t modIdx, size_t modSize)
 {
 	_modOffset = 1000 * modIdx;
+	_modSize = 1000 * modSize;
 
 	for (std::vector<std::string>::const_iterator i = rulesetFiles.begin(); i != rulesetFiles.end(); ++i)
 	{
