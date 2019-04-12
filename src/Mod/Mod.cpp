@@ -730,6 +730,9 @@ void Mod::loadAll(const std::vector< std::pair< std::string, std::vector<std::st
 		offset += size;
 		modSizes[i] = size;
 	}
+
+	loadVanillaResources();
+
 	for (size_t i = 0; mods.size() > i; ++i)
 	{
 		try
@@ -769,6 +772,7 @@ void Mod::loadAll(const std::vector< std::pair< std::string, std::vector<std::st
 			throw Exception(ss.str());
 		}
 	}
+
 	sortLists();
 	loadExtraResources();
 	modResources();
@@ -853,11 +857,6 @@ void Mod::loadMod(const std::vector<std::string> &rulesetFiles, size_t modIdx, s
 				throw Exception("Error with MissionWeights: Region: " + (*i).first + " has " + *j + " listed. Terror mission can only be invoked via missionScript, so sayeth the Spider Queen.");
 			}
 		}
-	}
-
-	if (modIdx == 0)
-	{
-		loadVanillaResources();
 	}
 }
 
