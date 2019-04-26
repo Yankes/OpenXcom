@@ -54,7 +54,11 @@ void RuleCraft::load(const YAML::Node &node, Mod *mod, int listOrder)
 	_requires = node["requires"].as< std::vector<std::string> >(_requires);
 	if (node["sprite"])
 	{
-		// this is an offset in BASEBITS.PCK, and two in INTICONS.PCK
+		// used in
+		// Surface set (base offset):
+		// BASEBITS.PCK (33)
+		// INTICONS.PCK (11)
+		// INTICONS.PCK (0)
 		_sprite = mod->getOffset(node["sprite"].as<int>(_sprite), 4);
 	}
 	if (node["marker"])
