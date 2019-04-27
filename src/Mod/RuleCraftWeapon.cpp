@@ -48,15 +48,14 @@ void RuleCraftWeapon::load(const YAML::Node &node, Mod *mod)
 	if (node["sprite"])
 	{
 		// used in
-		// Surface set (base offset):
-		// BASEBITS.PCK (48)
-		// INTICONS.PCK (5)
+		// Surface set (baseOffset):
+		//   BASEBITS.PCK (48)
+		//   INTICONS.PCK (5)
+		//
+		// Final index in surfaceset is `baseOffset + sprite + (sprite > 5 ? modOffset : 0)`
 		_sprite = mod->getOffset(node["sprite"].as<int>(_sprite), 5);
 	}
-	if (node["sound"])
-	{
-		_sound = mod->getSoundOffset(node["sound"].as<int>(_sound), "GEO.CAT");
-	}
+	mod->loadSoundOffset(_type, _sound, node["sound"], "GEO.CAT");
 	_damage = node["damage"].as<int>(_damage);
 	_range = node["range"].as<int>(_range);
 	_accuracy = node["accuracy"].as<int>(_accuracy);

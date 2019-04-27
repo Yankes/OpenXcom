@@ -40,7 +40,7 @@ private:
 	int _modIndex, _subX, _subY;
 	bool _loaded;
 
-	Surface *getFrame(SurfaceSet *set, int index, bool adding) const;
+	Surface *getFrame(SurfaceSet *set, int index) const;
 public:
 	/// Creates a blank external sprite set.
 	ExtraSprites();

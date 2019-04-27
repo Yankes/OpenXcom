@@ -55,10 +55,12 @@ void RuleCraft::load(const YAML::Node &node, Mod *mod, int listOrder)
 	if (node["sprite"])
 	{
 		// used in
-		// Surface set (base offset):
-		// BASEBITS.PCK (33)
-		// INTICONS.PCK (11)
-		// INTICONS.PCK (0)
+		// Surface set (baseOffset):
+		//   BASEBITS.PCK (33)
+		//   INTICONS.PCK (11)
+		//   INTICONS.PCK (0)
+		//
+		// Final index in surfaceset is `baseOffset + sprite + (sprite > 4 ? modOffset : 0)`
 		_sprite = mod->getOffset(node["sprite"].as<int>(_sprite), 4);
 	}
 	if (node["marker"])

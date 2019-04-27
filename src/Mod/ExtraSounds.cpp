@@ -128,16 +128,22 @@ SoundSet *ExtraSounds::loadSoundSet(SoundSet *set) const
 
 void ExtraSounds::loadSound(SoundSet *set, int index, const std::string &fileName) const
 {
+	int indexWithOffset = index;
+	if (indexWithOffset >= set->getMaxSharedSounds())
+	{
+		indexWithOffset += _modIndex;
+	}
+
 	const std::string &fullPath = FileMap::getFilePath(fileName);
-	Sound *sound = set->getSound(index);
+	Sound *sound = set->getSound(indexWithOffset);
 	if (sound)
 	{
-		Log(LOG_VERBOSE) << "Replacing index: " << index;
+		Log(LOG_VERBOSE) << "Replacing sound: " << index << ", using index: " << indexWithOffset;
 	}
 	else
 	{
-		Log(LOG_VERBOSE) << "Adding index: " << index;
-		sound = set->addSound(index + _modIndex);
+		Log(LOG_VERBOSE) << "Adding sound: " << index << ", using index: " << indexWithOffset;
+		sound = set->addSound(indexWithOffset);
 	}
 	sound->load(fullPath);
 }

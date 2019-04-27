@@ -193,11 +193,9 @@ SurfaceSet *ExtraSprites::loadSurfaceSet(SurfaceSet *set)
 	_loaded = true;
 
 	bool subdivision = (_subX != 0 && _subY != 0);
-	bool adding = false;
 	if (set == 0)
 	{
 		Log(LOG_VERBOSE) << "Creating new surface set: " << _type;
-		adding = true;
 		if (subdivision)
 		{
 			set = new SurfaceSet(_subX, _subY);
@@ -228,7 +226,7 @@ SurfaceSet *ExtraSprites::loadSurfaceSet(SurfaceSet *set)
 				try
 				{
 					const std::string &fullPath = FileMap::getFilePath(fileName + *k);
-					getFrame(set, offset, adding)->loadImage(fullPath);
+					getFrame(set, offset)->loadImage(fullPath);
 					offset++;
 				}
 				catch (Exception &e)
@@ -242,8 +240,7 @@ SurfaceSet *ExtraSprites::loadSurfaceSet(SurfaceSet *set)
 			const std::string &fullPath = FileMap::getFilePath(fileName);
 			if (!subdivision)
 			{
-				// TODO: Should we be passing "adding" here?
-				getFrame(set, startFrame, false)->loadImage(fullPath);
+				getFrame(set, startFrame)->loadImage(fullPath);
 			}
 			else
 			{
@@ -259,8 +256,7 @@ SurfaceSet *ExtraSprites::loadSurfaceSet(SurfaceSet *set)
 				{
 					for (int x = 0; x != xDivision; ++x)
 					{
-						Surface* frame = getFrame(set, offset, adding);
-						frame->clear();
+						Surface* frame = getFrame(set, offset);
 						// for some reason regular blit() doesn't work here how i want it, so i use this function instead.
 						temp.blitNShade(frame, 0 - (x * _subX), 0 - (y * _subY), 0);
 						++offset;
@@ -272,25 +268,24 @@ SurfaceSet *ExtraSprites::loadSurfaceSet(SurfaceSet *set)
 	return set;
 }
 
-Surface *ExtraSprites::getFrame(SurfaceSet *set, int index, bool adding) const
+Surface *ExtraSprites::getFrame(SurfaceSet *set, int index) const
 {
-	Surface *frame = set->getFrame(index);
+	int indexWithOffset = index;
+	if (indexWithOffset >= set->getMaxSharedFrames())
+	{
+		indexWithOffset += _modIndex;
+	}
+
+	Surface *frame = set->getFrame(indexWithOffset);
 	if (frame)
 	{
-		Log(LOG_VERBOSE) << "Replacing frame: " << index;
+		Log(LOG_VERBOSE) << "Replacing frame: " << index << ", using index: " << indexWithOffset;
+		frame->clear();
 	}
 	else
 	{
-		if (adding)
-		{
-			Log(LOG_VERBOSE) << "Adding frame: " << index;
-			frame = set->addFrame(index);
-		}
-		else
-		{
-			Log(LOG_VERBOSE) << "Adding frame: " << index << ", using index: " << index + _modIndex;
-			frame = set->addFrame(index + _modIndex);
-		}
+		Log(LOG_VERBOSE) << "Adding frame: " << index << ", using index: " << indexWithOffset;
+		frame = set->addFrame(indexWithOffset);
 	}
 	return frame;
 }

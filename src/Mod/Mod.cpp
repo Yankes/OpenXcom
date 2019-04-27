@@ -664,21 +664,27 @@ int Mod::getModOffset() const
  * @param sprite Numeric ID of the sprite.
  * @param set Name of the surfaceset to lookup.
  */
-int Mod::getSpriteOffset(int sprite, const std::string& set) const
+void Mod::loadSpriteOffset(const std::string &parent, int& sprite, const YAML::Node &node, const std::string &set, int multipler) const
 {
-	if (sprite != -1)
+	if (node)
 	{
-		if ((size_t)sprite > _modSize)
+		if (node.IsScalar())
 		{
-			std::ostringstream err;
-			err << "Sprite " << sprite << " in " << set << " excess mod size limit " << _modSize;
-			throw Exception(err.str());
+			sprite = node.as<int>();
+			if (sprite >= 0)
+			{
+				sprite *= multipler;
+				if ((size_t)sprite > _modSize)
+				{
+					std::ostringstream err;
+					err << "Sprite index " << sprite << " for '" << parent << "' excess mod size limit " << _modSize;
+					throw Exception(err.str());
+				}
+				if (sprite >= getRule(set, "Sprite Set", _sets, true)->getMaxSharedFrames())
+					sprite += _modOffset;
+			}
 		}
-		std::map<std::string, SurfaceSet*>::const_iterator i = _sets.find(set);
-		if (i != _sets.end() && sprite >= (int)i->second->getTotalFrames())
-			return sprite + _modOffset;
 	}
-	return sprite;
 }
 
 /**
@@ -687,21 +693,26 @@ int Mod::getSpriteOffset(int sprite, const std::string& set) const
  * @param sound Numeric ID of the sound.
  * @param set Name of the soundset to lookup.
  */
-int Mod::getSoundOffset(int sound, const std::string& set) const
+void Mod::loadSoundOffset(const std::string &parent, int& sound, const YAML::Node &node, const std::string &set) const
 {
-	if (sound != -1)
+	if (node)
 	{
-		if ((size_t)sound > _modSize)
+		if (node.IsScalar())
 		{
-			std::ostringstream err;
-			err << "Sound " << sound << " in " << set << " excess mod size limit " << _modSize;
-			throw Exception(err.str());
+			sound = node.as<int>();
+			if (sound >= 0)
+			{
+				if ((size_t)sound > _modSize)
+				{
+					std::ostringstream err;
+					err << "Sound index " << sound << " for '" << parent << "' excess mod size limit " << _modSize;
+					throw Exception(err.str());
+				}
+				if (sound >= getSoundSet(set)->getMaxSharedSounds())
+					sound += _modOffset;
+			}
 		}
-		std::map<std::string, SoundSet*>::const_iterator i = _sounds.find(set);
-		if (i != _sounds.end() && sound >= (int)i->second->getTotalSounds())
-			return sound + _modOffset;
 	}
-	return sound;
 }
 
 /**
@@ -2751,6 +2762,45 @@ void Mod::loadVanillaResources()
 	Window::soundPopup[2] = getSound("GEO.CAT", Mod::WINDOW_POPUP[2]);
 
 	loadBattlescapeResources(); // TODO load this at battlescape start, unload at battlescape end?
+
+	//update number of shared indexes in surface sets and sound sets
+	{
+		std::string surfaceNames[] =
+		{
+			"BIGOBS.PCK",
+			"FLOOROB.PCK",
+			"HANDOB.PCK",
+			"SMOKE.PCK",
+			"HIT.PCK",
+			"BASEBITS.PCK",
+			"X1.PCK",
+		};
+
+		for (size_t i = 0; i < ARRAYLEN(surfaceNames); ++i)
+		{
+			SurfaceSet* s = _sets[surfaceNames[i]];
+			s->setMaxSharedFrames((int)s->getTotalFrames());
+		}
+		//special case for surface set that is loaded later
+		{
+			SurfaceSet* s = _sets["Projectiles"];
+			s->setMaxSharedFrames(385);
+		}
+	}
+	{
+		std::string soundNames[] =
+		{
+			"BATTLE.CAT",
+			"BATTLE2.CAT",
+			"GEO.CAT",
+		};
+
+		for (size_t i = 0; i < ARRAYLEN(soundNames); ++i)
+		{
+			SoundSet* s = _sounds[soundNames[i]];
+			s->setMaxSharedSounds((int)s->getTotalSounds());
+		}
+	}
 }
 
 /**
@@ -2773,6 +2823,7 @@ void Mod::loadBattlescapeResources()
 	_sets["MEDIBITS.DAT"]->loadDat(FileMap::getFilePath("UFOGRAPH/MEDIBITS.DAT"));
 	_sets["DETBLOB.DAT"] = new SurfaceSet(16, 16);
 	_sets["DETBLOB.DAT"]->loadDat(FileMap::getFilePath("UFOGRAPH/DETBLOB.DAT"));
+	_sets["Projectiles"] = new SurfaceSet(3, 3);
 
 	// Load Battlescape Terrain (only blanks are loaded, others are loaded just in time)
 	_sets["BLANKS.PCK"] = new SurfaceSet(32, 40);
