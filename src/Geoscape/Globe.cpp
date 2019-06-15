@@ -76,6 +76,8 @@ struct GlobeStaticData
 {
 	///array of shading gradient
 	Sint16 shade_gradient[240];
+	Sint16 shade_step[240];
+	Sint16 shade_seq[240];
 	///size of x & y of noise surface
 	const int random_surf_size;
 
@@ -115,48 +117,31 @@ struct GlobeStaticData
 	//initialization
 	GlobeStaticData() : random_surf_size(60)
 	{
+		int iLastVal = -100;
+		int iLast = 0;
 		//filling terminator gradient LUT
 		for (int i=0; i<240; ++i)
 		{
 			int j = i - 120;
 
-			if (j<-66) j=-16;
-			else
-			if (j<-48) j=-15;
-			else
-			if (j<-33) j=-14;
-			else
-			if (j<-22) j=-13;
-			else
-			if (j<-15) j=-12;
-			else
-			if (j<-11) j=-11;
-			else
-			if (j<-9) j=-10;
+			int t = 16 + (int)(std::sin(j * M_PI / 240) * 18);
+			if (t != iLastVal)
+			{
+				for (int p = iLast; p < i; ++p)
+				{
+					shade_step[p] = 32 / (i - iLast);
+					shade_seq[p] = 32 * (p - iLast) / (i - iLast);
+				}
+				iLastVal = t;
+				iLast = i;
+			}
+			shade_gradient[i] = t;
+		}
 
-			if (j>120) j=19;
-			else
-			if (j>98) j=18;
-			else
-			if (j>86) j=17;
-			else
-			if (j>74) j=16;
-			else
-			if (j>54) j=15;
-			else
-			if (j>38) j=14;
-			else
-			if (j>26) j=13;
-			else
-			if (j>18) j=12;
-			else
-			if (j>13) j=11;
-			else
-			if (j>10) j=10;
-			else
-			if (j>8) j=9;
-
-			shade_gradient[i]= j+16;
+		for (int p = iLast; p < 240; ++p)
+		{
+			shade_step[p] = 32 / (240 - iLast);
+			shade_seq[p] = 32 * (p - iLast) / (240 - iLast);
 		}
 
 	}
@@ -188,17 +173,17 @@ struct CreateShadow
 
 		temp.x -= 2;
 		temp.x *= 125.;
+		temp.x += 120.;
+		temp.x -= (noise >> 4);
 
-		if (temp.x < -110)
-			temp.x = -31;
-		else if (temp.x > 120)
-			temp.x = 50;
-		else
-			temp.x = static_data.shade_gradient[(Sint16)temp.x + 120];
+		double full = 0;
+		double rem = std::modf(temp.x, &full);
+		int offset = Clamp((int)full, 0, 240 - 1);
+		int i = static_data.shade_gradient[offset];
 
-		temp.x -= noise;
+		i += ((noise & 31) <= static_data.shade_seq[offset] + static_data.shade_step[offset] * rem);
 
-		return Clamp(temp.x, 0., 31.);
+		return Clamp(i, 0, 31);
 	}
 
 	static inline Uint8 getOceanShadow(const Uint8& shadow)
@@ -288,7 +273,7 @@ Globe::Globe(Game* game, int cenX, int cenY, int width, int height, int x, int y
 	//filling random noise "texture"
 	_randomNoiseData.resize(static_data.random_surf_size * static_data.random_surf_size);
 	for (size_t i=0; i<_randomNoiseData.size(); ++i)
-		_randomNoiseData[i] = RNG::seedless(0, 3);
+		_randomNoiseData[i] = RNG::seedless(0, 127);
 
 	cachePolygons();
 }
