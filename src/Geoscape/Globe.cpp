@@ -74,10 +74,20 @@ namespace
 ///helper class for `Globe` for drawing earth globe with shadows
 struct GlobeStaticData
 {
+	static const int random_surf_size = 60;
+	static const int random_multiplier_noise_bits = 4;
+	static const int random_distance_noise_bits = 3;
+	static const int random_value_noise_bits = 5;
+
+	static const int shade_gradient_max = 256;
+	static const int shade_step_max = 1 << random_value_noise_bits;
 	///array of shading gradient
-	Sint16 shade_gradient[240];
+	Sint16 shade_gradient[shade_gradient_max];
+	Sint16 shade_step[shade_gradient_max];
+	Sint16 shade_seq[shade_gradient_max];
+	Sint16 shade_diff[shade_gradient_max];
 	///size of x & y of noise surface
-	const int random_surf_size;
+	Sint16 random_noise[random_surf_size*random_surf_size];
 
 	/**
 	 * Function returning normal vector of sphere surface
@@ -112,53 +122,103 @@ struct GlobeStaticData
 		}
 	}
 
-	//initialization
-	GlobeStaticData() : random_surf_size(60)
+	static inline Sint16 shadeCurve(int i)
 	{
-		//filling terminator gradient LUT
-		for (int i=0; i<240; ++i)
+		const int shadeOffset = 15;
+		const int j = i - shade_gradient_max / 2;
+
+		const int stepSize = 16;
+		const int steps[stepSize] =
 		{
-			int j = i - 120;
+			1,
+			2,
+			2,
+			3,
+			3,
+			4,
+			4,
+			5,
+			5,
+			6,
+			6,
+			9,
+			12,
+			16,
+			20,
+			30,
+		};
 
-			if (j<-66) j=-16;
-			else
-			if (j<-48) j=-15;
-			else
-			if (j<-33) j=-14;
-			else
-			if (j<-22) j=-13;
-			else
-			if (j<-15) j=-12;
-			else
-			if (j<-11) j=-11;
-			else
-			if (j<-9) j=-10;
+		const int adjustemt = (j >= 0 ? 1 : 0);
+		const int d = (adjustemt ? 1 : -1);
+		int offset = (adjustemt ? j + adjustemt : -j);
+		int shadeFinal = shadeOffset + adjustemt;
+		for (int k = 0; k < stepSize; ++k)
+		{
+			int p = steps[k];
+			if (offset < p)
+			{
+				break;
+			}
+			shadeFinal += d;
+			offset -= p;
+		}
+		return shadeFinal;
+	}
 
-			if (j>120) j=19;
-			else
-			if (j>98) j=18;
-			else
-			if (j>86) j=17;
-			else
-			if (j>74) j=16;
-			else
-			if (j>54) j=15;
-			else
-			if (j>38) j=14;
-			else
-			if (j>26) j=13;
-			else
-			if (j>18) j=12;
-			else
-			if (j>13) j=11;
-			else
-			if (j>10) j=10;
-			else
-			if (j>8) j=9;
+	static int bitMask(int i)
+	{
+		return ((1<< i) - 1);
+	}
 
-			shade_gradient[i]= j+16;
+	int getMultiplierNoise(Sint16 n)
+	{
+		return ((n >> (random_value_noise_bits + random_distance_noise_bits)) & bitMask(random_multiplier_noise_bits));
+	}
+
+	int getDistanceNoise(Sint16 n)
+	{
+		return ((n >> random_value_noise_bits) & bitMask(random_distance_noise_bits)) - random_distance_noise_bits / 2;
+	}
+
+	int getValueNoise(Sint16 n)
+	{
+		return n &  bitMask(random_value_noise_bits);
+	}
+
+	//initialization
+	GlobeStaticData()
+	{
+		int iLastVal = shadeCurve(0);
+		int iLast = 0;
+		//filling terminator gradient LUT
+		for (int i=0; i < shade_gradient_max; ++i)
+		{
+			int t = shadeCurve(i);
+			if (t != iLastVal)
+			{
+				for (int p = iLast; p < i; ++p)
+				{
+					shade_diff[p] = t - iLastVal;
+					shade_step[p] = shade_step_max / (i - iLast);
+					shade_seq[p] = shade_step_max * (p - iLast) / (i - iLast);
+				}
+				iLastVal = t;
+				iLast = i;
+			}
+			shade_gradient[i] = t;
 		}
 
+		int tLast = shadeCurve(shade_gradient_max);
+		for (int p = iLast; p < shade_gradient_max; ++p)
+		{
+			shade_diff[p] = tLast - iLastVal;
+			shade_step[p] = shade_step_max / (shade_gradient_max - iLast);
+			shade_seq[p] = shade_step_max * (p - iLast) / (shade_gradient_max - iLast);
+		}
+
+		RNG::RandomState randomState;
+		for (size_t i = 0; i < (size_t)random_surf_size*random_surf_size; ++i)
+			random_noise[i] = randomState.generate(0, bitMask(random_multiplier_noise_bits + random_distance_noise_bits + random_value_noise_bits));
 	}
 };
 
@@ -188,17 +248,22 @@ struct CreateShadow
 
 		temp.x -= 2;
 		temp.x *= 125.;
+		temp.x += GlobeStaticData::shade_gradient_max / 2;
+		//random noise that go in any direction
+		temp.x -= static_data.getDistanceNoise(noise);
+		//random moise than increase with distance from middle of twilight
+		temp.x += static_data.getMultiplierNoise(noise) * 4 * (temp.x - GlobeStaticData::shade_gradient_max / 2) / GlobeStaticData::shade_gradient_max;
 
-		if (temp.x < -110)
-			temp.x = -31;
-		else if (temp.x > 120)
-			temp.x = 50;
-		else
-			temp.x = static_data.shade_gradient[(Sint16)temp.x + 120];
+		double full = 0;
+		double rem = std::modf(temp.x, &full);
+		int offset = Clamp((int)full, 0, GlobeStaticData::shade_gradient_max - 1);
+		int i = static_data.shade_gradient[offset];
 
-		temp.x -= noise;
+		int middle = (static_data.shade_seq[offset] + static_data.shade_step[offset] * rem) - GlobeStaticData::shade_step_max / 2;
+		i += middle / GlobeStaticData::shade_step_max;
+		i += (static_data.getValueNoise(noise) < (middle % GlobeStaticData::shade_step_max));
 
-		return Clamp(temp.x, 0., 31.);
+		return Clamp(i, 0, 31);
 	}
 
 	static inline Uint8 getOceanShadow(const Uint8& shadow)
@@ -284,11 +349,6 @@ Globe::Globe(Game* game, int cenX, int cenY, int width, int height, int x, int y
 
 	setupRadii(width, height);
 	setZoom(_zoom);
-
-	//filling random noise "texture"
-	_randomNoiseData.resize(static_data.random_surf_size * static_data.random_surf_size);
-	for (size_t i=0; i<_randomNoiseData.size(); ++i)
-		_randomNoiseData[i] = RNG::seedless(0, 3);
 
 	cachePolygons();
 }
@@ -984,7 +1044,7 @@ Cord Globe::getSunDirection(double lon, double lat) const
 void Globe::drawShadow()
 {
 	auto earth = ShaderMove<Cord>(SurfaceRaw<Cord>(_earthData[_zoom], getWidth(), getHeight()));
-	auto noise = ShaderRepeat<Sint16>(SurfaceRaw<Sint16>(_randomNoiseData, static_data.random_surf_size, static_data.random_surf_size));
+	auto noise = ShaderRepeat<Sint16>(SurfaceRaw<Sint16>(static_data.random_noise, static_data.random_surf_size, static_data.random_surf_size));
 
 	earth.setMove(_cenX-getWidth()/2, _cenY-getHeight()/2);
 
