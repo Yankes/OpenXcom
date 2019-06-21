@@ -49,14 +49,65 @@ static uint64_t nextImpl(uint64_t& state)
 	return state * 2685821657736338717ULL;
 }
 
-uint64_t x = time(0); /* The state must be seeded with a nonzero value. */
-uint64_t x_seedless = time(0) ^ 0x2aafed63c68b2255; //apply some random number to reduce similarity with `x`.
 
 
-uint64_t next()
+
+/**
+ * Default constructor intializy seed by time and this type address.
+ */
+RandomState::RandomState()
 {
-	return nextImpl(x);
+	_seedState = time(0) ^ (~(uint64_t)&_seedState);
 }
+
+/**
+ * Constructor from predefined seed.
+ */
+RandomState::RandomState(uint64_t seed) : _seedState(seed)
+{
+
+}
+
+/**
+ * Returns the current seed in use by the generator.
+ * @return Current seed.
+ */
+uint64_t RandomState::getSeed() const
+{
+	return _seedState;
+}
+
+/**
+ * Get next random number.
+ * @return Ramdom number.
+ */
+uint64_t RandomState::next()
+{
+	return nextImpl(_seedState);
+}
+
+/**
+ * Generates a random integer number, inclusive.
+ */
+int RandomState::generate(int min, int max)
+{
+	return (int)(next() % (max - min + 1) + min);
+}
+
+
+
+/**
+ * State for game random number generator. Do not use during other variable static intalization becasue: https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
+ */
+RandomState x;
+
+/**
+ * Seperate state for some auxiliary random nubmers that do not affect game state. Do not use during other variable static intalization becasue: https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
+ */
+RandomState x_seedless;
+
+
+
 
 /**
  * Returns the current seed in use by the generator.
@@ -64,7 +115,7 @@ uint64_t next()
  */
 uint64_t getSeed()
 {
-	return x;
+	return x.getSeed();
 }
 
 /**
@@ -73,7 +124,15 @@ uint64_t getSeed()
  */
 void setSeed(uint64_t n)
 {
-	x = n;
+	x = RandomState(n);
+}
+
+/**
+ * State
+ */
+RandomState& globalRandomState()
+{
+	return x;
 }
 
 /**
@@ -84,8 +143,7 @@ void setSeed(uint64_t n)
  */
 int generate(int min, int max)
 {
-	uint64_t num = next();
-	return (int)(num % (max - min + 1) + min);
+	return x.generate(min, max);
 }
 
 /**
@@ -96,7 +154,7 @@ int generate(int min, int max)
  */
 double generate(double min, double max)
 {
-	double num = next();
+	double num = x.next();
 	return (num / ((double)UINT64_MAX / (max - min)) + min);
 }
 
@@ -109,9 +167,8 @@ double generate(double min, double max)
  */
 int seedless(int min, int max)
 {
-	return (int)(nextImpl(x_seedless) % (max - min + 1) + min);
+	return x_seedless.generate(min, max);
 }
-
 
 /**
  * Normal random variate generator

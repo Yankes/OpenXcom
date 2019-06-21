@@ -32,10 +32,39 @@ namespace OpenXcom
  */
 namespace RNG
 {
+	class RandomState
+	{
+		 uint64_t _seedState;
+
+	public:
+		/// Default constructor intializy seed by time and this type address.
+		RandomState();
+		/// Constructor from predefined seed.
+		RandomState(uint64_t seed);
+		/// Get current seed.
+		uint64_t getSeed() const;
+
+		/// Get next random number.
+		uint64_t next();
+		/// Generates a random integer number, inclusive.
+		int generate(int min, int max);
+
+		/// Needed by shuffle
+		using result_type = uint64_t;
+		/// Needed by shuffle
+		constexpr static uint64_t max() { return ~uint64_t{}; }
+		/// Needed by shuffle
+		constexpr static uint64_t min() { return uint64_t{}; }
+		/// Needed by shuffle
+		uint64_t operator()() { return next(); }
+	};
+
 	/// Gets the seed in use.
 	uint64_t getSeed();
 	/// Sets the seed in use.
 	void setSeed(uint64_t n);
+	/// Get state.
+	RandomState& globalRandomState();
 	/// Generates a random integer number, inclusive.
 	int generate(int min, int max);
 	/// Generates a random floating-point number.
@@ -54,9 +83,7 @@ namespace RNG
 	template <typename T>
 	void shuffle(T &list)
 	{
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(list.begin(), list.end(), g);
+		std::shuffle(list.begin(), list.end(), globalRandomState());
 	}
 }
 
