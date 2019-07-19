@@ -652,9 +652,9 @@ void RuleItem::afterLoad(const Mod* mod)
 	}
 
 	//remove not needed data
-	Collections::deleteAll(_requiresName);
-	Collections::deleteAll(_requiresBuyName);
-	Collections::deleteAll(_recoveryTransformationsName);
+	Collections::removeAll(_requiresName);
+	Collections::removeAll(_requiresBuyName);
+	Collections::removeAll(_recoveryTransformationsName);
 }
 
 /**

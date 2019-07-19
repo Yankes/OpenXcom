@@ -95,12 +95,12 @@ void RuleResearch::afterLoad(const Mod* mod)
 	}
 
 	//remove not needed data
-	Collections::deleteAll(_dependenciesName);
-	Collections::deleteAll(_unlocksName);
-	Collections::deleteAll(_disablesName);
-	Collections::deleteAll(_getOneFreeName);
-	Collections::deleteAll(_requiresName);
-	Collections::deleteAll(_getOneFreeProtectedName);
+	Collections::removeAll(_dependenciesName);
+	Collections::removeAll(_unlocksName);
+	Collections::removeAll(_disablesName);
+	Collections::removeAll(_getOneFreeName);
+	Collections::removeAll(_requiresName);
+	Collections::removeAll(_getOneFreeProtectedName);
 }
 
 /**

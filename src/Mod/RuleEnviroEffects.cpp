@@ -110,7 +110,7 @@ void RuleEnviroEffects::afterLoad(const Mod* mod)
 	}
 
 	//remove not needed data
-	Collections::deleteAll(_armorTransformationsName);
+	Collections::removeAll(_armorTransformationsName);
 }
 
 /**
