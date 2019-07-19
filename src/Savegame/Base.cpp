@@ -424,7 +424,7 @@ void Base::setEngineers(int engineers)
  * @param target Pointer to target to compare.
  * @return 0 - not detected, 1 - detected by conventional radar, 2 - detected by hyper-wave decoder.
  */
-int Base::detect(Target *target) const
+int Base::detect(const Ufo *target) const
 {
 	int chance = 0;
 	double distance = getDistance(target) * 60.0 * (180.0 / M_PI);
@@ -448,11 +448,7 @@ int Base::detect(Target *target) const
 	}
 	if (chance == 0) return 0;
 
-	Ufo *u = dynamic_cast<Ufo*>(target);
-	if (u != 0)
-	{
-		chance = chance * (100 + u->getVisibility()) / 100;
-	}
+	chance = chance * (100 + target->getVisibility()) / 100;
 
 	return RNG::percent(chance)? 1 : 0;
 }
@@ -463,7 +459,7 @@ int Base::detect(Target *target) const
  * @param target Pointer to target to compare.
  * @return 0 - outside radar range, 1 - inside conventional radar range, 2 - inside hyper-wave decoder range.
  */
-int Base::insideRadarRange(Target *target) const
+int Base::insideRadarRange(const Ufo *target) const
 {
 	bool insideRange = false;
 	double distance = getDistance(target) * 60.0 * (180.0 / M_PI);

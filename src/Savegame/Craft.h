@@ -176,9 +176,9 @@ public:
 	/// Returns the crew to their base (using transfers).
 	void evacuateCrew(const Mod *mod);
 	/// Checks if a target is detected by the craft's radar.
-	bool detect(Target *target) const;
+	bool detect(const Ufo *target) const;
 	/// Checks if a target is inside the craft's radar range.
-	bool insideRadarRange(Target *target) const;
+	bool insideRadarRange(const Ufo *target) const;
 	/// Handles craft logic.
 	bool think();
 	/// Does a craft full checkup.
