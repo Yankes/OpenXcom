@@ -1731,6 +1731,7 @@ public:
 	/// Constructor.
 	ScriptGroup(ScriptGlobal* shared, Master* master) : Parsers{ shared, master, }...
 	{
+		(void)master;
 		(void)helper::DummySeq
 		{
 			(shared->pushParser(&get<Parsers>()), 0)...,
