@@ -44,6 +44,12 @@ class Ufo : public MovingTarget
 public:
 	static const char *ALTITUDE_STRING[];
 	enum UfoStatus { FLYING, LANDED, CRASHED, DESTROYED };
+
+	/// Name of class used in script.
+	static constexpr const char *ScriptName = "Ufo";
+	/// Register all useful function used by script.
+	static void ScriptRegister(ScriptParserBase* parser);
+
 private:
 	const RuleUfo *_rules;
 	int _uniqueId;

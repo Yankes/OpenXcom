@@ -34,7 +34,6 @@ class RuleCraft;
 class RuleCraftWeapon;
 class RuleItem;
 struct RuleDamageType;
-class RuleUfo;
 class RuleTerrain;
 class MapDataSet;
 class RuleSoldier;
@@ -55,6 +54,9 @@ class BattleUnitVisibility;
 class BattleItem;
 struct StatAdjustment;
 
+class Ufo;
+class RuleUfo;
+
 class SavedBattleGame;
 class SavedGame;
 
@@ -72,6 +74,9 @@ class ModScript
 
 	using Output = ScriptOutputArgs<int&, int>;
 
+	////////////////////////////////////////////////////////////
+	//					unit script
+	////////////////////////////////////////////////////////////
 
 	struct RecolorUnitParser : ScriptParserEvents<Output, const BattleUnit*, int, int, int, int>
 	{
@@ -89,15 +94,6 @@ class ModScript
 	struct ReactionUnitParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int, const BattleUnit*, int>
 	{
 		ReactionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
-	};
-
-	struct RecolorItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
-	{
-		RecolorItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
-	};
-	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
-	{
-		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
 	struct VisibilityUnitParser : ScriptParserEvents<ScriptOutputArgs<int&, int, ScriptTag<BattleUnitVisibility>&>, const BattleUnit*, const BattleUnit*, int, int, int, int>
@@ -127,6 +123,15 @@ class ModScript
 		ReturnFromMissionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
+	struct AwardExperienceParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int>
+	{
+		AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	////////////////////////////////////////////////////////////
+	//					item script
+	////////////////////////////////////////////////////////////
+
 	struct CreateItemParser : ScriptParserEvents<ScriptOutputArgs<>, BattleItem*, SavedBattleGame*, int>
 	{
 		CreateItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
@@ -136,10 +141,18 @@ class ModScript
 		NewTurnItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
-	struct AwardExperienceParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int>
+	struct RecolorItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
 	{
-		AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+		RecolorItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
+	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
+	{
+		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	////////////////////////////////////////////////////////////
+	//					bonus stat script
+	////////////////////////////////////////////////////////////
 
 	struct BonusStatsBaseParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleUnit*>
 	{
@@ -169,6 +182,21 @@ class ModScript
 			_propertyNodeName = name;
 		}
 	};
+
+	////////////////////////////////////////////////////////////
+	//					ufo script
+	////////////////////////////////////////////////////////////
+
+	struct DetectUfoFromBaseParser : ScriptParserEvents<ScriptOutputArgs<int&, int&>, Ufo*, int, int>
+	{
+		DetectUfoFromBaseParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	struct DetectUfoFromCraftParser : ScriptParserEvents<ScriptOutputArgs<int&, int&>, Ufo*, int, int>
+	{
+		DetectUfoFromCraftParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
 
 public:
 	/// Get shared state.
@@ -234,6 +262,13 @@ public:
 	using CloseQuarterMultiplierStatBonus = MACRO_NAMED_SCRIPT("closeQuartersMultiplier", BonusStatsParser);
 
 	////////////////////////////////////////////////////////////
+	//					ufo script
+	////////////////////////////////////////////////////////////
+
+	using DetectUfoFromBase = MACRO_NAMED_SCRIPT("detectUfoFromBase", DetectUfoFromBaseParser);
+	using DetectUfoFromCraft = MACRO_NAMED_SCRIPT("detectUfoFromCraft", DetectUfoFromCraftParser);
+
+	////////////////////////////////////////////////////////////
 	//					groups
 	////////////////////////////////////////////////////////////
 
@@ -284,12 +319,16 @@ public:
 		CloseQuarterMultiplierStatBonus
 	>;
 
+	using UfoScripts = ScriptGroup<Mod
+	>;
+
 	////////////////////////////////////////////////////////////
 	//					members
 	////////////////////////////////////////////////////////////
 	BattleUnitScripts battleUnitScripts = { _shared, _mod, };
 	BattleItemScripts battleItemScripts = { _shared, _mod, };
 	BonusStatsScripts bonusStatsScripts = { _shared, _mod, };
+	UfoScripts ufoScripts = { _shared, _mod, };
 };
 
 }

@@ -19,6 +19,7 @@
 #include "RuleUfo.h"
 #include "RuleTerrain.h"
 #include "Mod.h"
+#include "../Engine/ScriptBind.h"
 
 namespace OpenXcom
 {
@@ -353,6 +354,51 @@ int RuleUfo::getHuntSpeed() const
 int RuleUfo::getHuntBehavior() const
 {
 	return _huntBehavior;
+}
+
+////////////////////////////////////////////////////////////
+//					Script binding
+////////////////////////////////////////////////////////////
+
+namespace
+{
+
+std::string debugDisplayScript(const RuleUfo* ru)
+{
+	if (ru)
+	{
+		std::string s;
+		s += RuleUfo::ScriptName;
+		s += "(name: \"";
+		s += ru->getType();
+		s += "\")";
+		return s;
+	}
+	else
+	{
+		return "null";
+	}
+}
+
+} // namespace
+
+/**
+ * Register RuleUfo in script parser.
+ * @param parser Script parser.
+ */
+void RuleUfo::ScriptRegister(ScriptParserBase* parser)
+{
+	Bind<RuleUfo> ar = { parser };
+
+	ar.add<&RuleUfo::getRadius>("getRadius");
+	ar.add<&RuleUfo::getWeaponRange>("getWeaponRange");
+	ar.add<&RuleUfo::getWeaponPower>("getWeaponPower");
+	ar.add<&RuleUfo::getWeaponReload>("getWeaponReload");
+
+	RuleUfoStats::addGetStatsScript<&RuleUfo::_stats>(ar, "");
+
+	ar.addScriptValue<&RuleUfo::_scriptValues>(false);
+	ar.addDebugDisplay<&debugDisplayScript>();
 }
 
 }
