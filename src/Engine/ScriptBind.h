@@ -22,6 +22,7 @@
 #include "Script.h"
 #include "Exception.h"
 #include "Logger.h"
+#include <functional>
 
 namespace OpenXcom
 {
@@ -773,6 +774,29 @@ struct FuncGroup<Func, ListTag<Ver...>> : GetArgs<Func>
 //					Bind helper classes
 ////////////////////////////////////////////////////////////
 
+template<auto Ptr, auto... Rest>
+struct BindMemberInvoke
+{
+    template<typename T, typename... TRest>
+    static auto f(T&& a, TRest&&... b) -> decltype(auto)
+    {
+        using ReturnType = std::invoke_result_t<decltype(Ptr), T, TRest...>;
+
+        ReturnType v = std::invoke(Ptr, std::forward<T>(a), std::forward<TRest>(b)...);
+        if constexpr (sizeof...(Rest) > 0)
+        {
+            return BindMemberInvoke<Rest...>::f(std::forward<ReturnType>(v));
+        }
+        else
+        {
+            return std::forward<ReturnType>(v);
+        }
+    }
+};
+
+template<typename T, auto... Rest>
+using BindMemberFinalType = std::decay_t<decltype(BindMemberInvoke<Rest...>::f(std::declval<T>()))>;
+
 template<typename T>
 struct BindSet
 {
@@ -810,24 +834,25 @@ struct BindClear
 	}
 };
 
-template<typename T, typename P, P T::*X>
+template<typename T, auto... X>
 struct BindPropGet
 {
-	static RetEnum func(const T* t, P& p)
+	static RetEnum func(const T* t, BindMemberFinalType<T, X...>& p)
 	{
-		if (t) p = t->*X; else p = P{};
+		if (t) p = BindMemberInvoke<X...>::f(t); else p = BindMemberFinalType<T, X...>{};
 		return RetContinue;
 	}
 };
-template<typename T, typename P, P T::*X>
+template<typename T, auto... X>
 struct BindPropSet
 {
-	static RetEnum func(T* t, P p)
+	static RetEnum func(T* t, BindMemberFinalType<T, X...> p)
 	{
-		if (t) t->*X = p;
+		if (t) BindMemberInvoke<X...>::f(t) = p;
 		return RetContinue;
 	}
 };
+
 template<typename T, ScriptValues<T> T::*X>
 struct BindScriptValueGet
 {
@@ -886,11 +911,11 @@ struct BindDebugDisplay
 	}
 };
 
-template<typename T, T f>
+template<auto f>
 struct BindFunc;
 
 template<typename... Args, void(*X)(Args...)>
-struct BindFunc<void(*)(Args...), X>
+struct BindFunc<X>
 {
 	static RetEnum func(Args... a)
 	{
@@ -900,17 +925,7 @@ struct BindFunc<void(*)(Args...), X>
 };
 
 template<typename T, typename... Args, bool(T::*X)(Args...)>
-struct BindFunc<bool(T::*)(Args...), X>
-{
-	static RetEnum func(T* t, int& r, Args... a)
-	{
-		if (t) r = (t->*X)(std::forward<Args>(a)...); else r = 0;
-		return RetContinue;
-	}
-};
-
-template<typename T, typename... Args, int(T::*X)(Args...)>
-struct BindFunc<int(T::*)(Args...), X>
+struct BindFunc<X>
 {
 	static RetEnum func(T* t, int& r, Args... a)
 	{
@@ -920,7 +935,7 @@ struct BindFunc<int(T::*)(Args...), X>
 };
 
 template<typename T, typename... Args, bool(T::*X)(Args...) const>
-struct BindFunc<bool(T::*)(Args...) const, X>
+struct BindFunc<X>
 {
 	static RetEnum func(const T* t, int& r, Args... a)
 	{
@@ -929,42 +944,52 @@ struct BindFunc<bool(T::*)(Args...) const, X>
 	}
 };
 
-template<typename T, typename... Args, int(T::*X)(Args...) const>
-struct BindFunc<int(T::*)(Args...) const, X>
+template<typename T, typename R, typename... Args, R(T::*X)(Args...)>
+struct BindFunc<X>
 {
-	static RetEnum func(const T* t, int& r, Args... a)
+	static RetEnum func(T* t, R& r, Args... a)
 	{
-		if (t) r = (t->*X)(std::forward<Args>(a)...); else r = 0;
+		if (t) r = (t->*X)(std::forward<Args>(a)...); else r = {};
+		return RetContinue;
+	}
+};
+
+template<typename T, typename R, typename... Args, R(T::*X)(Args...) const>
+struct BindFunc<X>
+{
+	static RetEnum func(const T* t, R& r, Args... a)
+	{
+		if (t) r = (t->*X)(std::forward<Args>(a)...); else r = {};
+		return RetContinue;
+	}
+};
+
+template<typename T, typename P, typename... Args, P*(T::*X)(Args...)>
+struct BindFunc<X>
+{
+	static RetEnum func(T* t, const P*& r, Args... a)
+	{
+		if (t) r = (t->*X)(std::forward<Args>(a)...); else r = {};
+		return RetContinue;
+	}
+};
+
+template<typename T, typename P, typename... Args, P*(T::*X)(Args...) const>
+struct BindFunc<X>
+{
+	static RetEnum func(const T* t, const P*& r, Args... a)
+	{
+		if (t) r = (t->*X)(std::forward<Args>(a)...); else r = {};
 		return RetContinue;
 	}
 };
 
 template<typename T, typename... Args, void(T::*X)(Args...)>
-struct BindFunc<void(T::*)(Args...), X>
+struct BindFunc<X>
 {
 	static RetEnum func(T* t, Args... a)
 	{
 		if (t) (t->*X)(std::forward<Args>(a)...);
-		return RetContinue;
-	}
-};
-
-template<typename T, typename P, typename... Args, P *(T::*X)(Args...)>
-struct BindFunc<P *(T::*)(Args...), X>
-{
-	static RetEnum func(T* t, P*& p, Args... a)
-	{
-		if (t) p = (t->*X)(std::forward<Args>(a)...); else p = nullptr;
-		return RetContinue;
-	}
-};
-
-template<typename T, typename P, typename... Args, P *(T::*X)(Args...) const>
-struct BindFunc<P *(T::*)(Args...) const, X>
-{
-	static RetEnum func(const T* t, P*& p, Args... a)
-	{
-		if (t) p = (t->*X)(std::forward<Args>(a)...); else p = nullptr;
 		return RetContinue;
 	}
 };
@@ -1036,12 +1061,18 @@ struct Bind : BindBase
 	template<int T::*X>
 	void addField(const std::string& get, const std::string& set = "")
 	{
-		addCustomFunc<helper::BindPropGet<T, int, X>>(getName(get), "Get int field of " + std::string{ T::ScriptName });
+		addCustomFunc<helper::BindPropGet<T, X>>(getName(get), "Get int field of " + std::string{ T::ScriptName });
 		if (!set.empty())
 		{
-			addCustomFunc<helper::BindPropSet<T, int, X>>(getName(set), "Set int field of " + std::string{ T::ScriptName });
+			addCustomFunc<helper::BindPropSet<T, X>>(getName(set), "Set int field of " + std::string{ T::ScriptName });
 		}
 	}
+	template<auto MemPtr0, auto MemPtr1, auto... MemPtrR>
+	void addField(const std::string& get)
+	{
+		addCustomFunc<helper::BindPropGet<T, MemPtr0, MemPtr1, MemPtrR...>>(getName(get), "Get int field of " + std::string{ T::ScriptName });
+	}
+
 	void addScriptTag()
 	{
 		using Tag = typename ScriptValues<T>::Tag;
@@ -1079,52 +1110,21 @@ struct Bind : BindBase
 	template<typename P, P* (T::*X)(), const P* (T::*Y)() const>
 	void addPair(const std::string& get)
 	{
-		add<P, X>(get);
-		add<const P, Y>(get);
+		add<X>(get);
+		add<Y>(get);
 	}
 
 	template<typename P, const P* (T::*Y)() const>
 	void addRules(const std::string& get)
 	{
-		add<const P, Y>(get);
+		add<Y>(get);
 	}
 
-	#define MACRO_COPY_HELP_FUNC(Name, ...) \
-		template<__VA_ARGS__> \
-		void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription) \
-		{ \
-			addCustomFunc<helper::BindFunc<decltype(Name), Name>>(getName(func), description);\
-		}
-
-	MACRO_COPY_HELP_FUNC(X, bool (T::*X)() const)
-
-	MACRO_COPY_HELP_FUNC(X, void (T::*X)(bool))
-	MACRO_COPY_HELP_FUNC(X, void (T::*X)(bool, bool))
-
-
-	MACRO_COPY_HELP_FUNC(X, int (T::*X)() const)
-	MACRO_COPY_HELP_FUNC(X, int (T::*X)())
-	MACRO_COPY_HELP_FUNC(X, int (T::*X)(int) const)
-
-	MACRO_COPY_HELP_FUNC(X, void (T::*X)())
-	MACRO_COPY_HELP_FUNC(X, void (T::*X)(int))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(T*))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(T*, int))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(T*, int&))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(T*, int&, int))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(T*, int&, int, int))
-
-
-	MACRO_COPY_HELP_FUNC(X, void (*X)(const T*, int))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(const T*, int&))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(const T*, int&, int))
-	MACRO_COPY_HELP_FUNC(X, void (*X)(const T*, int&, int, int))
-
-
-	MACRO_COPY_HELP_FUNC(X, typename P, P* (T::*X)())
-	MACRO_COPY_HELP_FUNC(X, typename P, P* (T::*X)() const)
-
-	#undef MACRO_COPY_HELP_FUNC
+	template<auto X>
+	void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
+	{
+		addCustomFunc<helper::BindFunc<X>>(getName(func), description);
+	}
 };
 
 } //namespace OpenXcom

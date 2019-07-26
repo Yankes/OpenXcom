@@ -21,6 +21,8 @@
 #include "Mod.h"
 #include "MapScript.h"
 #include "../Battlescape/Position.h"
+#include "../Engine/Exception.h"
+
 
 namespace OpenXcom
 {

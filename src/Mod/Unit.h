@@ -20,10 +20,15 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
-#include "../Engine/Script.h"
+#include <SDL_types.h>
 
 namespace OpenXcom
 {
+
+class Mod;
+class Armor;
+class ModScript;
+class ScriptParserBase;
 
 enum SpecialAbility { SPECAB_NONE, SPECAB_EXPLODEONDEATH, SPECAB_BURNFLOOR, SPECAB_BURN_AND_EXPLODE };
 /**
@@ -113,75 +118,63 @@ struct UnitStats
 	}
 
 	template<typename T, UnitStats T::*Stat, Ptr StatMax>
-	struct getMaxStatScript
+	static void getMaxStatScript(const T *t, int& val)
 	{
-		static RetEnum func(const T *t, int& val)
+		if (t)
 		{
-			if (t)
-			{
-				val = ((t->*Stat).*StatMax);
-			}
-			else
-			{
-				val = 0;
-			}
-			return RetContinue;
+			val = ((t->*Stat).*StatMax);
 		}
-	};
+		else
+		{
+			val = 0;
+		}
+	}
 
 	template<typename T, UnitStats T::*Stat, Ptr StatMax>
-	struct setMaxStatScript
+	static void setMaxStatScript(T *t, int val)
 	{
-		static RetEnum func(T *t, int val)
+		if (t)
 		{
-			if (t)
-			{
-				val = std::min(std::max(val, 1), 1000);
-				((t->*Stat).*StatMax) = val;
-			}
-			return RetContinue;
+			val = std::min(std::max(val, 1), 1000);
+			((t->*Stat).*StatMax) = val;
 		}
-	};
+	}
 
 	template<typename T, UnitStats T::*Stat, int T::*Curr, Ptr StatMax>
-	struct setMaxAndCurrStatScript
+	static void setMaxAndCurrStatScript(T *t, int val)
 	{
-		static RetEnum func(T *t, int val)
+		if (t)
 		{
-			if (t)
-			{
-				val = std::min(std::max(val, 1), 1000);
-				((t->*Stat).*StatMax) = val;
+			val = std::min(std::max(val, 1), 1000);
+			((t->*Stat).*StatMax) = val;
 
-				//update current value
-				if ((t->*Curr) > val)
-				{
-					(t->*Curr) = val;
-				}
+			//update current value
+			if ((t->*Curr) > val)
+			{
+				(t->*Curr) = val;
 			}
-			return RetContinue;
 		}
-	};
+	}
 
 	template<typename T, UnitStats T::*Stat, typename TBind>
 	static void addGetStatsScript(TBind& b, std::string prefix, bool skipResorcesStats = false)
 	{
 		if (!skipResorcesStats)
 		{
-			b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::tu>>(prefix + "getTimeUnits");
-			b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::stamina>>(prefix + "getStamina");
-			b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::health>>(prefix + "getHealth");
-			b.template addFunc<getMaxStatScript<T, Stat, & UnitStats::mana>>(prefix + "getManaPool");
+			b.template add<&getMaxStatScript<T, Stat, &UnitStats::tu>>(prefix + "getTimeUnits");
+			b.template add<&getMaxStatScript<T, Stat, &UnitStats::stamina>>(prefix + "getStamina");
+			b.template add<&getMaxStatScript<T, Stat, &UnitStats::health>>(prefix + "getHealth");
+			b.template add<&getMaxStatScript<T, Stat, &UnitStats::mana>>(prefix + "getManaPool");
 		}
 
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::bravery>>(prefix + "getBravery");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::reactions>>(prefix + "getReactions");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::firing>>(prefix + "getFiring");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::throwing>>(prefix + "getThrowing");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::strength>>(prefix + "getStrength");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::psiStrength>>(prefix + "getPsiStrength");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::psiSkill>>(prefix + "getPsiSkill");
-		b.template addFunc<getMaxStatScript<T, Stat, &UnitStats::melee>>(prefix + "getMelee");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::bravery>>(prefix + "getBravery");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::reactions>>(prefix + "getReactions");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::firing>>(prefix + "getFiring");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::throwing>>(prefix + "getThrowing");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::strength>>(prefix + "getStrength");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::psiStrength>>(prefix + "getPsiStrength");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::psiSkill>>(prefix + "getPsiSkill");
+		b.template add<&getMaxStatScript<T, Stat, &UnitStats::melee>>(prefix + "getMelee");
 	}
 
 	template<typename T, UnitStats T::*Stat, typename TBind>
@@ -189,30 +182,30 @@ struct UnitStats
 	{
 		if (!skipResorcesStats)
 		{
-			b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::tu>>(prefix + "setTimeUnits");
-			b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::stamina>>(prefix + "setStamina");
-			b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::health>>(prefix + "setHealth");
-			b.template addFunc<setMaxStatScript<T, Stat, & UnitStats::mana>>(prefix + "setManaPool");
+			b.template add<&setMaxStatScript<T, Stat, &UnitStats::tu>>(prefix + "setTimeUnits");
+			b.template add<&setMaxStatScript<T, Stat, &UnitStats::stamina>>(prefix + "setStamina");
+			b.template add<&setMaxStatScript<T, Stat, &UnitStats::health>>(prefix + "setHealth");
+			b.template add<&setMaxStatScript<T, Stat, &UnitStats::mana>>(prefix + "setManaPool");
 		}
 
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::bravery>>(prefix + "setBravery");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::reactions>>(prefix + "setReactions");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::firing>>(prefix + "setFiring");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::throwing>>(prefix + "setThrowing");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::strength>>(prefix + "setStrength");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::psiStrength>>(prefix + "setPsiStrength");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::psiSkill>>(prefix + "setPsiSkill");
-		b.template addFunc<setMaxStatScript<T, Stat, &UnitStats::melee>>(prefix + "setMelee");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::bravery>>(prefix + "setBravery");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::reactions>>(prefix + "setReactions");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::firing>>(prefix + "setFiring");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::throwing>>(prefix + "setThrowing");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::strength>>(prefix + "setStrength");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::psiStrength>>(prefix + "setPsiStrength");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::psiSkill>>(prefix + "setPsiSkill");
+		b.template add<&setMaxStatScript<T, Stat, &UnitStats::melee>>(prefix + "setMelee");
 	}
 
 	template<typename T, UnitStats T::*Stat, int T::*CurrTu, int T::*CurrEnergy, int T::*CurrHealth, int T::* CurrMana, typename TBind>
 	static void addSetStatsWithCurrScript(TBind& b, std::string prefix)
 	{
 		// when we change stats of BattleUnit its resoreces should be adjust.
-		b.template addFunc<setMaxAndCurrStatScript<T, Stat, CurrTu, &UnitStats::tu>>(prefix + "setTimeUnits");
-		b.template addFunc<setMaxAndCurrStatScript<T, Stat, CurrEnergy, &UnitStats::stamina>>(prefix + "setStamina");
-		b.template addFunc<setMaxAndCurrStatScript<T, Stat, CurrHealth, &UnitStats::health>>(prefix + "setHealth");
-		b.template addFunc<setMaxAndCurrStatScript<T, Stat, CurrMana, & UnitStats::mana>>(prefix + "setManaPool");
+		b.template add<&setMaxAndCurrStatScript<T, Stat, CurrTu, &UnitStats::tu>>(prefix + "setTimeUnits");
+		b.template add<&setMaxAndCurrStatScript<T, Stat, CurrEnergy, &UnitStats::stamina>>(prefix + "setStamina");
+		b.template add<&setMaxAndCurrStatScript<T, Stat, CurrHealth, &UnitStats::health>>(prefix + "setHealth");
+		b.template add<&setMaxAndCurrStatScript<T, Stat, CurrMana, &UnitStats::mana>>(prefix + "setManaPool");
 
 		addSetStatsScript<T, Stat>(b, prefix, true);
 	}
@@ -229,10 +222,6 @@ struct StatAdjustment
 	int growthMultiplier;
 	double aimAndArmorMultiplier;
 };
-
-class Mod;
-class Armor;
-class ModScript;
 
 /**
  * Represents the static data for a unit that is generated on the battlescape, this includes: HWPs, aliens and civilians.
