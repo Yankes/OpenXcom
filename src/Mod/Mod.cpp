@@ -844,7 +844,7 @@ SoundSet *Mod::getSoundSet(const std::string &name, bool error) const
  * @param sound ID of the sound.
  * @return Pointer to the sound.
  */
-Sound *Mod::getSound(const std::string &set, unsigned int sound, bool error) const
+Sound *Mod::getSound(const std::string &set, int sound, bool error) const
 {
 	if (Options::mute)
 	{

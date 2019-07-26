@@ -37,7 +37,7 @@ class SurfaceSet
 {
 private:
 	std::vector<Surface> _frames;
-	int _width, _height, _offset;
+	int _width, _height;
 	int _sharedFrames;
 
 public:

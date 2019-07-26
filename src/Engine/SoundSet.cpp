@@ -23,6 +23,7 @@
 #include "Logger.h"
 #include "SDL2Helpers.h"
 #include <climits>
+#include <cassert>
 
 namespace OpenXcom
 {
@@ -111,7 +112,7 @@ void SoundSet::loadCat(CatFile &catFile)
  * @param i Sound number in the set.
  * @return Pointer to the respective sound.
  */
-Sound *SoundSet::getSound(unsigned int i)
+Sound *SoundSet::getSound(int i)
 {
 	if (_sounds.find(i) != _sounds.end())
 	{
@@ -125,8 +126,9 @@ Sound *SoundSet::getSound(unsigned int i)
  * @param i Sound number in the set.
  * @return Pointer to the respective sound.
  */
-Sound *SoundSet::addSound(unsigned int i)
+Sound *SoundSet::addSound(int i)
 {
+	assert(i >= 0 && "Negative indexes are not supported in SoundSet");
 	_sounds[i] = new Sound();
 	return _sounds[i];
 }

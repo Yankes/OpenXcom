@@ -338,7 +338,7 @@ public:
 	/// Plays a particular music.
 	void playMusic(const std::string &name, int id = 0);
 	/// Gets a particular sound.
-	Sound *getSound(const std::string &set, unsigned int sound, bool error = true) const;
+	Sound *getSound(const std::string &set, int sound, bool error = true) const;
 	/// Gets all palettes.
 	const std::map<std::string, Palette*> &getPalettes() const { return _palettes; }
 	/// Gets a particular palette.
