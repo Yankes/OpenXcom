@@ -37,14 +37,6 @@ SoundSet::SoundSet() : _sharedSounds(INT_MAX)
 }
 
 /**
- * Deletes the sounds from memory.
- */
-SoundSet::~SoundSet()
-{
-	for (auto i : _sounds)	{ delete i.second; }
-}
-
-/**
  * Converts a 8Khz sample to 11Khz.
  * @param oldsound Pointer to original sample buffer.
  * @param oldsize Original buffer size.
@@ -116,7 +108,7 @@ Sound *SoundSet::getSound(int i)
 {
 	if (_sounds.find(i) != _sounds.end())
 	{
-		return _sounds[i];
+		return &_sounds[i];
 	}
 	return 0;
 }
@@ -129,8 +121,8 @@ Sound *SoundSet::getSound(int i)
 Sound *SoundSet::addSound(int i)
 {
 	assert(i >= 0 && "Negative indexes are not supported in SoundSet");
-	_sounds[i] = new Sound();
-	return _sounds[i];
+	_sounds[i] = Sound();
+	return &_sounds[i];
 }
 
 /**
@@ -180,7 +172,7 @@ size_t SoundSet::getTotalSounds() const
 void SoundSet::loadCatByIndex(CatFile &catFile, int index, bool tftd)
 {
 	int set_index = tftd ? getTotalSounds() : index;
-	_sounds[set_index] = new Sound(); // in case everything else fails, an empty Sound.
+	_sounds[set_index] = Sound(); // in case everything else fails, an empty Sound.
 	auto rwops = catFile.getRWops(index);
 	if (!rwops) {
 		Log(LOG_VERBOSE) << "SoundSet::loadCatByIndex(" << catFile.fileName() << ", " << index << "): got NULL.";
@@ -250,7 +242,7 @@ void SoundSet::loadCatByIndex(CatFile &catFile, int index, bool tftd)
 		SDL_RWwrite(dest_rwops, sound, size, 1);
 	}
 	SDL_RWseek(dest_rwops, 0, RW_SEEK_SET);
-	_sounds[set_index]->load(dest_rwops);  // this frees the dest_rwops
+	_sounds[set_index].load(dest_rwops);  // this frees the dest_rwops
 	SDL_free(dest_mem);
 	SDL_free(sound);
 }
