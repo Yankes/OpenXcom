@@ -27,18 +27,16 @@ namespace OpenXcom
 {
 
 /**
- * Initializes a new sound effect.
- */
-Sound::Sound() : _sound(0)
-{
-}
-
-/**
  * Deletes the loaded sound content.
  */
-Sound::~Sound()
+void Sound::UniqueSoundDeleter::operator ()(Mix_Chunk* sound)
 {
-	Mix_FreeChunk(_sound);
+	Mix_FreeChunk(sound);
+}
+
+Sound::UniqueSoundPtr Sound::NewSound(Mix_Chunk* sound)
+{
+	return Sound::UniqueSoundPtr(sound);
 }
 
 /**
@@ -47,10 +45,14 @@ Sound::~Sound()
  */
 void Sound::load(const std::string &filename) {
 	auto rw = FileMap::getRWops(filename);
-	_sound = Mix_LoadWAV_RW(rw, SDL_TRUE);
-	if (_sound == 0) {
+	auto s = NewSound(Mix_LoadWAV_RW(rw, SDL_TRUE));
+	if (!s)
+	{
 		Log(LOG_ERROR) << "Sound::load(" << filename << "): mixerr=" << Mix_GetError();
 	}
+
+	//allways overwritte
+	_sound = std::move(s);
 }
 
 /**
@@ -58,10 +60,14 @@ void Sound::load(const std::string &filename) {
  * @param rw SDL_RWops of the sound data.
  */
 void Sound::load(SDL_RWops *rw) {
-	_sound = Mix_LoadWAV_RW(rw, SDL_TRUE);
-	if (_sound == 0) {
+	auto s = NewSound(Mix_LoadWAV_RW(rw, SDL_TRUE));
+	if (!s)
+	{
 		Log(LOG_ERROR) << "Sound::load(data): mixerr=" << Mix_GetError();
 	}
+
+	//allways overwritte
+	_sound = std::move(s);
 }
 
 /**
@@ -70,9 +76,9 @@ void Sound::load(SDL_RWops *rw) {
  */
 void Sound::play(int channel, int angle, int distance) const
  {
-	if (!Options::mute && _sound != 0)
+	if (!Options::mute && _sound)
  	{
-		int chan = Mix_PlayChannel(channel, _sound, 0);
+		int chan = Mix_PlayChannel(channel, _sound.get(), 0);
 		if (chan == -1)
 		{
 			Log(LOG_WARNING) << Mix_GetError();
@@ -103,9 +109,9 @@ void Sound::stop()
  */
 void Sound::loop()
 {
-	if (!Options::mute && _sound != 0 && Mix_Playing(3) == 0)
+	if (!Options::mute && _sound && Mix_Playing(3) == 0)
 	{
-		int chan = Mix_PlayChannel(3, _sound, -1);
+		int chan = Mix_PlayChannel(3, _sound.get(), -1);
 		if (chan == -1)
 		{
 			Log(LOG_WARNING) << Mix_GetError();

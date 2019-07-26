@@ -20,6 +20,7 @@
 #include <SDL_rwops.h>
 #include <SDL_mixer.h>
 #include <string>
+#include <memory>
 
 namespace OpenXcom
 {
@@ -30,13 +31,30 @@ namespace OpenXcom
  */
 class Sound
 {
+public:
+	struct UniqueSoundDeleter
+	{
+		void operator()(Mix_Chunk*);
+	};
+
+	using UniqueSoundPtr = std::unique_ptr<Mix_Chunk, UniqueSoundDeleter>;
+
+	/// Smart pointer for for Mix_Chunk.
+	static UniqueSoundPtr NewSound(Mix_Chunk* sound);
+
 private:
-	Mix_Chunk *_sound;
+	UniqueSoundPtr _sound;
+
 public:
 	/// Creates a blank sound effect.
-	Sound();
+	Sound() = default;
 	/// Cleans up the sound effect.
-	~Sound();
+	~Sound() = default;
+	/// Move sound to another place.
+	Sound(Sound&& other) = default;
+	/// Move assigment
+	Sound& operator=(Sound&& other) = default;
+
 	/// Loads sound from the specified file.
 	void load(const std::string &filename);
 	/// Loads sound from SDL_RWops

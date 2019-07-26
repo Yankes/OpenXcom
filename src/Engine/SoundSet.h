@@ -34,7 +34,7 @@ class CatFile;
 class SoundSet
 {
 private:
-	std::map<int, Sound*> _sounds;
+	std::map<int, Sound> _sounds;
 	int _sharedSounds;
 
 	int convertSampleRate(Uint8 *oldsound, size_t oldsize, Uint8 *newsound) const;
@@ -44,7 +44,7 @@ public:
 	/// Crates a sound set.
 	SoundSet();
 	/// Cleans up the sound set.
-	~SoundSet();
+	~SoundSet() = default;
 	/// Loads an X-Com CAT set of sound files.
 	void loadCat(CatFile& sndFile);
 	/// Gets a particular sound from the set.
