@@ -34,7 +34,6 @@ class RuleCraft;
 class RuleCraftWeapon;
 class RuleItem;
 struct RuleDamageType;
-class RuleUfo;
 class RuleTerrain;
 class MapDataSet;
 class RuleSoldier;
@@ -54,6 +53,9 @@ class BattleUnit;
 class BattleUnitVisibility;
 class BattleItem;
 struct StatAdjustment;
+
+class Ufo;
+class RuleUfo;
 
 class SavedBattleGame;
 class SavedGame;
@@ -170,6 +172,21 @@ class ModScript
 		}
 	};
 
+	////////////////////////////////////////////////////////////
+	//					ufo script
+	////////////////////////////////////////////////////////////
+
+	struct DetectUfoFromBaseParser : ScriptParserEvents<ScriptOutputArgs<int&, int&>, const Ufo*, int, int, int, int, int>
+	{
+		DetectUfoFromBaseParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	struct DetectUfoFromCraftParser : ScriptParserEvents<ScriptOutputArgs<int&, int&>, const Ufo*, int, int, int, int>
+	{
+		DetectUfoFromCraftParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+
 public:
 	/// Get shared state.
 	const ScriptGlobal* getShared() const
@@ -234,6 +251,13 @@ public:
 	using CloseQuarterMultiplierStatBonus = MACRO_NAMED_SCRIPT("closeQuartersMultiplier", BonusStatsParser);
 
 	////////////////////////////////////////////////////////////
+	//					ufo script
+	////////////////////////////////////////////////////////////
+
+	using DetectUfoFromBase = MACRO_NAMED_SCRIPT("detectUfoFromBase", DetectUfoFromBaseParser);
+	using DetectUfoFromCraft = MACRO_NAMED_SCRIPT("detectUfoFromCraft", DetectUfoFromCraftParser);
+
+	////////////////////////////////////////////////////////////
 	//					groups
 	////////////////////////////////////////////////////////////
 
@@ -284,12 +308,18 @@ public:
 		CloseQuarterMultiplierStatBonus
 	>;
 
+	using UfoScripts = ScriptGroup<Mod,
+		DetectUfoFromBase,
+		DetectUfoFromCraft
+	>;
+
 	////////////////////////////////////////////////////////////
 	//					members
 	////////////////////////////////////////////////////////////
 	BattleUnitScripts battleUnitScripts = { _shared, _mod, };
 	BattleItemScripts battleItemScripts = { _shared, _mod, };
 	BonusStatsScripts bonusStatsScripts = { _shared, _mod, };
+	UfoScripts ufoScripts = { _shared, _mod, };
 };
 
 }

@@ -21,6 +21,7 @@
 #include <map>
 #include <yaml-cpp/yaml.h>
 #include "RuleCraft.h"
+#include "ModScript.h"
 
 namespace OpenXcom
 {
@@ -47,6 +48,13 @@ struct RuleUfoStats : RuleCraftStats
 		craftCustomDeploy = node["craftCustomDeploy"].as<std::string>(craftCustomDeploy);
 		missionCustomDeploy = node["missionCustomDeploy"].as<std::string>(missionCustomDeploy);
 	}
+
+	template<auto Stat, typename TBind>
+	static void addGetStatsScript(TBind& b, std::string prefix)
+	{
+		RuleCraftStats::addGetStatsScript<Stat>(b, prefix);
+//		b.template addField<Stat, &RuleUfoStats::?>(prefix + "?");
+	}
 };
 
 /**
@@ -69,13 +77,22 @@ private:
 	RuleUfoStats _stats;
 	std::map<std::string, RuleUfoStats> _statsRaceBonus;
 	std::string _modSprite;
+
+	ModScript::UfoScripts::Container _ufoScripts;
+	ScriptValues<RuleUfo> _scriptValues;
 public:
+
+	/// Name of class used in script.
+	static constexpr const char *ScriptName = "RuleUfo";
+	/// Register all useful function used by script.
+	static void ScriptRegister(ScriptParserBase* parser);
+
 	/// Creates a blank UFO ruleset.
 	RuleUfo(const std::string &type);
 	/// Cleans up the UFO ruleset.
 	~RuleUfo();
 	/// Loads UFO data from YAML.
-	void load(const YAML::Node& node, Mod *mod);
+	void load(const YAML::Node& node, const ModScript &parsers, Mod *mod);
 	/// Gets the UFO's type.
 	const std::string &getType() const;
 	/// Gets the UFO's size.
@@ -125,6 +142,10 @@ public:
 	int getHuntBehavior() const;
 	/// Gets the missile power (of a UFO that represents one or more missiles).
 	int getMissilePower() const { return _missilePower; }
+	/// Gets script.
+	template<typename Script>
+	const typename Script::Container &getScript() const { return _ufoScripts.get<Script>(); }
+	const ScriptValues<RuleUfo> &getScriptValuesRaw() const { return _scriptValues; }
 };
 
 }

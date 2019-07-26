@@ -19,6 +19,7 @@
 #include "RuleUfo.h"
 #include "RuleTerrain.h"
 #include "Mod.h"
+#include "../Engine/ScriptBind.h"
 
 namespace OpenXcom
 {
@@ -54,11 +55,11 @@ RuleUfo::~RuleUfo()
  * @param node YAML node.
  * @param mod Mod for the UFO.
  */
-void RuleUfo::load(const YAML::Node &node, Mod *mod)
+void RuleUfo::load(const YAML::Node &node, const ModScript &parsers, Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		load(parent, mod);
+		load(parent, parsers, mod);
 	}
 	_type = node["type"].as<std::string>(_type);
 	_size = node["size"].as<std::string>(_size);
@@ -108,6 +109,9 @@ void RuleUfo::load(const YAML::Node &node, Mod *mod)
 
 	mod->loadSoundOffset(_type, _fireSound, node["fireSound"], "GEO.CAT");
 	mod->loadSoundOffset(_type, _alertSound, node["alertSound"], "GEO.CAT");
+
+	_ufoScripts.load(_type, node, parsers.ufoScripts);
+	_scriptValues.load(node, parsers.getShared());
 }
 
 /**
@@ -353,6 +357,51 @@ int RuleUfo::getHuntSpeed() const
 int RuleUfo::getHuntBehavior() const
 {
 	return _huntBehavior;
+}
+
+////////////////////////////////////////////////////////////
+//					Script binding
+////////////////////////////////////////////////////////////
+
+namespace
+{
+
+std::string debugDisplayScript(const RuleUfo* ru)
+{
+	if (ru)
+	{
+		std::string s;
+		s += RuleUfo::ScriptName;
+		s += "(name: \"";
+		s += ru->getType();
+		s += "\")";
+		return s;
+	}
+	else
+	{
+		return "null";
+	}
+}
+
+} // namespace
+
+/**
+ * Register RuleUfo in script parser.
+ * @param parser Script parser.
+ */
+void RuleUfo::ScriptRegister(ScriptParserBase* parser)
+{
+	Bind<RuleUfo> ar = { parser };
+
+	ar.add<&RuleUfo::getRadius>("getRadius");
+	ar.add<&RuleUfo::getWeaponRange>("getWeaponRange");
+	ar.add<&RuleUfo::getWeaponPower>("getWeaponPower");
+	ar.add<&RuleUfo::getWeaponReload>("getWeaponReload");
+
+	RuleUfoStats::addGetStatsScript<&RuleUfo::_stats>(ar, "");
+
+	ar.addScriptValue<&RuleUfo::_scriptValues>(false);
+	ar.addDebugDisplay<&debugDisplayScript>();
 }
 
 }

@@ -1849,63 +1849,57 @@ void GeoscapeState::time30Minutes()
 					break;
 				}
 			}
-			if (!ufo->getDetected())
+
+			// Detection ufo state
 			{
-				UfoDetection detected = DETECTION_NONE;
+				auto detected = DETECTION_NONE;
+				auto alreadyTracked = ufo->getDetected();
 
 				for (auto base : *_game->getSavedGame()->getBases())
 				{
-					detected = std::max(detected, base->detect(ufo));
+					detected = std::max(detected, base->detect(ufo, alreadyTracked));
 				}
 
 				for (auto craft : *crafts)
 				{
-					detected = std::max(detected, craft->detect(ufo));
+					detected = std::max(detected, craft->detect(ufo, alreadyTracked));
 				}
 
-				if (detected)
+				if (!alreadyTracked)
+				{
+					if (detected)
+					{
+						if (detected == DETECTION_HYPERWAVE)
+						{
+							ufo->setHyperDetected(true);
+						}
+						ufo->setDetected(true);
+						// don't show if player said he doesn't want to see this UFO anymore
+						if (!_game->getSavedGame()->isUfoOnIgnoreList(ufo->getId()))
+						{
+							popup(new UfoDetectedState(ufo, this, true, ufo->getHyperDetected()));
+						}
+					}
+				}
+				else
 				{
 					if (detected == DETECTION_HYPERWAVE)
 					{
 						ufo->setHyperDetected(true);
 					}
-					ufo->setDetected(true);
-					// don't show if player said he doesn't want to see this UFO anymore
-					if (!_game->getSavedGame()->isUfoOnIgnoreList(ufo->getId()))
+					// TODO: rethink: hunting UFOs stay visible even outside of radar range?
+					if (!detected && !ufo->isHunting())
 					{
-						popup(new UfoDetectedState(ufo, this, true, ufo->getHyperDetected()));
+						ufo->setDetected(false);
+						ufo->setHyperDetected(false);
+						if (!ufo->getFollowers()->empty())
+						{
+							popup(new UfoLostState(ufo->getName(_game->getLanguage())));
+						}
 					}
 				}
 			}
-			else
-			{
-				UfoDetection detected = DETECTION_NONE;
 
-				for (auto base : *_game->getSavedGame()->getBases())
-				{
-					detected = std::max(detected, base->insideRadarRange(ufo));
-				}
-
-				for (auto craft : *crafts)
-				{
-					detected = std::max(detected, craft->insideRadarRange(ufo));
-				}
-
-				if (detected == DETECTION_HYPERWAVE)
-				{
-					ufo->setHyperDetected(true);
-				}
-				// TODO: rethink: hunting UFOs stay visible even outside of radar range?
-				if (!detected && !ufo->isHunting())
-				{
-					ufo->setDetected(false);
-					ufo->setHyperDetected(false);
-					if (!ufo->getFollowers()->empty())
-					{
-						popup(new UfoLostState(ufo->getName(_game->getLanguage())));
-					}
-				}
-			}
 			break;
 		case Ufo::CRASHED:
 		case Ufo::DESTROYED:

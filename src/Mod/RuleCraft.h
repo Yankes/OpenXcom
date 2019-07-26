@@ -109,6 +109,26 @@ struct RuleCraftStats
 		shieldRechargeInGeoscape = node["shieldRechargeInGeoscape"].as<int>(shieldRechargeInGeoscape);
 		shieldBleedThrough = node["shieldBleedThrough"].as<int>(shieldBleedThrough);
 	}
+
+	template<auto Stat, typename TBind>
+	static void addGetStatsScript(TBind& b, std::string prefix)
+	{
+		b.template addField<Stat, &RuleCraftStats::fuelMax>(prefix + "getFuelMax");
+		b.template addField<Stat, &RuleCraftStats::damageMax>(prefix + "getDamageMax");
+		b.template addField<Stat, &RuleCraftStats::speedMax>(prefix + "getSpeedMax");
+		b.template addField<Stat, &RuleCraftStats::accel>(prefix + "getAccel");
+		b.template addField<Stat, &RuleCraftStats::radarRange>(prefix + "getRadarRange");
+		b.template addField<Stat, &RuleCraftStats::radarChance>(prefix + "getRadarChance");
+		b.template addField<Stat, &RuleCraftStats::sightRange>(prefix + "getSightRange");
+		b.template addField<Stat, &RuleCraftStats::hitBonus>(prefix + "getHitBonus");
+		b.template addField<Stat, &RuleCraftStats::avoidBonus>(prefix + "getAvoidBonus");
+		b.template addField<Stat, &RuleCraftStats::powerBonus>(prefix + "getPowerBonus");
+		b.template addField<Stat, &RuleCraftStats::armor>(prefix + "getArmor");
+		b.template addField<Stat, &RuleCraftStats::shieldCapacity>(prefix + "getShieldCapacity");
+		b.template addField<Stat, &RuleCraftStats::shieldRecharge>(prefix + "getShieldRecharge");
+		b.template addField<Stat, &RuleCraftStats::shieldRechargeInGeoscape>(prefix + "getShieldRechargeInGeoscape");
+		b.template addField<Stat, &RuleCraftStats::shieldBleedThrough>(prefix + "getShieldBleedThrough");
+	}
 };
 
 /**

@@ -1590,7 +1590,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		RuleUfo *rule = loadRule(*i, &_ufos, &_ufosIndex);
 		if (rule != 0)
 		{
-			rule->load(*i, this);
+			rule->load(*i, parsers, this);
 		}
 	}
 	for (YAML::const_iterator i = doc["invs"].begin(); i != doc["invs"].end(); ++i)
