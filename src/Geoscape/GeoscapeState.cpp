@@ -1630,28 +1630,6 @@ void GeoscapeState::baseHunting()
 	}
 }
 
-/** @brief Call AlienMission::think() with proper parameters.
- * This function object calls AlienMission::think() with the proper parameters.
- */
-class callThink
-{
-	typedef AlienMission* argument_type;
-	typedef void result_type;
-
-public:
-	/// Store the parameters.
-	/**
-	 * @param game The game engine.
-	 * @param globe The globe object.
-	 */
-	callThink(Game &game, const Globe &globe) : _game(game), _globe(globe) { /* Empty by design. */ }
-	/// Call AlienMission::think() with stored parameters.
-	void operator()(AlienMission *am) const { am->think(_game, _globe); }
-private:
-	Game &_game;
-	const Globe &_globe;
-};
-
 /** @brief Process a MissionSite.
  * This function object will count down towards expiring a MissionSite, and handle expired MissionSites.
  * @param ts Pointer to mission site.
@@ -1700,24 +1678,33 @@ bool GeoscapeState::processMissionSite(MissionSite *site)
 			break;
 		}
 	}
-	if (!removeSite)
-	{
-		return false;
-	}
-	delete site;
-	return true;
+
+	return removeSite;
 }
 
-/** @brief Advance time for crashed UFOs.
- * This function object will decrease the expiration timer for crashed UFOs.
+/**
+ * Takes care of any game logic that has to
+ * run every game half hour, like UFO detection.
  */
-struct expireCrashedUfo
+void GeoscapeState::time30Minutes()
 {
-	typedef Ufo* argument_type;
-	typedef void result_type;
+	// Decrease mission countdowns
+	for (auto am : _game->getSavedGame()->getAlienMissions())
+	{
+		am->think(*_game, *_globe);
+	}
 
-	/// Decrease UFO expiration timer.
-	void operator()(Ufo *ufo) const
+	// Remove finished missions
+	Collections::deleteIf(
+		_game->getSavedGame()->getAlienMissions(),
+		[](AlienMission* am)
+		{
+			return am->isOver();
+		}
+	);
+
+	// Handle crashed UFOs expiration
+	for(auto ufo : *_game->getSavedGame()->getUfos())
 	{
 		if (ufo->getStatus() == Ufo::CRASHED)
 		{
@@ -1730,119 +1717,88 @@ struct expireCrashedUfo
 			ufo->setStatus(Ufo::DESTROYED);
 		}
 	}
-};
-
-/**
- * Takes care of any game logic that has to
- * run every game half hour, like UFO detection.
- */
-void GeoscapeState::time30Minutes()
-{
-	// Decrease mission countdowns
-	std::for_each(_game->getSavedGame()->getAlienMissions().begin(),
-			  _game->getSavedGame()->getAlienMissions().end(),
-			  callThink(*_game, *_globe));
-	// Remove finished missions
-	for (std::vector<AlienMission*>::iterator am = _game->getSavedGame()->getAlienMissions().begin();
-		am != _game->getSavedGame()->getAlienMissions().end();)
-	{
-		if ((*am)->isOver())
-		{
-			delete *am;
-			am = _game->getSavedGame()->getAlienMissions().erase(am);
-		}
-		else
-		{
-			++am;
-		}
-	}
-
-	// Handle crashed UFOs expiration
-	std::for_each(_game->getSavedGame()->getUfos()->begin(),
-			  _game->getSavedGame()->getUfos()->end(),
-			  expireCrashedUfo());
 
 
 	// Handle craft maintenance and alien base detection
-	for (std::vector<Base*>::iterator i = _game->getSavedGame()->getBases()->begin(); i != _game->getSavedGame()->getBases()->end(); ++i)
+	for (auto base : *_game->getSavedGame()->getBases())
 	{
-		for (std::vector<Craft*>::iterator j = (*i)->getCrafts()->begin(); j != (*i)->getCrafts()->end(); ++j)
+		for (auto craft : *base->getCrafts())
 		{
-			if ((*j)->getStatus() == "STR_REFUELLING")
+			if (craft->getStatus() == "STR_REFUELLING")
 			{
-				std::string item = (*j)->getRules()->getRefuelItem();
+				std::string item = craft->getRules()->getRefuelItem();
 				if (item.empty())
 				{
-					(*j)->refuel();
+					craft->refuel();
 					// notification
-					if ((*j)->getStatus() == "STR_READY" && (*j)->getRules()->notifyWhenRefueled())
+					if (craft->getStatus() == "STR_READY" && craft->getRules()->notifyWhenRefueled())
 					{
-						std::string msg = tr("STR_CRAFT_IS_READY").arg((*j)->getName(_game->getLanguage())).arg((*i)->getName());
+						std::string msg = tr("STR_CRAFT_IS_READY").arg(craft->getName(_game->getLanguage())).arg(base->getName());
 						popup(new CraftErrorState(this, msg));
 					}
 					// auto-patrol
-					if ((*j)->getStatus() == "STR_READY" && (*j)->getRules()->canAutoPatrol())
+					if (craft->getStatus() == "STR_READY" && craft->getRules()->canAutoPatrol())
 					{
-						if ((*j)->getIsAutoPatrolling())
+						if (craft->getIsAutoPatrolling())
 						{
 							Waypoint *w = new Waypoint();
-							w->setLongitude((*j)->getLongitudeAuto());
-							w->setLatitude((*j)->getLatitudeAuto());
+							w->setLongitude(craft->getLongitudeAuto());
+							w->setLatitude(craft->getLatitudeAuto());
 							if (w != 0 && w->getId() == 0)
 							{
 								w->setId(_game->getSavedGame()->getId("STR_WAY_POINT"));
 								_game->getSavedGame()->getWaypoints()->push_back(w);
 							}
-							(*j)->setDestination(w);
-							(*j)->setStatus("STR_OUT");
+							craft->setDestination(w);
+							craft->setStatus("STR_OUT");
 						}
 					}
 				}
 				else
 				{
-					if ((*i)->getStorageItems()->getItem(item) > 0)
+					if (base->getStorageItems()->getItem(item) > 0)
 					{
-						(*i)->getStorageItems()->removeItem(item);
-						(*j)->refuel();
-						(*j)->setLowFuel(false);
+						base->getStorageItems()->removeItem(item);
+						craft->refuel();
+						craft->setLowFuel(false);
 						// notification
-						if ((*j)->getStatus() == "STR_READY" && (*j)->getRules()->notifyWhenRefueled())
+						if (craft->getStatus() == "STR_READY" && craft->getRules()->notifyWhenRefueled())
 						{
-							std::string msg = tr("STR_CRAFT_IS_READY").arg((*j)->getName(_game->getLanguage())).arg((*i)->getName());
+							std::string msg = tr("STR_CRAFT_IS_READY").arg(craft->getName(_game->getLanguage())).arg(base->getName());
 							popup(new CraftErrorState(this, msg));
 						}
 						// auto-patrol
-						if ((*j)->getStatus() == "STR_READY" && (*j)->getRules()->canAutoPatrol())
+						if (craft->getStatus() == "STR_READY" && craft->getRules()->canAutoPatrol())
 						{
-							if ((*j)->getIsAutoPatrolling())
+							if (craft->getIsAutoPatrolling())
 							{
 								Waypoint *w = new Waypoint();
-								w->setLongitude((*j)->getLongitudeAuto());
-								w->setLatitude((*j)->getLatitudeAuto());
+								w->setLongitude(craft->getLongitudeAuto());
+								w->setLatitude(craft->getLatitudeAuto());
 								if (w != 0 && w->getId() == 0)
 								{
 									w->setId(_game->getSavedGame()->getId("STR_WAY_POINT"));
 									_game->getSavedGame()->getWaypoints()->push_back(w);
 								}
-								(*j)->setDestination(w);
-								(*j)->setStatus("STR_OUT");
+								craft->setDestination(w);
+								craft->setStatus("STR_OUT");
 							}
 						}
 					}
-					else if (!(*j)->getLowFuel())
+					else if (!craft->getLowFuel())
 					{
 						std::string msg = tr("STR_NOT_ENOUGH_ITEM_TO_REFUEL_CRAFT_AT_BASE")
 										   .arg(tr(item))
-										   .arg((*j)->getName(_game->getLanguage()))
-										   .arg((*i)->getName());
+										   .arg(craft->getName(_game->getLanguage()))
+										   .arg(base->getName());
 						popup(new CraftErrorState(this, msg));
-						if ((*j)->getFuel() > 0)
+						if (craft->getFuel() > 0)
 						{
-							(*j)->setStatus("STR_READY");
+							craft->setStatus("STR_READY");
 						}
 						else
 						{
-							(*j)->setLowFuel(true);
+							craft->setLowFuel(true);
 						}
 					}
 				}
@@ -1851,50 +1807,61 @@ void GeoscapeState::time30Minutes()
 	}
 
 	// Handle UFO detection and give aliens points
-	for (std::vector<Ufo*>::iterator u = _game->getSavedGame()->getUfos()->begin(); u != _game->getSavedGame()->getUfos()->end(); ++u)
+	for (auto ufo : *_game->getSavedGame()->getUfos())
 	{
-		int points = (*u)->getRules()->getMissionScore(); //one point per UFO in-flight per half hour
-		switch ((*u)->getStatus())
+		int points = ufo->getRules()->getMissionScore(); //one point per UFO in-flight per half hour
+		switch (ufo->getStatus())
 		{
 		case Ufo::LANDED:
 			points *= 2;
 			FALLTHROUGH;
 		case Ufo::FLYING:
 			// Get area
-			for (std::vector<Region*>::iterator k = _game->getSavedGame()->getRegions()->begin(); k != _game->getSavedGame()->getRegions()->end(); ++k)
+			for (auto region : *_game->getSavedGame()->getRegions())
 			{
-				if ((*k)->getRules()->insideRegion((*u)->getLongitude(), (*u)->getLatitude()))
+				if (region->getRules()->insideRegion(ufo->getLongitude(), ufo->getLatitude()))
 				{
-					(*k)->addActivityAlien(points);
+					region->addActivityAlien(points);
 					break;
 				}
 			}
 			// Get country
-			for (std::vector<Country*>::iterator k = _game->getSavedGame()->getCountries()->begin(); k != _game->getSavedGame()->getCountries()->end(); ++k)
+			for (auto country : *_game->getSavedGame()->getCountries())
 			{
-				if ((*k)->getRules()->insideCountry((*u)->getLongitude(), (*u)->getLatitude()))
+				if (country->getRules()->insideCountry(ufo->getLongitude(), ufo->getLatitude()))
 				{
-					(*k)->addActivityAlien(points);
+					country->addActivityAlien(points);
 					break;
 				}
 			}
-			if (!(*u)->getDetected())
+			if (!ufo->getDetected())
 			{
 				bool detected = false, hyperdetected = false;
-				for (std::vector<Base*>::iterator b = _game->getSavedGame()->getBases()->begin(); !hyperdetected && b != _game->getSavedGame()->getBases()->end(); ++b)
+				for (auto base : *_game->getSavedGame()->getBases())
 				{
-					switch ((*b)->detect(*u))
+					if (!hyperdetected)
+					{
+						break;
+					}
+
+					switch (base->detect(ufo))
 					{
 					case 2:	// hyper-wave decoder
-						(*u)->setHyperDetected(true);
+						ufo->setHyperDetected(true);
 						hyperdetected = true;
 						FALLTHROUGH;
 					case 1: // conventional radar
 						detected = true;
 					}
-					for (std::vector<Craft*>::iterator c = (*b)->getCrafts()->begin(); !detected && c != (*b)->getCrafts()->end(); ++c)
+
+					for (auto craft : *base->getCrafts())
 					{
-						if ((*c)->getStatus() == "STR_OUT" && (*c)->detect(*u))
+						if (detected)
+						{
+							break;
+						}
+
+						if (craft->getStatus() == "STR_OUT" && craft->detect(ufo))
 						{
 							detected = true;
 							break;
@@ -1903,48 +1870,59 @@ void GeoscapeState::time30Minutes()
 				}
 				if (detected)
 				{
-					(*u)->setDetected(true);
+					ufo->setDetected(true);
 					// don't show if player said he doesn't want to see this UFO anymore
-					if (!_game->getSavedGame()->isUfoOnIgnoreList((*u)->getId()))
+					if (!_game->getSavedGame()->isUfoOnIgnoreList(ufo->getId()))
 					{
-						popup(new UfoDetectedState((*u), this, true, (*u)->getHyperDetected()));
+						popup(new UfoDetectedState(ufo, this, true, ufo->getHyperDetected()));
 					}
 				}
 			}
 			else
 			{
 				bool detected = false, hyperdetected = false;
-				for (std::vector<Base*>::iterator b = _game->getSavedGame()->getBases()->begin(); !hyperdetected && b != _game->getSavedGame()->getBases()->end(); ++b)
+				for (auto base : *_game->getSavedGame()->getBases())
 				{
-					switch ((*b)->insideRadarRange(*u))
+					if (!hyperdetected)
+					{
+						break;
+					}
+
+					switch (base->insideRadarRange(ufo))
 					{
 					case 2:	// hyper-wave decoder
 						detected = true;
 						hyperdetected = true;
-						(*u)->setHyperDetected(true);
+						ufo->setHyperDetected(true);
 						break;
 					case 1: // conventional radar
 						detected = true;
-						hyperdetected = (*u)->getHyperDetected();
+						hyperdetected = ufo->getHyperDetected();
 					}
-					for (std::vector<Craft*>::iterator c = (*b)->getCrafts()->begin(); !detected && c != (*b)->getCrafts()->end(); ++c)
+
+					for (auto craft : *base->getCrafts())
 					{
-						if ((*c)->getStatus() == "STR_OUT" && (*c)->insideRadarRange(*u))
+						if (detected)
+						{
+							break;
+						}
+
+						if (craft->getStatus() == "STR_OUT" && craft->insideRadarRange(ufo))
 						{
 							detected = true;
-							hyperdetected = (*u)->getHyperDetected();
+							hyperdetected = ufo->getHyperDetected();
 							break;
 						}
 					}
 				}
 				// TODO: rethink: hunting UFOs stay visible even outside of radar range?
-				if (!detected && !(*u)->isHunting())
+				if (!detected && !ufo->isHunting())
 				{
-					(*u)->setDetected(false);
-					(*u)->setHyperDetected(false);
-					if (!(*u)->getFollowers()->empty())
+					ufo->setDetected(false);
+					ufo->setHyperDetected(false);
+					if (!ufo->getFollowers()->empty())
 					{
-						popup(new UfoLostState((*u)->getName(_game->getLanguage())));
+						popup(new UfoLostState(ufo->getName(_game->getLanguage())));
 					}
 				}
 			}
@@ -1956,17 +1934,13 @@ void GeoscapeState::time30Minutes()
 	}
 
 	// Processes MissionSites
-	for (std::vector<MissionSite*>::iterator site = _game->getSavedGame()->getMissionSites()->begin(); site != _game->getSavedGame()->getMissionSites()->end();)
-	{
-		if (processMissionSite(*site))
+	Collections::deleteIf(
+		*_game->getSavedGame()->getMissionSites(),
+		[&](MissionSite* site)
 		{
-			site = _game->getSavedGame()->getMissionSites()->erase(site);
+			return processMissionSite(site);
 		}
-		else
-		{
-			++site;
-		}
-	}
+	);
 }
 
 /**
