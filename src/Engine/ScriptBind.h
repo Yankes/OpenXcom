@@ -27,6 +27,24 @@
 namespace OpenXcom
 {
 
+
+/**
+ * Hack needed by Clang 6.0 to propery transfer `auto` template parameters,
+ * This need be macro becasue GCC 7.4 fail on this hack,
+ * VS look it could handle both cases
+ */
+#ifdef __clang__
+template<auto T>
+static constexpr decltype(T) _clang_auto_hack()
+{
+    return T;
+}
+#define MACRO_CLANG_AUTO_HACK(T) _clang_auto_hack<T>()
+#else
+#define MACRO_CLANG_AUTO_HACK(T) T
+#endif
+
+
 /**
  * Type of code block
  */
@@ -1070,7 +1088,7 @@ struct Bind : BindBase
 	template<auto MemPtr0, auto MemPtr1, auto... MemPtrR>
 	void addField(const std::string& get)
 	{
-		addCustomFunc<helper::BindPropGet<T, MemPtr0, MemPtr1, MemPtrR...>>(getName(get), "Get int field of " + std::string{ T::ScriptName });
+		addCustomFunc<helper::BindPropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0), MACRO_CLANG_AUTO_HACK(MemPtr1), MACRO_CLANG_AUTO_HACK(MemPtrR)...>>(getName(get), "Get int field of " + std::string{ T::ScriptName });
 	}
 
 	void addScriptTag()
@@ -1123,7 +1141,7 @@ struct Bind : BindBase
 	template<auto X>
 	void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
 	{
-		addCustomFunc<helper::BindFunc<X>>(getName(func), description);
+		addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(X)>>(getName(func), description);
 	}
 };
 
