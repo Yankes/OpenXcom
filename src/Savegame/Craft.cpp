@@ -1003,8 +1003,8 @@ bool Craft::detect(const Ufo *target) const
  */
 bool Craft::insideRadarRange(const Ufo *target) const
 {
-	double range = Nautical(_stats.radarRange);
-	return (getDistance(target) <= range);
+	int distance = XcomDistance(getDistance(target));
+	return (distance <= _stats.radarRange);
 }
 
 /**

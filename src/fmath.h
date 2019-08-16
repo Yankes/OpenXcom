@@ -91,3 +91,11 @@ inline double Nautical(double x)
 {
 	return x * (1 / 60.0) * (M_PI / 180.0);
 }
+
+/**
+ * Inversion of Nautical distance, use same value as in rulesets defintions
+ */
+inline int XcomDistance(double nautical)
+{
+	return nautical * 60.0 * (180.0 / M_PI);
+}

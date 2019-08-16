@@ -427,7 +427,7 @@ void Base::setEngineers(int engineers)
 int Base::detect(const Ufo *target) const
 {
 	int chance = 0;
-	double distance = getDistance(target) * 60.0 * (180.0 / M_PI);
+	int distance = XcomDistance(getDistance(target));
 	for (std::vector<BaseFacility*>::const_iterator i = _facilities.begin(); i != _facilities.end(); ++i)
 	{
 		if ((*i)->getRules()->getRadarRange() >= distance && (*i)->getBuildTime() == 0)
@@ -462,7 +462,7 @@ int Base::detect(const Ufo *target) const
 int Base::insideRadarRange(const Ufo *target) const
 {
 	bool insideRange = false;
-	double distance = getDistance(target) * 60.0 * (180.0 / M_PI);
+	int distance = XcomDistance(getDistance(target));
 	for (std::vector<BaseFacility*>::const_iterator i = _facilities.begin(); i != _facilities.end(); ++i)
 	{
 		if ((*i)->getRules()->getRadarRange() >= distance && (*i)->getBuildTime() == 0)
