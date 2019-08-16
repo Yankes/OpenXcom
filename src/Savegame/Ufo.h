@@ -33,6 +33,13 @@ class SavedGame;
 class Mod;
 class Waypoint;
 
+enum UfoDetection : int
+{
+	DETECTION_NONE = 0,
+	DETECTION_RADAR = 1,
+	DETECTION_HYPERWAVE = 2,
+};
+
 /**
  * Represents an alien UFO on the map.
  * Contains variable info about a UFO like

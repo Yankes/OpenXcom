@@ -38,6 +38,8 @@ class SavedGame;
 class Vehicle;
 class RuleStartingCondition;
 
+enum UfoDetection : int;
+
 /**
  * Represents a craft stored in a base.
  * Contains variable info about a craft like
@@ -176,9 +178,9 @@ public:
 	/// Returns the crew to their base (using transfers).
 	void evacuateCrew(const Mod *mod);
 	/// Checks if a target is detected by the craft's radar.
-	bool detect(const Ufo *target) const;
+	UfoDetection detect(const Ufo *target) const;
 	/// Checks if a target is inside the craft's radar range.
-	bool insideRadarRange(const Ufo *target) const;
+	UfoDetection insideRadarRange(const Ufo *target) const;
 	/// Handles craft logic.
 	bool think();
 	/// Does a craft full checkup.

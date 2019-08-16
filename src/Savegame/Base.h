@@ -40,6 +40,8 @@ class Production;
 class Vehicle;
 class Ufo;
 
+enum UfoDetection : int;
+
 /**
  * Represents a player base on the globe.
  * Bases can contain facilities, personnel, crafts and equipment.
@@ -103,9 +105,9 @@ public:
 	/// Sets the base's engineers.
 	void setEngineers(int engineers);
 	/// Checks if a target is detected by the base's radar.
-	int detect(const Ufo *target) const;
+	UfoDetection detect(const Ufo *target) const;
 	/// Checks if a target is inside the base's radar range.
-	int insideRadarRange(const Ufo *target) const;
+	UfoDetection insideRadarRange(const Ufo *target) const;
 	/// Gets the base's available soldiers.
 	int getAvailableSoldiers(bool checkCombatReadiness = false, bool includeWounded = false) const;
 	/// Gets the base's total soldiers.
