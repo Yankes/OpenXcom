@@ -349,7 +349,7 @@ class ScriptContainerEventsBase
 {
 	friend class ScriptParserEventsBase;
 	ScriptContainerBase _current;
-	const ScriptContainerBase* _events;
+	const ScriptContainerBase* _events = nullptr;
 
 public:
 	/// Test if is any script there.
