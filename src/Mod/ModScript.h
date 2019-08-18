@@ -74,6 +74,9 @@ class ModScript
 
 	using Output = ScriptOutputArgs<int&, int>;
 
+	////////////////////////////////////////////////////////////
+	//					unit script
+	////////////////////////////////////////////////////////////
 
 	struct RecolorUnitParser : ScriptParserEvents<Output, const BattleUnit*, int, int, int, int>
 	{
@@ -91,15 +94,6 @@ class ModScript
 	struct ReactionUnitParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int, const BattleUnit*, int>
 	{
 		ReactionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
-	};
-
-	struct RecolorItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
-	{
-		RecolorItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
-	};
-	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
-	{
-		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
 	struct VisibilityUnitParser : ScriptParserEvents<ScriptOutputArgs<int&, int, ScriptTag<BattleUnitVisibility>&>, const BattleUnit*, const BattleUnit*, int, int, int, int>
@@ -129,6 +123,15 @@ class ModScript
 		ReturnFromMissionUnitParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
+	struct AwardExperienceParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int>
+	{
+		AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	////////////////////////////////////////////////////////////
+	//					item script
+	////////////////////////////////////////////////////////////
+
 	struct CreateItemParser : ScriptParserEvents<ScriptOutputArgs<>, BattleItem*, SavedBattleGame*, int>
 	{
 		CreateItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
@@ -138,10 +141,18 @@ class ModScript
 		NewTurnItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
-	struct AwardExperienceParser : ScriptParserEvents<Output, const BattleUnit*, const BattleUnit*, const BattleItem*, int>
+	struct RecolorItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
 	{
-		AwardExperienceParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+		RecolorItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
+	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, int, int, int>
+	{
+		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	////////////////////////////////////////////////////////////
+	//					bonus stat script
+	////////////////////////////////////////////////////////////
 
 	struct BonusStatsBaseParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleUnit*>
 	{
