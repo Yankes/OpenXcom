@@ -53,6 +53,7 @@
 #include "../Interface/Text.h"
 #include "../fmath.h"
 #include "../fallthrough.h"
+#include <chrono>
 
 
 /*
@@ -276,7 +277,24 @@ void Map::draw()
 
 	if ((_save->getSelectedUnit() && _save->getSelectedUnit()->getVisible()) || _unitDying || _save->getSelectedUnit() == 0 || _save->getDebugMode() || _projectileInFOV || _explosionInFOV)
 	{
+		static struct
+		{
+			long long avg = 0;
+			int count = 0;
+		} d = {};
+
+		auto start = std::chrono::high_resolution_clock::now();
 		drawTerrain(this);
+		auto elapsed = std::chrono::high_resolution_clock::now() - start;
+		long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+
+		d.avg += microseconds;
+		d.count += 1;
+		if (d.count >= 100)
+		{
+			Log(LOG_INFO) << "draw terrain: " << microseconds << " micro seconds (avg: " << (d.avg / d.count) << ")";
+			d = {};
+		}
 	}
 	else
 	{
