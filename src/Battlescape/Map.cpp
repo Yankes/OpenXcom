@@ -63,10 +63,16 @@
   4) Z axis goes up (height of the map)
 
            0,0
-			/\
-	    y+ /  \ x+
-		   \  /
-		    \/
+            /\
+           /  \
+        y+ \  / x+
+            \/
+
+
+         W  /\  N
+           /  \
+           \  /
+         S  \/  E
  */
 
 namespace OpenXcom
