@@ -130,6 +130,14 @@ bool MapData::isGravLift() const
 }
 
 /**
+ * Gets if object should be draw behind unit or on front of unit (if it work as S or E wall)
+ */
+bool MapData::isBackTileObject() const
+{
+	return getBigWall() < 6 || getBigWall() == 9;
+}
+
+/**
  * Sets all kinds of flags.
  * @param isUfoDoor True if this is a ufo door.
  * @param stopLOS True if this stops line of sight.
