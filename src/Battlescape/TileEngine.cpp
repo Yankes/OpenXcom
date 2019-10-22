@@ -3392,7 +3392,7 @@ std::pair<int, Position> TileEngine::checkAdjacentDoors(Position pos, TilePart p
 	{
 		offset = westSide ? Position(0,i,0):Position(i,0,0);
 		Tile *tile = _save->getTile(pos + offset);
-		if (tile && tile->getMapData(part) && tile->getMapData(part)->isUFODoor())
+		if (tile && tile->isUfoDoor(part))
 		{
 			int doorAdj = tile->openDoor(part);
 			if (doorAdj == 1) //only expecting ufo doors
@@ -3407,7 +3407,7 @@ std::pair<int, Position> TileEngine::checkAdjacentDoors(Position pos, TilePart p
 	{
 		offset = westSide ? Position(0,i,0):Position(i,0,0);
 		Tile *tile = _save->getTile(pos + offset);
-		if (tile && tile->getMapData(part) && tile->getMapData(part)->isUFODoor())
+		if (tile && tile->isUfoDoor(part))
 		{
 			int doorAdj = tile->openDoor(part);
 			if (doorAdj == 1)

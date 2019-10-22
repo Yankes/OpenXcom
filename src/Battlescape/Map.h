@@ -91,7 +91,7 @@ private:
 	void drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Position tileScreenPosition, int shade, int obstacleShade, bool topLayer);
 	void drawTerrain(Surface *surface);
 	int getTerrainLevel(const Position& pos, int size) const;
-	int getWallShade(TilePart part, Tile* tileFrot, Tile* tileBehind);
+	int getWallShade(TilePart part, Tile* tileFrot);
 	int _iconHeight, _iconWidth, _messageColor;
 	const std::vector<Uint8> *_transparencies;
 	bool _showObstacles;

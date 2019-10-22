@@ -69,30 +69,46 @@ public:
 
 	static const int NOT_CALCULATED = -1;
 
+	struct TileObjectCache
+	{
+		Sint8 offsetY;
+		Uint8 currentFrame:4;
+		Uint8 discovered:1;
+		Uint8 isUfoDoor:1;
+		Uint8 isDoor:1;
+		Uint8 isBackTileObject:1;
+	};
+	struct TileCache
+	{
+		Sint8 terrainLevel = 0;
+		Uint8 isNoFloor:1;
+		Uint8 bigWall:1;
+	};
+
 protected:
 	MapData *_objects[O_MAX];
 	int _mapDataID[O_MAX];
 	int _mapDataSetID[O_MAX];
-	int _currentFrame[O_MAX];
 	SurfaceRaw<const Uint8> _currentSurface[O_MAX] = { };
-	bool _discovered[3];
-	int _light[LL_MAX];
-	int _smoke;
-	int _fire;
-	int _explosive;
-	int _explosiveType;
+	TileObjectCache _objectsCache[O_MAX] = { };
+	TileCache _cache = { };
+	Uint8 _light[LL_MAX];
+	Uint8 _fire = 0;
+	Uint8 _smoke = 0;
+	Uint8 _markerColor = 0;
+	Uint8 _animationOffset = 0;
+	Uint8 _obstacle = 0;
+	Uint8 _explosiveType = 0;
+	int _explosive = 0;
+	bool _danger = false;
 	Position _pos;
 	BattleUnit *_unit;
 	std::vector<BattleItem *> _inventory;
-	int _animationOffset;
-	int _markerColor;
 	int _visible;
 	int _preview;
 	int _TUMarker;
 	int _overlaps;
-	bool _danger;
 	std::list<Particle*> _particles;
-	int _obstacle;
 public:
 	/// Creates a tile.
 	Tile(Position pos);
@@ -127,10 +143,24 @@ public:
 	int getTUCost(int part, MovementType movementType) const;
 	/// Checks if this tile has a floor.
 	bool hasNoFloor(const SavedBattleGame *savedBattleGame = nullptr) const;
-	/// Checks if this tile is a big wall.
-	bool isBigWall() const;
-	/// Get terrain level.
-	int getTerrainLevel() const;
+
+	/**
+	 * Whether this tile has a big wall.
+	 * @return bool
+	 */
+	bool isBigWall() const
+	{
+		return _cache.bigWall;
+	}
+
+	/**
+	 * If an object stand on this tile, this returns how high the unit is it standing.
+	 * @return the level in pixels (so negative values are higher)
+	 */
+	int getTerrainLevel() const
+	{
+		return _cache.terrainLevel;
+	}
 
 	/**
 	 * Gets the tile's position.
@@ -154,8 +184,47 @@ public:
 	 */
 	bool isUfoDoorOpen(TilePart tp) const
 	{
-		int part = (int)tp;
-		return (_objects[part] && _objects[part]->isUFODoor() && _currentFrame[part] != 0);
+		return (_objectsCache[tp].isUfoDoor && _objectsCache[tp].currentFrame);
+	}
+
+	/**
+	 * Check if part is ufo door.
+	 * @param tp Part to check
+	 * @return True if part is ufo door.
+	 */
+	bool isUfoDoor(TilePart tp) const
+	{
+		return _objectsCache[tp].isUfoDoor;
+	}
+
+	/**
+	 * Check if part is door.
+	 * @param tp Part to check
+	 * @return True if part is door.
+	 */
+	bool isDoor(TilePart tp) const
+	{
+		return _objectsCache[tp].isDoor;
+	}
+
+	/**
+	 * Check if object should be draw behind or in front of unit.
+	 * @param tp Part to check
+	 * @return True if its back object.
+	 */
+	bool isBackTileObject(TilePart tp) const
+	{
+		return _objectsCache[tp].isBackTileObject;
+	}
+
+	/**
+	 * Gets surface Y offset.
+	 * @param tp Part for offset.
+	 * @return Offset value.
+	 */
+	int getYOffset(TilePart tp) const
+	{
+		return _objectsCache[tp].offsetY;
 	}
 
 	/// Close ufo door.

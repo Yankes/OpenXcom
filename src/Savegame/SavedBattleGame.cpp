@@ -415,6 +415,10 @@ void SavedBattleGame::loadMapResources(Mod *mod)
 			{
 				_tiles[i].setMapData(_mapDataSets[mdsID]->getObject(mdID), mdID, mdsID, tp);
 			}
+			else
+			{
+				_tiles[i].setMapData(nullptr, -1, -1, tp);
+			}
 		}
 	}
 
