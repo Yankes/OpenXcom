@@ -69,30 +69,39 @@ public:
 
 	static const int NOT_CALCULATED = -1;
 
+	struct TileCache
+	{
+		SurfaceRaw<const Uint8> currentSurface;
+		Sint8 offsetY;
+		Uint8 currentFrame:4;
+		Uint8 discovered:1;
+		Uint8 isUfoDoor:1;
+		Uint8 isDoor:1;
+		Uint8 isBackTileObject:1;
+	};
+
 protected:
 	MapData *_objects[O_MAX];
 	int _mapDataID[O_MAX];
 	int _mapDataSetID[O_MAX];
-	int _currentFrame[O_MAX];
-	SurfaceRaw<const Uint8> _currentSurface[O_MAX] = { };
-	bool _discovered[3];
-	int _light[LL_MAX];
-	int _smoke;
-	int _fire;
-	int _explosive;
-	int _explosiveType;
+	TileCache _data[O_MAX] = { };
+	Uint8 _light[LL_MAX];
+	Uint8 _smoke = 0;
+	Uint8 _markerColor = 0;
+	Uint8 _animationOffset = 0;
+	Uint8 _obstacle = 0;
+	int _fire = 0;
+	int _explosive = 0;
+	Uint8 _explosiveType = 0;
+	bool _danger = false;
 	Position _pos;
 	BattleUnit *_unit;
 	std::vector<BattleItem *> _inventory;
-	int _animationOffset;
-	int _markerColor;
 	int _visible;
 	int _preview;
 	int _TUMarker;
 	int _overlaps;
-	bool _danger;
 	std::list<Particle*> _particles;
-	int _obstacle;
 public:
 	/// Creates a tile.
 	Tile(Position pos);
@@ -155,7 +164,47 @@ public:
 	bool isUfoDoorOpen(TilePart tp) const
 	{
 		int part = (int)tp;
-		return (_objects[part] && _objects[part]->isUFODoor() && _currentFrame[part] != 0);
+		return (_data[part].isUfoDoor && _data[part].currentSurface);
+	}
+
+	/**
+	 * Check if part is ufo door.
+	 * @param tp Part to check
+	 * @return True if part is ufo door.
+	 */
+	bool isUfoDoor(TilePart tp) const
+	{
+		return _data[tp].isUfoDoor;
+	}
+
+	/**
+	 * Check if part is door.
+	 * @param tp Part to check
+	 * @return True if part is door.
+	 */
+	bool isDoor(TilePart tp) const
+	{
+		return _data[tp].isDoor;
+	}
+
+	/**
+	 * Check if object should be draw behind or in front of unit.
+	 * @param tp Part to check
+	 * @return True if its back object.
+	 */
+	bool isBackTileObject(TilePart tp) const
+	{
+		return _data[tp].isBackTileObject;
+	}
+
+	/**
+	 * Gets surface Y offset.
+	 * @param tp Part for offset.
+	 * @return Offset value.
+	 */
+	int getYOffset(TilePart tp) const
+	{
+		return _data[tp].offsetY;
 	}
 
 	/// Close ufo door.
@@ -193,7 +242,7 @@ public:
 	/// Get object sprites.
 	SurfaceRaw<const Uint8> getSprite(TilePart part) const
 	{
-		return _currentSurface[part];
+		return _data[part].currentSurface;
 	}
 
 	/**

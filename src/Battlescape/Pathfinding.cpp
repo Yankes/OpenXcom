@@ -352,8 +352,8 @@ int Pathfinding::getTUCost(Position startPosition, int direction, Position *endP
 	if (size)
 	{
 		auto t = destinationTile[3];
-		if ((t->getMapData(O_NORTHWALL) && t->getMapData(O_NORTHWALL)->isDoor()) ||
-			(t->getMapData(O_WESTWALL) && t->getMapData(O_WESTWALL)->isDoor()))
+		if ((t->isDoor(O_NORTHWALL)) ||
+			(t->isDoor(O_WESTWALL)))
 		{
 			return 255;
 		}
@@ -648,8 +648,8 @@ bool Pathfinding::isBlocked(Tile *tile, const int part, BattleUnit *missileTarge
 	// missiles can't pathfind through closed doors.
 	{ TilePart tp = (TilePart)part;
 	if (missileTarget != 0 && tile->getMapData(tp) &&
-		(tile->getMapData(tp)->isDoor() ||
-		(tile->getMapData(tp)->isUFODoor() &&
+		(tile->isDoor(tp) ||
+		(tile->isUfoDoor(tp) &&
 		!tile->isUfoDoorOpen(tp))))
 	{
 		return true;

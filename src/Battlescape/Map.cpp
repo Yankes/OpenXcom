@@ -321,8 +321,7 @@ int Map::getWallShade(TilePart part, Tile* tileFrot, Tile* tileBehind)
 	}
 	if (part)
 	{
-		auto data = tileFrot->getMapData(part);
-		if ((data->isDoor() || data->isUFODoor()) && tileFrot->isDiscovered(part - 1))
+		if ((tileFrot->isDoor(part) || tileFrot->isUfoDoor(part)) && tileFrot->isDiscovered(part - 1))
 		{
 			shade = std::min(reShade(tileFrot), tileBehind ? tileBehind->getShade() + 5 : 16);
 		}
@@ -747,9 +746,9 @@ void Map::drawTerrain(Surface *surface)
 					if (tmpSurface)
 					{
 						if (tile->getObstacle(O_FLOOR))
-							Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_FLOOR)->getYOffset(), obstacleShade, false, _nvColor);
+							Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_FLOOR), obstacleShade, false, _nvColor);
 						else
-							Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_FLOOR)->getYOffset(), tileShade, false, _nvColor);
+							Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_FLOOR), tileShade, false, _nvColor);
 					}
 					unit = tile->getUnit();
 
@@ -809,9 +808,9 @@ void Map::drawTerrain(Surface *surface)
 						{
 							wallShade = getWallShade(O_WESTWALL, tile, tileWest);
 							if (tile->getObstacle(O_WESTWALL))
-								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_WESTWALL)->getYOffset(), obstacleShade, false, _nvColor);
+								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_WESTWALL), obstacleShade, false, _nvColor);
 							else
-								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_WESTWALL)->getYOffset(), wallShade, false, _nvColor);
+								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_WESTWALL), wallShade, false, _nvColor);
 						}
 						// Draw north wall
 						tmpSurface = tile->getSprite(O_NORTHWALL);
@@ -819,20 +818,20 @@ void Map::drawTerrain(Surface *surface)
 						{
 							wallShade = getWallShade(O_NORTHWALL, tile, tileNorth);
 							if (tile->getObstacle(O_NORTHWALL))
-								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_NORTHWALL)->getYOffset(), obstacleShade, tile->getMapData(O_WESTWALL), _nvColor);
+								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_NORTHWALL), obstacleShade, tile->getMapData(O_WESTWALL), _nvColor);
 							else
-								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_NORTHWALL)->getYOffset(), wallShade, tile->getMapData(O_WESTWALL), _nvColor);
+								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_NORTHWALL), wallShade, tile->getMapData(O_WESTWALL), _nvColor);
 						}
 						// Draw object
 						tmpSurface = tile->getSprite(O_OBJECT);
 						if (tmpSurface)
 						{
-							if (tile->getMapData(O_OBJECT)->isBackTileObject())
+							if (tile->isBackTileObject(O_OBJECT))
 							{
 								if (tile->getObstacle(O_OBJECT))
-									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_OBJECT)->getYOffset(), obstacleShade, false, _nvColor);
+									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), obstacleShade, false, _nvColor);
 								else
-									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_OBJECT)->getYOffset(), tileShade, false, _nvColor);
+									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), tileShade, false, _nvColor);
 							}
 						}
 						// draw an item on top of the floor (if any)
@@ -1078,12 +1077,12 @@ void Map::drawTerrain(Surface *surface)
 						tmpSurface = tile->getSprite(O_OBJECT);
 						if (tmpSurface)
 						{
-							if (!tile->getMapData(O_OBJECT)->isBackTileObject())
+							if (!tile->isBackTileObject(O_OBJECT))
 							{
 								if (tile->getObstacle(O_OBJECT))
-									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_OBJECT)->getYOffset(), obstacleShade, false, _nvColor);
+									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), obstacleShade, false, _nvColor);
 								else
-									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getMapData(O_OBJECT)->getYOffset(), tileShade, false, _nvColor);
+									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), tileShade, false, _nvColor);
 							}
 						}
 					}
