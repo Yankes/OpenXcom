@@ -720,9 +720,9 @@ void Map::drawTerrain(Surface *surface)
 	for (int itZ = beginZ; itZ <= endZ; itZ++)
 	{
 		bool topLayer = itZ == endZ;
-		for (int itX = beginX; itX <= endX; itX++)
+		for (int itY = beginY; itY <= endY; itY++)
 		{
-			for (int itY = beginY; itY <= endY; itY++)
+			for (int itX = beginX; itX <= endX; itX++)
 			{
 				mapPosition = Position(itX, itY, itZ);
 				_camera->convertMapToScreen(mapPosition, &screenPosition);
