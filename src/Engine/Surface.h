@@ -86,7 +86,9 @@ protected:
 	UniqueSurfacePtr _surface;
 	Sint16 _x, _y;
 	Uint16 _width, _height, _pitch;
-	bool _visible, _hidden, _redraw;
+	Uint8 _visible: 1;
+	Uint8 _hidden: 1;
+	Uint8 _redraw: 1;
 
 	/// Copies raw pixels.
 	template <typename T>
