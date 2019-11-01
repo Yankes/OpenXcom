@@ -230,9 +230,9 @@ public:
 	/// Close ufo door.
 	int closeUfoDoor();
 	/// Sets the black fog of war status of this tile.
-	void setDiscovered(bool flag, int part);
+	void setDiscovered(bool flag, TilePart part);
 	/// Gets the black fog of war status of this tile.
-	bool isDiscovered(int part) const;
+	bool isDiscovered(TilePart part) const;
 	/// Reset light to zero for this tile.
 	void resetLight(LightLayers layer);
 	/// Reset light to zero for this tile and multiple layers.

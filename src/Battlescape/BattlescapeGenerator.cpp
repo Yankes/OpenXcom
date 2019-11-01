@@ -1644,7 +1644,7 @@ int BattlescapeGenerator::loadMAP(MapBlock *mapblock, int xoff, int yoff, int zo
 			}
 		}
 
-		_save->getTile(Position(x, y, z))->setDiscovered((discovered || mapblock->isFloorRevealed(z)), 2);
+		_save->getTile(Position(x, y, z))->setDiscovered((discovered || mapblock->isFloorRevealed(z)), O_FLOOR);
 
 		x++;
 
@@ -2587,7 +2587,7 @@ void BattlescapeGenerator::generateMap(const std::vector<MapScript*> *script)
 				{
 					if (_save->getTile(Position(i, j, k)))
 					{
-						_save->getTile(Position(i, j, k))->setDiscovered(_craftRules->isMapVisible(), 2);
+						_save->getTile(Position(i, j, k))->setDiscovered(_craftRules->isMapVisible(), O_FLOOR);
 					}
 				}
 			}

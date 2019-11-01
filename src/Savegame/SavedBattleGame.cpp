@@ -1217,7 +1217,7 @@ void SavedBattleGame::setDebugMode()
 {
 	for (int i = 0; i < _mapsize_z * _mapsize_y * _mapsize_x; ++i)
 	{
-		_tiles[i].setDiscovered(true, 2);
+		_tiles[i].setDiscovered(true, O_FLOOR);
 	}
 
 	_debugMode = true;
@@ -2270,9 +2270,9 @@ void SavedBattleGame::resetTiles()
 {
 	for (int i = 0; i != getMapSizeXYZ(); ++i)
 	{
-		_tiles[i].setDiscovered(false, 0);
-		_tiles[i].setDiscovered(false, 1);
-		_tiles[i].setDiscovered(false, 2);
+		_tiles[i].setDiscovered(false, O_WESTWALL);
+		_tiles[i].setDiscovered(false, O_NORTHWALL);
+		_tiles[i].setDiscovered(false, O_FLOOR);
 	}
 }
 

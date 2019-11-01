@@ -103,7 +103,7 @@ void MiniMapView::draw()
 						if (s)
 						{
 							int shade = 16;
-							if (t->isDiscovered(2))
+							if (t->isDiscovered(O_FLOOR))
 							{
 								shade = t->getShade();
 								if (shade > 7) shade = 7; //vanilla
@@ -131,7 +131,7 @@ void MiniMapView::draw()
 					}
 				}
 				// perhaps (at least one) item on this tile?
-				if (t->isDiscovered(2) && !t->getInventory()->empty())
+				if (t->isDiscovered(O_FLOOR) && !t->getInventory()->empty())
 				{
 					int frame = 9 + _frame;
 					Surface * s = _set->getFrame(frame);

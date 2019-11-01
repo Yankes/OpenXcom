@@ -100,7 +100,8 @@ void Tile::load(const YAML::Node &node)
 	{
 		for (int i = 0; i < 3; i++)
 		{
-			_objectsCache[i].discovered = (Uint8)node["discovered"][i].as<bool>();
+			auto realTilePart = (i == 2 ? 0 : i - 1); //convert old convention to new one
+			_objectsCache[realTilePart].discovered = (Uint8)node["discovered"][i].as<bool>();
 		}
 	}
 	if (node["openDoorWest"])
@@ -137,11 +138,11 @@ void Tile::loadBinary(Uint8 *buffer, Tile::SerializationKey& serKey)
 	_fire = unserializeInt(&buffer, serKey._fire);
 
 	Uint8 boolFields = unserializeInt(&buffer, serKey.boolFields);
-	_objectsCache[0].discovered = (boolFields & 1) ? 1 : 0;
-	_objectsCache[1].discovered = (boolFields & 2) ? 1 : 0;
-	_objectsCache[2].discovered = (boolFields & 4) ? 1 : 0;
-	_objectsCache[1].currentFrame = (boolFields & 8) ? 7 : 0;
-	_objectsCache[2].currentFrame = (boolFields & 0x10) ? 7 : 0;
+	_objectsCache[O_WESTWALL].discovered = (boolFields & 1) ? 1 : 0;
+	_objectsCache[O_NORTHWALL].discovered = (boolFields & 2) ? 1 : 0;
+	_objectsCache[O_FLOOR].discovered = (boolFields & 4) ? 1 : 0;
+	_objectsCache[O_WESTWALL].currentFrame = (boolFields & 8) ? 7 : 0;
+	_objectsCache[O_NORTHWALL].currentFrame = (boolFields & 0x10) ? 7 : 0;
 	if (_fire || _smoke)
 	{
 		_animationOffset = RNG::seedless(0, 3);
@@ -168,10 +169,11 @@ YAML::Node Tile::save() const
 		node["fire"] = _fire;
 	if (_objectsCache[O_FLOOR].discovered || _objectsCache[O_WESTWALL].discovered || _objectsCache[O_NORTHWALL].discovered)
 	{
-		for (int i = O_FLOOR; i <= O_NORTHWALL; i++)
-		{
-			node["discovered"].push_back(_objectsCache[i].discovered);
-		}
+		throw Exception("Obsolete code");
+//		for (int i = O_FLOOR; i <= O_NORTHWALL; i++)
+//		{
+//			node["discovered"].push_back(_objectsCache[i].discovered);
+//		}
 	}
 	if (isUfoDoorOpen(O_WESTWALL))
 	{
@@ -202,7 +204,7 @@ void Tile::saveBinary(Uint8** buffer) const
 	serializeInt(buffer, serializationKey._smoke, _smoke);
 	serializeInt(buffer, serializationKey._fire, _fire);
 
-	Uint8 boolFields = (_objectsCache[0].discovered?1:0) + (_objectsCache[1].discovered?2:0) + (_objectsCache[2].discovered?4:0);
+	Uint8 boolFields = (_objectsCache[O_WESTWALL].discovered?1:0) + (_objectsCache[O_NORTHWALL].discovered?2:0) + (_objectsCache[O_FLOOR].discovered?4:0);
 	boolFields |= isUfoDoorOpen(O_WESTWALL) ? 8 : 0; // west
 	boolFields |= isUfoDoorOpen(O_NORTHWALL) ? 0x10 : 0; // north?
 	serializeInt(buffer, serializationKey.boolFields, boolFields);
@@ -403,27 +405,27 @@ int Tile::closeUfoDoor()
 /**
  * Sets the tile's cache flag. - TODO: set this for each object separately?
  * @param flag true/false
- * @param part 0-2 westwall/northwall/content+floor
+ * @param part Tile part
  */
-void Tile::setDiscovered(bool flag, int part)
+void Tile::setDiscovered(bool flag, TilePart part)
 {
 	if (_objectsCache[part].discovered != flag)
 	{
 		_objectsCache[part].discovered = flag;
-		if (part == 2 && flag == true)
+		if (part == O_FLOOR && flag == true)
 		{
-			_objectsCache[0].discovered = true;
-			_objectsCache[1].discovered = true;
+			_objectsCache[O_WESTWALL].discovered = true;
+			_objectsCache[O_NORTHWALL].discovered = true;
 		}
 	}
 }
 
 /**
  * Get the black fog of war state of this tile.
- * @param part 0-2 westwall/northwall/content+floor
+ * @param part Tile part
  * @return bool True = discovered the tile.
  */
-bool Tile::isDiscovered(int part) const
+bool Tile::isDiscovered(TilePart part) const
 {
 	return _objectsCache[part].discovered;
 }
