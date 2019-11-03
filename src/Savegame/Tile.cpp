@@ -1021,7 +1021,7 @@ void Tile::addOverlap()
  */
 void Tile::setDangerous(bool danger)
 {
-	_danger = danger;
+	_cache.danger = danger;
 }
 
 /**
@@ -1030,7 +1030,7 @@ void Tile::setDangerous(bool danger)
  */
 bool Tile::getDangerous() const
 {
-	return _danger;
+	return _cache.danger;
 }
 
 /**

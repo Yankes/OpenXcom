@@ -69,6 +69,9 @@ public:
 
 	static const int NOT_CALCULATED = -1;
 
+	/**
+	 * Cached data that belongs to each tile object
+	 */
 	struct TileObjectCache
 	{
 		Sint8 offsetY;
@@ -78,11 +81,15 @@ public:
 		Uint8 isDoor:1;
 		Uint8 isBackTileObject:1;
 	};
+	/**
+	 * Cached data that belongs to whole tile
+	 */
 	struct TileCache
 	{
 		Sint8 terrainLevel = 0;
 		Uint8 isNoFloor:1;
 		Uint8 bigWall:1;
+		Uint8 danger:1;
 	};
 
 protected:
@@ -100,7 +107,6 @@ protected:
 	Uint8 _obstacle = 0;
 	Uint8 _explosiveType = 0;
 	int _explosive = 0;
-	bool _danger = false;
 	Position _pos;
 	BattleUnit *_unit;
 	std::vector<BattleItem *> _inventory;
