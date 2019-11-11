@@ -19,6 +19,7 @@
  */
 #include <list>
 #include <vector>
+#include <memory>
 #include "../Engine/Surface.h"
 #include "../Battlescape/Position.h"
 #include "../Mod/MapData.h"
@@ -70,6 +71,14 @@ public:
 	static const int NOT_CALCULATED = -1;
 
 	/**
+	 * Cache of ID for tile parts used to save and load.
+	 */
+	struct TileMapDataCache
+	{
+		int ID[O_MAX];
+		int SetID[O_MAX];
+	};
+	/**
 	 * Cached data that belongs to each tile object
 	 */
 	struct TileObjectCache
@@ -94,8 +103,7 @@ public:
 
 protected:
 	MapData *_objects[O_MAX];
-	int _mapDataID[O_MAX];
-	int _mapDataSetID[O_MAX];
+	std::unique_ptr<TileMapDataCache> _mapData = std::make_unique<TileMapDataCache>();
 	SurfaceRaw<const Uint8> _currentSurface[O_MAX] = { };
 	TileObjectCache _objectsCache[O_MAX] = { };
 	TileCache _cache = { };
@@ -119,6 +127,8 @@ protected:
 public:
 	/// Creates a tile.
 	Tile(Position pos);
+	/// Compy constructor.
+	Tile(Tile&&) = default;
 	/// Cleans up a tile.
 	~Tile();
 	/// Load the tile from yaml

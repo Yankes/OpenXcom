@@ -55,8 +55,8 @@ Tile::Tile(Position pos): _pos(pos), _unit(0), _visible(false), _preview(-1), _T
 	for (int i = 0; i < O_MAX; ++i)
 	{
 		_objects[i] = 0;
-		_mapDataID[i] = -1;
-		_mapDataSetID[i] = -1;
+		_mapData->ID[i] = -1;
+		_mapData->SetID[i] = -1;
 		_objectsCache[i].currentFrame = 0;
 	}
 	for (int layer = 0; layer < LL_MAX; layer++)
@@ -86,8 +86,8 @@ void Tile::load(const YAML::Node &node)
 	//_position = node["position"].as<Position>(_position);
 	for (int i = 0; i < 4; i++)
 	{
-		_mapDataID[i] = node["mapDataID"][i].as<int>(_mapDataID[i]);
-		_mapDataSetID[i] = node["mapDataSetID"][i].as<int>(_mapDataSetID[i]);
+		_mapData->ID[i] = node["mapDataID"][i].as<int>(_mapData->ID[i]);
+		_mapData->SetID[i] = node["mapDataSetID"][i].as<int>(_mapData->SetID[i]);
 	}
 	_fire = node["fire"].as<int>(_fire);
 	_smoke = node["smoke"].as<int>(_smoke);
@@ -120,14 +120,14 @@ void Tile::load(const YAML::Node &node)
  */
 void Tile::loadBinary(Uint8 *buffer, Tile::SerializationKey& serKey)
 {
-	_mapDataID[0] = unserializeInt(&buffer, serKey._mapDataID);
-	_mapDataID[1] = unserializeInt(&buffer, serKey._mapDataID);
-	_mapDataID[2] = unserializeInt(&buffer, serKey._mapDataID);
-	_mapDataID[3] = unserializeInt(&buffer, serKey._mapDataID);
-	_mapDataSetID[0] = unserializeInt(&buffer, serKey._mapDataSetID);
-	_mapDataSetID[1] = unserializeInt(&buffer, serKey._mapDataSetID);
-	_mapDataSetID[2] = unserializeInt(&buffer, serKey._mapDataSetID);
-	_mapDataSetID[3] = unserializeInt(&buffer, serKey._mapDataSetID);
+	_mapData->ID[0] = unserializeInt(&buffer, serKey._mapDataID);
+	_mapData->ID[1] = unserializeInt(&buffer, serKey._mapDataID);
+	_mapData->ID[2] = unserializeInt(&buffer, serKey._mapDataID);
+	_mapData->ID[3] = unserializeInt(&buffer, serKey._mapDataID);
+	_mapData->SetID[0] = unserializeInt(&buffer, serKey._mapDataSetID);
+	_mapData->SetID[1] = unserializeInt(&buffer, serKey._mapDataSetID);
+	_mapData->SetID[2] = unserializeInt(&buffer, serKey._mapDataSetID);
+	_mapData->SetID[3] = unserializeInt(&buffer, serKey._mapDataSetID);
 
 	_smoke = unserializeInt(&buffer, serKey._smoke);
 	_fire = unserializeInt(&buffer, serKey._fire);
@@ -155,8 +155,8 @@ YAML::Node Tile::save() const
 	node["position"] = _pos;
 	for (int i = 0; i < 4; i++)
 	{
-		node["mapDataID"].push_back(_mapDataID[i]);
-		node["mapDataSetID"].push_back(_mapDataSetID[i]);
+		node["mapDataID"].push_back(_mapData->ID[i]);
+		node["mapDataSetID"].push_back(_mapData->SetID[i]);
 	}
 	if (_smoke)
 		node["smoke"] = _smoke;
@@ -187,14 +187,14 @@ YAML::Node Tile::save() const
  */
 void Tile::saveBinary(Uint8** buffer) const
 {
-	serializeInt(buffer, serializationKey._mapDataID, _mapDataID[0]);
-	serializeInt(buffer, serializationKey._mapDataID, _mapDataID[1]);
-	serializeInt(buffer, serializationKey._mapDataID, _mapDataID[2]);
-	serializeInt(buffer, serializationKey._mapDataID, _mapDataID[3]);
-	serializeInt(buffer, serializationKey._mapDataSetID, _mapDataSetID[0]);
-	serializeInt(buffer, serializationKey._mapDataSetID, _mapDataSetID[1]);
-	serializeInt(buffer, serializationKey._mapDataSetID, _mapDataSetID[2]);
-	serializeInt(buffer, serializationKey._mapDataSetID, _mapDataSetID[3]);
+	serializeInt(buffer, serializationKey._mapDataID, _mapData->ID[0]);
+	serializeInt(buffer, serializationKey._mapDataID, _mapData->ID[1]);
+	serializeInt(buffer, serializationKey._mapDataID, _mapData->ID[2]);
+	serializeInt(buffer, serializationKey._mapDataID, _mapData->ID[3]);
+	serializeInt(buffer, serializationKey._mapDataSetID, _mapData->SetID[0]);
+	serializeInt(buffer, serializationKey._mapDataSetID, _mapData->SetID[1]);
+	serializeInt(buffer, serializationKey._mapDataSetID, _mapData->SetID[2]);
+	serializeInt(buffer, serializationKey._mapDataSetID, _mapData->SetID[3]);
 
 	serializeInt(buffer, serializationKey._smoke, _smoke);
 	serializeInt(buffer, serializationKey._fire, _fire);
@@ -215,8 +215,8 @@ void Tile::saveBinary(Uint8** buffer) const
 void Tile::setMapData(MapData *dat, int mapDataID, int mapDataSetID, TilePart part)
 {
 	_objects[part] = dat;
-	_mapDataID[part] = mapDataID;
-	_mapDataSetID[part] = mapDataSetID;
+	_mapData->ID[part] = mapDataID;
+	_mapData->SetID[part] = mapDataSetID;
 	_objectsCache[part].isDoor = dat ? dat->isDoor() : 0;
 	_objectsCache[part].isUfoDoor = dat ? dat->isUFODoor() : 0;
 	_objectsCache[part].offsetY = dat ? dat->getYOffset() : 0;
@@ -258,8 +258,8 @@ void Tile::setMapData(MapData *dat, int mapDataID, int mapDataSetID, TilePart pa
  */
 void Tile::getMapData(int *mapDataID, int *mapDataSetID, TilePart part) const
 {
-	*mapDataID = _mapDataID[part];
-	*mapDataSetID = _mapDataSetID[part];
+	*mapDataID = _mapData->ID[part];
+	*mapDataSetID = _mapData->SetID[part];
 }
 
 /**
@@ -360,7 +360,7 @@ int Tile::openDoor(TilePart part, BattleUnit *unit, BattleActionType reserve, bo
 			return 4;
 		if (_unit && _unit != unit && _unit->getPosition() != getPosition())
 			return -1;
-		setMapData(_objects[part]->getDataset()->getObject(_objects[part]->getAltMCD()), _objects[part]->getAltMCD(), _mapDataSetID[part],
+		setMapData(_objects[part]->getDataset()->getObject(_objects[part]->getAltMCD()), _objects[part]->getAltMCD(), _mapData->SetID[part],
 				   _objects[part]->getDataset()->getObject(_objects[part]->getAltMCD())->getObjectType());
 		setMapData(0, -1, -1, part);
 		return 0;
@@ -517,7 +517,7 @@ bool Tile::destroy(TilePart part, SpecialTileType type)
 			return false;
 		_objective = _objects[part]->getSpecialType() == type;
 		MapData *originalPart = _objects[part];
-		int originalMapDataSetID = _mapDataSetID[part];
+		int originalMapDataSetID = _mapData->SetID[part];
 		setMapData(0, -1, -1, part);
 		if (originalPart->getDieMCD())
 		{
