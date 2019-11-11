@@ -19,8 +19,10 @@
  */
 #include "../Engine/InteractiveSurface.h"
 #include "../Engine/Options.h"
+#include "../Engine/Collections.h"
 #include "../Mod/MapData.h"
 #include "Position.h"
+#include "Particle.h"
 #include <vector>
 
 namespace OpenXcom
@@ -77,6 +79,7 @@ private:
 	Projectile *_projectile;
 	bool _projectileInFOV;
 	std::list<Explosion *> _explosions;
+	std::vector<std::vector<Particle>> _vaporParticles;
 	bool _explosionInFOV, _launch;
 	BattlescapeMessage *_message;
 	Camera *_camera;
@@ -130,12 +133,18 @@ public:
 	void setCursorType(CursorType type, int size = 1);
 	/// Gets the 3D cursor type.
 	CursorType getCursorType() const;
+
 	/// Sets projectile.
 	void setProjectile(Projectile *projectile);
 	/// Gets projectile.
 	Projectile *getProjectile() const;
+	/// Add new vapor particle.
+	void addVaporParticle(const Tile* tile, Particle particle);
+	/// Get all vapor for tile.
+	Collections::Range<const Particle*> getVaporParticle(const Tile* tile, bool topLayer) const;
 	/// Gets explosion set.
 	std::list<Explosion*> *getExplosions();
+
 	/// Gets the pointer to the camera.
 	Camera *getCamera();
 	/// Mouse-scrolls the camera.

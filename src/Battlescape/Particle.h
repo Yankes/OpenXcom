@@ -27,12 +27,21 @@ class Particle
 {
 private:
 	float _xOffset, _yOffset, _density;
+	Uint16 _voxelZ;
 	Uint8 _color, _opacity, _size;
 public:
 	/// Create a particle.
-	Particle(float xOffset, float yOffset, float density, Uint8 color, Uint8 opacity);
+	Particle(int voxelZ, float xOffset, float yOffset, float density, Uint8 color, Uint8 opacity);
+	/// Defulat copy constuctor
+	Particle(const Particle&) = default;
+	/// Defulat move constuctor
+	Particle(Particle&&) = default;
+	/// Copy assigment.
+	Particle& operator=(const Particle&) = default;
+	/// Move assigment.
+	Particle& operator=(Particle&&) = default;
 	/// Destroy a particle.
-	~Particle();
+	~Particle() = default;
 	/// Animate a particle.
 	bool animate();
 	/// Get the size value.
@@ -45,6 +54,8 @@ public:
 	float getX() const { return _xOffset; }
 	/// Get the vertical shift.
 	float getY() const { return _yOffset; }
+	/// Get voxel position of particle.
+	int getVoxelZ() const { return _voxelZ; }
 };
 
 }

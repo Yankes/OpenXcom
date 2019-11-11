@@ -159,6 +159,8 @@ Map::Map(Game *game, int width, int height, int x, int y, int visibleMapHeight) 
 			_shockIndicator = _game->getMod()->getSurface(enviro->getMapShockIndicator(), false);
 		}
 	}
+
+	_vaporParticles.resize(_camera->getMapSizeY() * _camera->getMapSizeX());
 }
 
 /**
@@ -722,6 +724,7 @@ void Map::drawTerrain(Surface *surface)
 	}
 
 	surface->lock();
+	const auto cameraPos = _camera->getMapOffset();
 	for (int itZ = beginZ; itZ <= endZ; itZ++)
 	{
 		bool topLayer = itZ == endZ;
@@ -732,7 +735,7 @@ void Map::drawTerrain(Surface *surface)
 			for (int itX = beginX; itX < endX; itX++, mapPosition.x++, tile++)
 			{
 				_camera->convertMapToScreen(mapPosition, &screenPosition);
-				screenPosition += _camera->getMapOffset();
+				screenPosition += cameraPos;
 
 				// only render cells that are inside the surface
 				if (screenPosition.x > -_spriteWidth && screenPosition.x < surface->getWidth() + _spriteWidth &&
@@ -1049,27 +1052,27 @@ void Map::drawTerrain(Surface *surface)
 					}
 
 					//draw particle clouds
-					for (std::list<Particle*>::const_iterator i = tile->getParticleCloud()->begin(); i != tile->getParticleCloud()->end(); ++i)
+					int pixelMaskArray[] = { 0, 2, 1, 3 };
+					SurfaceRaw<int> pixelMask(pixelMaskArray, 2, 2);
+					for (const auto& p : getVaporParticle(tile, topLayer))
 					{
-						int vaporX = screenPosition.x + (*i)->getX();
-						int vaporY = screenPosition.y + (*i)->getY();
-						if ((int)(_transparencies->size()) >= ((*i)->getColor() + 1) * 1024)
+						if ((int)(_transparencies->size()) >= (p.getColor() + 1) * 1024)
 						{
-							switch ((*i)->getSize())
-							{
-							case 3:
-								surface->setPixel(vaporX+1, vaporY+1, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX+1, vaporY+1)]);
-								FALLTHROUGH;
-							case 2:
-								surface->setPixel(vaporX + 1, vaporY, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX + 1, vaporY)]);
-								FALLTHROUGH;
-							case 1:
-								surface->setPixel(vaporX, vaporY + 1, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX, vaporY + 1)]);
-								FALLTHROUGH;
-							default:
-								surface->setPixel(vaporX, vaporY, (*_transparencies)[((*i)->getColor() * 1024) + ((*i)->getOpacity() * 256) + surface->getPixel(vaporX, vaporY)]);
-								break;
-							}
+							auto vaporX = p.getX() + cameraPos.x;
+							auto vaporY = p.getY() + cameraPos.y;
+							auto transparetOffsets = _transparencies->data() + (p.getColor() * 1024) + (p.getOpacity() * 256);
+
+							ShaderDrawFunc(
+								[&](Uint8& dest, int size)
+								{
+									if (p.getSize() <= size)
+									{
+										dest = transparetOffsets[dest];
+									}
+								},
+								ShaderSurface(this),
+								ShaderMove(pixelMask, vaporX, vaporY)
+							);
 						}
 					}
 
@@ -1721,6 +1724,28 @@ void Map::animate(bool redraw)
 		_save->getTile(i)->animate();
 	}
 
+	// animate vapor
+	for (auto& tilePar : _vaporParticles)
+	{
+		if (tilePar.empty())
+		{
+			continue;
+		}
+
+		auto left = Collections::removeIf(
+			tilePar,
+			[](Particle& p)
+			{
+				return p.animate() == false;
+			}
+		);
+		if (!left)
+		{
+			//clean all allocated memory, after every particle expire.
+			Collections::removeAll(tilePar);
+		}
+	}
+
 	// animate certain units (large flying units have a propulsion animation)
 	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
@@ -1932,6 +1957,33 @@ void Map::setProjectile(Projectile *projectile)
 Projectile *Map::getProjectile() const
 {
 	return _projectile;
+}
+
+/**
+ * Add new vapor particle.
+ */
+void Map::addVaporParticle(const Tile* tile, Particle particle)
+{
+	auto& v = _vaporParticles[_camera->getMapSizeX() * tile->getPosition().y + tile->getPosition().x];
+	v.push_back(particle);
+	std::sort(v.begin(), v.end(), [](const Particle& a, const Particle& b){ return a.getVoxelZ() < b.getVoxelZ(); });
+}
+
+/**
+ * Get all vapor for tile.
+ * @param tile current tile.
+ * @param topLayer if tile is top visible layer, if true then will return particles belongs to upper tiles.
+ * @return range of particles that should be drawn.
+ */
+Collections::Range<const Particle*> Map::getVaporParticle(const Tile* tile, bool topLayer) const
+{
+	auto pos = tile->getPosition();
+	auto& v = _vaporParticles[_camera->getMapSizeX() * pos.y + pos.x];
+	auto startZ = pos.z * Position::TileZ;
+	auto endZ = startZ + Position::TileZ;
+	auto s = std::partition_point(v.data(), v.data() + v.size(), [&](const Particle& a){ return a.getVoxelZ() < startZ; });
+	auto e = topLayer ? v.data() + v.size() : std::partition_point(s, v.data() + v.size(), [&](const Particle& a){ return a.getVoxelZ() < endZ; });
+	return Collections::Range{ s, e };
 }
 
 /**

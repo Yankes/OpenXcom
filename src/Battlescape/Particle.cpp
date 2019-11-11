@@ -31,7 +31,7 @@ namespace OpenXcom
  * @param color the color set to use from the transparency LUTs
  * @param opacity another reference for the LUT, this one is divided by 5 for the actual offset to use.
  */
-Particle::Particle(float xOffset, float yOffset, float density, Uint8 color, Uint8 opacity) : _xOffset(xOffset), _yOffset(yOffset), _density(density), _color(color), _opacity(opacity), _size(0)
+Particle::Particle(int voxelZ, float xOffset, float yOffset, float density, Uint8 color, Uint8 opacity) : _xOffset(xOffset), _yOffset(yOffset), _density(density), _voxelZ(voxelZ), _color(color), _opacity(opacity), _size(0)
 {
 	//size is initialized at 0
 	if (density < 100)
@@ -49,19 +49,13 @@ Particle::Particle(float xOffset, float yOffset, float density, Uint8 color, Uin
 }
 
 /**
- * Cleans up a particle.
- */
-Particle::~Particle()
-{
-}
-
-/**
  * Animates the particle.
  * @return if we are done animating this particle yet.
  */
 bool Particle::animate()
 {
 	_yOffset -= ((320-_density)/256.0);
+	_voxelZ += 1;
 	_opacity--;
 	_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);
 	if ( _opacity == 0 )

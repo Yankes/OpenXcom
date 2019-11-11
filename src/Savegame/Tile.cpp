@@ -75,11 +75,6 @@ Tile::Tile(Position pos): _pos(pos), _unit(0), _visible(false), _preview(-1), _T
 Tile::~Tile()
 {
 	_inventory.clear();
-	for (std::list<Particle*>::iterator i = _particles.begin(); i != _particles.end(); ++i)
-	{
-		delete *i;
-	}
-	_particles.clear();
 }
 
 /**
@@ -697,18 +692,6 @@ void Tile::animate()
 		}
 		updateSprite((TilePart)i);
 	}
-	for (std::list<Particle*>::iterator i = _particles.begin(); i != _particles.end();)
-	{
-		if (!(*i)->animate())
-		{
-			delete *i;
-			i = _particles.erase(i);
-		}
-		else
-		{
-			++i;
-		}
-	}
 }
 
 /**
@@ -1031,24 +1014,6 @@ void Tile::setDangerous(bool danger)
 bool Tile::getDangerous() const
 {
 	return _cache.danger;
-}
-
-/**
- * adds a particle to this tile's internal storage buffer.
- * @param particle the particle to add.
- */
-void Tile::addParticle(Particle *particle)
-{
-	_particles.push_back(particle);
-}
-
-/**
- * gets a pointer to this tile's particle array.
- * @return a pointer to the internal array of particles.
- */
-std::list<Particle *> *Tile::getParticleCloud()
-{
-	return &_particles;
 }
 
 /**

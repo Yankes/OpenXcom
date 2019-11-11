@@ -114,7 +114,8 @@ protected:
 	int _preview;
 	int _TUMarker;
 	int _overlaps;
-	std::list<Particle*> _particles;
+
+
 public:
 	/// Creates a tile.
 	Tile(Position pos);
@@ -346,10 +347,6 @@ public:
 	void setDangerous(bool danger);
 	/// check the danger flag on this tile.
 	bool getDangerous() const;
-	/// adds a particle to this tile's array.
-	void addParticle(Particle *particle);
-	/// gets a pointer to this tile's particle array.
-	std::list<Particle *> *getParticleCloud();
 
 	/// sets single obstacle flag.
 	void setObstacle(int part);
