@@ -299,11 +299,15 @@ int Tile::getTUCost(int part, MovementType movementType) const
  */
 bool Tile::hasNoFloor(const SavedBattleGame *savedBattleGame) const
 {
-	if (_pos.z > 0 && savedBattleGame)
+	//There's no point in checking for "floor" below if we have floor in this tile already.
+	if (_cache.isNoFloor)
 	{
-		const Tile* tileBelow = savedBattleGame->getBelowTile(this);
-		if (tileBelow != 0 && tileBelow->getTerrainLevel() == -24)
-			return false;
+		if (_pos.z > 0 && savedBattleGame)
+		{
+			const Tile* tileBelow = savedBattleGame->getBelowTile(this);
+			if (tileBelow != 0 && tileBelow->getTerrainLevel() == -24)
+				return false;
+		}
 	}
 
 	return _cache.isNoFloor;
