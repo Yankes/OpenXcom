@@ -3461,36 +3461,87 @@ int TileEngine::closeUfoDoors()
 int TileEngine::calculateLineTile(Position origin, Position target, std::vector<Position> &trajectory)
 {
 	Tile* lastTile = _save->getTile(origin);
-	int result;
+	Position lastPoint = origin;
+	int result = 0;
+	bool bigWall = false;
 	int steps = 0;
 
 	bool hit = calculateLineHitHelper(origin, target,
 		[&](Position point)
 		{
 			trajectory.push_back(point);
-			Tile* currTile = _save->getTile(point);
-			int temp_res = verticalBlockage(lastTile, currTile, DT_NONE);
-			result = horizontalBlockage(lastTile, currTile, DT_NONE, steps<2);
-			steps++;
-			if (result == -1)
+
+//			Tile* currTile = _save->getTile(point);
+//			int temp_res = verticalBlockage(lastTile, currTile, DT_NONE);
+//			result = horizontalBlockage(lastTile, currTile, DT_NONE, steps<2);
+//			steps++;
+//			if (result == -1)
+//			{
+//				if (temp_res > 127)
+//				{
+//					result = 0;
+//				}
+//				else
+//				{
+//					return true; // We hit a big wall
+//				}
+//			}
+//			result += temp_res;
+//			if (result > 127)
+//			{
+//				return true;
+//			}
+//
+//			lastTile = currTile;
+//			return false;
+
+
+			auto dir = -1;
+			auto difference = point - lastPoint;
+			auto result = false;
+			auto& cache = _blockVisibility[_save->getTileIndex(lastPoint)];
+			Pathfinding::vectorToDirection(difference, dir);
+			if (difference.z > 0)
 			{
-				if (temp_res > 127)
+				if (dir != -1)
 				{
-					result = 0;
+					result = cache.blockDirUp & (1 << dir);
 				}
 				else
 				{
-					return true; // We hit a big wall
+					result = cache.blockUp;
 				}
 			}
-			result += temp_res;
-			if (result > 127)
+			else if (difference.z == 0)
 			{
-				return true;
-			}
+				result = cache.blockDir & (1 << dir);
 
-			lastTile = currTile;
-			return false;
+				if (result && cache.bigWall & (1 << dir))
+				{
+					if (steps<2)
+					{
+						result = false;
+					}
+					else
+					{
+						bigWall = true;
+					}
+				}
+			}
+			else if (difference.z < 0)
+			{
+				if (dir != -1)
+				{
+					result = cache.blockDirDown & (1 << dir);
+				}
+				else
+				{
+					result = cache.blockDown;
+				}
+			}
+			steps++;
+			lastPoint = point;
+			return result;
 		},
 		[&](Position point)
 		{
@@ -3499,7 +3550,8 @@ int TileEngine::calculateLineTile(Position origin, Position target, std::vector<
 	);
 	if (hit)
 	{
-		return result;
+//		return result;
+		return bigWall ? 0 : 256;
 	}
 	return 0;
 }
