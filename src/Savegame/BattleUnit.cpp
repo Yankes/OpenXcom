@@ -1946,11 +1946,6 @@ bool BattleUnit::addToVisibleTiles(Tile *tile)
 	return false;
 }
 
-bool BattleUnit::hasVisibleTile(Tile *tile) const
-{
-	return _visibleTilesLookup.find(tile) != _visibleTilesLookup.end(); //find?
-}
-
 /**
  * Get the pointer to the vector of visible tiles.
  * @return pointer to vector.

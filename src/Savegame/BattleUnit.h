@@ -327,7 +327,10 @@ public:
 	/// Add unit to visible tiles.
 	bool addToVisibleTiles(Tile *tile);
 	/// Has this unit marked this tile as within its view?
-	bool hasVisibleTile(Tile *tile) const;
+	bool hasVisibleTile(Tile *tile) const
+	{
+		return _visibleTilesLookup.find(tile) != _visibleTilesLookup.end(); //find?
+	}
 	/// Get the list of visible tiles.
 	const std::vector<Tile*> *getVisibleTiles();
 	/// Clear visible tiles.
