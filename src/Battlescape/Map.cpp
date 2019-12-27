@@ -855,6 +855,40 @@ void Map::drawTerrain(Surface *surface)
 
 					auto unit = tile->getUnit();
 
+//					constexpr size_t shadowWidth = 32;
+//					constexpr size_t shadowHeigth = 32;
+//					Uint8 dummyArray[shadowWidth*shadowHeigth] =
+//					{
+//
+//					};
+//					for (int j : Collections::rangeValueLess(shadowHeigth))
+//					{
+//						const auto joff = j - shadowHeigth / 2;
+//						for (int i : Collections::rangeValueLess(shadowWidth))
+//						{
+//							const auto ioff = i - shadowWidth / 2;
+//							if (4 * joff*joff + ioff * ioff < 100)
+//							{
+//								dummyArray[j * shadowWidth + i] = 6;
+//							}
+//						}
+//					}
+//					SurfaceRaw<const Uint8> shadow{ dummyArray, shadowWidth, shadowHeigth };
+
+//					if (unit)
+//					{
+//						ShaderDrawFunc(
+//							[&](Uint8& dest, Uint8 s)
+//							{
+//								auto shade = dest & helper::ColorShade;
+//								shade = std::min(shade + s, std::max(10, std::min(shade+2, 15)));
+//								dest = (dest & helper::ColorGroup) + shade;
+//							},
+//							ShaderSurface(this),
+//							ShaderMove(shadow, screenPosition.x + 16 - shadowWidth / 2, screenPosition.y - tile->getYOffset(O_FLOOR) + 34 - shadowHeigth / 2)
+//						);
+//					}
+
 					// Draw cursor back
 					if (_cursorType != CT_NONE && _selectorX > itX - _cursorSize && _selectorY > itY - _cursorSize && _selectorX < itX+1 && _selectorY < itY+1 && !_save->getBattleState()->getMouseOverIcons())
 					{
