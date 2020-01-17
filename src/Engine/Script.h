@@ -1257,7 +1257,7 @@ public:
 		addTypeBase(s, ArgRegisteType<t3>(), info::metaDest);
 	}
 
-	/// Register type in parser.
+	/// Register pointer type in parser.
 	template<typename P>
 	void registerPointerType()
 	{
@@ -1267,13 +1267,22 @@ public:
 			P::ScriptRegister(this);
 		}
 	}
-	/// Register type with name in parser but without any automatic registrations.
+	/// Register pointer type with name in parser but without any automatic registrations.
 	template<typename P>
 	void registerRawPointerType(const std::string& s)
 	{
 		if (!haveType<P*>())
 		{
 			addType<P*>(s);
+		}
+	}
+	/// Register value type with name in parser but without any automatic registrations.
+	template<typename P>
+	void registerRawValueType(const std::string& s)
+	{
+		if (!haveType<P>())
+		{
+			addType<P>(s);
 		}
 	}
 
@@ -1702,6 +1711,7 @@ class ScriptValues : ScriptValuesBase
 {
 public:
 	using Tag = ScriptTag<T, I>;
+	using Parent = T;
 
 	/// Load values from yaml file.
 	void load(const YAML::Node &node, const ScriptGlobal* shared)
