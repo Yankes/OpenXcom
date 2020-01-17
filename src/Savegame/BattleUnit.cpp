@@ -62,7 +62,7 @@ namespace OpenXcom
 BattleUnit::BattleUnit(const Mod *mod, Soldier *soldier, int depth) :
 	_faction(FACTION_PLAYER), _originalFaction(FACTION_PLAYER), _killedBy(FACTION_PLAYER), _id(0), _tile(0),
 	_lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0), _toDirectionTurret(0),
-	_verticalDirection(0), _status(STATUS_STANDING), _justRevivedByNewTurn(false), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
+	_verticalDirection(0), _status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
 	_dontReselect(false), _fire(0), _currentAIState(0), _visible(false),
 	_exp{ }, _expTmp{ },
 	_motionPoints(0), _scannedTurn(-1), _kills(0), _hitByFire(false), _hitByAnything(false), _alreadyExploded(false), _fireMaxHit(0), _smokeMaxHit(0), _moraleRestored(0), _coverReserve(0), _charging(0), _turnsSinceSpotted(255), _turnsLeftSpottedForSnipers(0),
@@ -392,7 +392,7 @@ void BattleUnit::prepareUnitResponseSounds(const Mod *mod)
 BattleUnit::BattleUnit(const Mod *mod, Unit *unit, UnitFaction faction, int id, const RuleEnviroEffects* enviro, Armor *armor, StatAdjustment *adjustment, int depth) :
 	_faction(faction), _originalFaction(faction), _killedBy(faction), _id(id),
 	_tile(0), _lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0),
-	_toDirectionTurret(0), _verticalDirection(0), _status(STATUS_STANDING), _justRevivedByNewTurn(false), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0),
+	_toDirectionTurret(0), _verticalDirection(0), _status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0),
 	_fallPhase(0), _kneeled(false), _floating(false), _dontReselect(false), _fire(0), _currentAIState(0),
 	_visible(false), _exp{ }, _expTmp{ },
 	_motionPoints(0), _scannedTurn(-1), _kills(0), _hitByFire(false), _hitByAnything(false), _alreadyExploded(false), _fireMaxHit(0), _smokeMaxHit(0),
@@ -2298,7 +2298,7 @@ void BattleUnit::prepareNewTurn(bool fullProcess)
 	}
 	else
 	{
-		recoverTimeUnits();
+		updateUnitStats(true, false);
 	}
 
 	// transition between stages, don't do damage or panic

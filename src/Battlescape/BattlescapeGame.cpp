@@ -623,6 +623,7 @@ void BattlescapeGame::endTurn()
 
 	checkForCasualties(nullptr, BattleActionAttack{ }, false, false);
 
+	// fires could have been started, stopped or smoke could reveal/conceal units.
 	_save->getTileEngine()->calculateLighting(LL_FIRE, TileEngine::invalid, 0, true);
 	_save->getTileEngine()->recalculateFOV();
 

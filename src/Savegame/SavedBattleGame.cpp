@@ -1179,9 +1179,15 @@ void SavedBattleGame::endTurn()
 			}
 		}
 	}
+
 	// hide all aliens (VOF calculations below will turn them visible again)
 	for (std::vector<BattleUnit*>::iterator i = _units.begin(); i != _units.end(); ++i)
 	{
+		if ((*i)->getStatus() == STATUS_IGNORE_ME)
+		{
+			continue;
+		}
+
 		if ((*i)->getFaction() == _side)
 		{
 			(*i)->prepareNewTurn();
@@ -1194,18 +1200,17 @@ void SavedBattleGame::endTurn()
 		{
 			(*i)->setVisible(false);
 		}
+	}
+
+	//scripts update
+	for (std::vector<BattleUnit*>::iterator i = _units.begin(); i != _units.end(); ++i)
+	{
+		if ((*i)->getStatus() == STATUS_IGNORE_ME)
+		{
+			continue;
+		}
 
 		ModScript::scriptCallback<ModScript::NewTurnUnit>((*i)->getArmor(), (*i), this, this->getTurn(), _side);
-
-		if ((*i)->isJustRevivedByNewTurn())
-		{
-			(*i)->setJustRevivedByNewTurn(false);
-			if (getMod()->getTURecoveryWakeUpNewTurn() < 100)
-			{
-				int newTU = (*i)->getBaseStats()->tu * getMod()->getTURecoveryWakeUpNewTurn() / 100;
-				(*i)->setTimeUnits(newTU);
-			}
-		}
 	}
 
 	for (auto& item : _items)
@@ -1213,8 +1218,9 @@ void SavedBattleGame::endTurn()
 		ModScript::scriptCallback<ModScript::NewTurnItem>(item->getRules(), item, this, this->getTurn(), _side);
 	}
 
-	// re-run calculateFOV() *after* all aliens have been set not-visible
-	_tileEngine->recalculateFOV();
+	reviveUnconsciousUnits(false);
+
+	//fov check will be done by `BattlescapeGame::endTurn`
 
 	if (_side != FACTION_PLAYER)
 		selectNextPlayerUnit();
@@ -1925,11 +1931,7 @@ void SavedBattleGame::prepareNewTurn()
 		(*i)->calculateEnviDamage(mod, this);
 	}
 
-	reviveUnconsciousUnits();
-
-	// fires could have been started, stopped or smoke could reveal/conceal units.
-	getTileEngine()->calculateLighting(LL_FIRE);
-	getTileEngine()->recalculateFOV();
+	//fov and light udadates are done in `BattlescapeGame::endTurn`
 }
 
 /**
@@ -1943,7 +1945,7 @@ void SavedBattleGame::reviveUnconsciousUnits(bool noTU)
 {
 	for (std::vector<BattleUnit*>::iterator i = getUnits()->begin(); i != getUnits()->end(); ++i)
 	{
-		if ((*i)->getArmor()->getSize() == 1)
+		if ((*i)->getArmor()->getSize() == 1 && (*i)->getStatus() != STATUS_IGNORE_ME)
 		{
 			Position originalPosition = (*i)->getPosition();
 			if (originalPosition == Position(-1, -1, -1))
@@ -1972,8 +1974,12 @@ void SavedBattleGame::reviveUnconsciousUnits(bool noTU)
 					}
 					else
 					{
-						// changing TUs here would have no effect as they are modified later during the new turn preparation
-						(*i)->setJustRevivedByNewTurn(true);
+						(*i)->updateUnitStats(true, false);
+						if (getMod()->getTURecoveryWakeUpNewTurn() < 100)
+						{
+							int newTU = (*i)->getTimeUnits() * getMod()->getTURecoveryWakeUpNewTurn() / 100;
+							(*i)->setTimeUnits(newTU);
+						}
 					}
 					removeUnconsciousBodyItem((*i));
 				}
