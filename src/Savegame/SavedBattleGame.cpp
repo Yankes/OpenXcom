@@ -1123,6 +1123,7 @@ void SavedBattleGame::endTurn()
 	}
 	else if (_side == FACTION_HOSTILE)
 	{
+		_selectedUnit =  0;
 		_side = FACTION_NEUTRAL;
 		// if there is no neutral team, we skip this and instantly prepare the new turn for the player
 //		if (selectNextPlayerUnit() == 0)
