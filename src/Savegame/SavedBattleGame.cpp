@@ -2718,7 +2718,7 @@ void flashMessageVariadicScriptImpl(SavedBattleGame* sbg, ScriptText message, Ar
 	(translated.arg(args), ...);
 	sbg->getBattleState()->warning(translated);
 }
-	
+
 void randomChanceScript(SavedBattleGame* sbg, int& val)
 {
 	if (sbg)
@@ -2798,7 +2798,7 @@ void tryConcealUnitScript(SavedBattleGame* sbg, BattleUnit* bu, int& val)
 		val = sbg->getTileEngine()->tryConcealUnit(bu);
 	}
 }
-	
+
 std::string debugDisplayScript(const SavedBattleGame* p)
 {
 	if (p)
@@ -2842,14 +2842,14 @@ void SavedBattleGame::ScriptRegister(ScriptParserBase* parser)
 	sbg.add<void(*)(SavedBattleGame*, ScriptText, int, int), &flashMessageVariadicScriptImpl>("flashMessage");
 	sbg.add<void(*)(SavedBattleGame*, ScriptText, int, int, int), &flashMessageVariadicScriptImpl>("flashMessage");
 	sbg.add<void(*)(SavedBattleGame*, ScriptText, int, int, int, int), &flashMessageVariadicScriptImpl>("flashMessage");
-	
+
 	sbg.add<&randomChanceScript>("randomChance");
 	sbg.add<&randomRangeScript>("randomRange");
 	sbg.add<&turnSideScript>("getTurnSide", "Return the faction whose turn it is.");
 	sbg.addCustomConst("FACTION_PLAYER", FACTION_PLAYER);
 	sbg.addCustomConst("FACTION_HOSTILE", FACTION_HOSTILE);
 	sbg.addCustomConst("FACTION_NEUTRAL", FACTION_NEUTRAL);
-	
+
 	sbg.add<&tryConcealUnitScript>("tryConcealUnit");
 
 	sbg.add<&difficultyLevelScript>("difficultyLevel");

@@ -1758,15 +1758,15 @@ public:
 template<typename Parser, char... NameChars>
 class ScriptGroupNamedParser : public Parser
 {
-    template<typename... C>
-    static constexpr unsigned length(unsigned curr, char head, C... tail)
-    {
-        return head ? length(curr + 1, tail...) : curr;
-    }
-    static constexpr unsigned length(unsigned curr, char head)
-    {
-        return head ? throw "Script name too long!" : curr;
-    }
+	template<typename... C>
+	static constexpr unsigned length(unsigned curr, char head, C... tail)
+	{
+		return head ? length(curr + 1, tail...) : curr;
+	}
+	static constexpr unsigned length(unsigned curr, char head)
+	{
+		return head ? throw "Script name too long!" : curr;
+	}
 
 	static constexpr unsigned nameLenght = length(0, NameChars...);
 
@@ -1815,19 +1815,19 @@ public:
 };
 
 #define MACRO_GET_STRING_1(str, i) \
-    (sizeof(str) > (i) ? str[(i)] : 0)
+	(sizeof(str) > (i) ? str[(i)] : 0)
 
 #define MACRO_GET_STRING_4(str, i) \
-    MACRO_GET_STRING_1(str, i+0),  \
-    MACRO_GET_STRING_1(str, i+1),  \
-    MACRO_GET_STRING_1(str, i+2),  \
-    MACRO_GET_STRING_1(str, i+3)
+	MACRO_GET_STRING_1(str, i+0),  \
+	MACRO_GET_STRING_1(str, i+1),  \
+	MACRO_GET_STRING_1(str, i+2),  \
+	MACRO_GET_STRING_1(str, i+3)
 
 #define MACRO_GET_STRING_16(str, i) \
-    MACRO_GET_STRING_4(str, i+0),   \
-    MACRO_GET_STRING_4(str, i+4),   \
-    MACRO_GET_STRING_4(str, i+8),   \
-    MACRO_GET_STRING_4(str, i+12)
+	MACRO_GET_STRING_4(str, i+0),   \
+	MACRO_GET_STRING_4(str, i+4),   \
+	MACRO_GET_STRING_4(str, i+8),   \
+	MACRO_GET_STRING_4(str, i+12)
 
 #define MACRO_NAMED_SCRIPT(nameString, type) ScriptGroupNamedParser<type, MACRO_GET_STRING_16(nameString, 0), MACRO_GET_STRING_16(nameString, 16), MACRO_GET_STRING_16(nameString, 32)>
 

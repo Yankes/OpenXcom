@@ -36,7 +36,7 @@ namespace OpenXcom
 template<auto T>
 static constexpr decltype(T) _clang_auto_hack()
 {
-    return T;
+	return T;
 }
 #define MACRO_CLANG_AUTO_HACK(T) _clang_auto_hack<T>()
 #else
@@ -898,28 +898,28 @@ struct FuncGroup<Func, ListTag<Ver...>> : GetArgs<Func>
 template<auto F>
 struct WarpValue
 {
-    using Type = decltype(F);
-    constexpr static Type val() { return F; }
+	using Type = decltype(F);
+	constexpr static Type val() { return F; }
 };
 
 template<typename Ptr, typename... Rest>
 struct BindMemberInvokeImpl //Work araound ICC 19.0.1 bug
 {
-    template<typename T, typename... TRest>
-    static auto f(T&& a, TRest&&... b) -> decltype(auto)
-    {
-        using ReturnType = std::invoke_result_t<typename Ptr::Type, T, TRest...>;
+	template<typename T, typename... TRest>
+	static auto f(T&& a, TRest&&... b) -> decltype(auto)
+	{
+		using ReturnType = std::invoke_result_t<typename Ptr::Type, T, TRest...>;
 
-        ReturnType v = std::invoke(Ptr::val(), std::forward<T>(a), std::forward<TRest>(b)...);
-        if constexpr (sizeof...(Rest) > 0)
-        {
-            return BindMemberInvokeImpl<Rest...>::f(std::forward<ReturnType>(v));
-        }
-        else
-        {
-            return std::forward<ReturnType>(v);
-        }
-    }
+		ReturnType v = std::invoke(Ptr::val(), std::forward<T>(a), std::forward<TRest>(b)...);
+		if constexpr (sizeof...(Rest) > 0)
+		{
+			return BindMemberInvokeImpl<Rest...>::f(std::forward<ReturnType>(v));
+		}
+		else
+		{
+			return std::forward<ReturnType>(v);
+		}
+	}
 };
 
 template<auto... Rest>

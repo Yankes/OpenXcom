@@ -1409,7 +1409,7 @@ void SavedGame::setHiddenPurchaseItemsStatus(const std::string &itemName, bool h
  */
 const std::map<std::string, bool> &SavedGame::getHiddenPurchaseItems()
 {
-    return _hiddenPurchaseItemsMap;
+	return _hiddenPurchaseItemsMap;
 }
 
 /*
