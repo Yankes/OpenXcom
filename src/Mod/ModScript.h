@@ -19,9 +19,11 @@
  */
 #include "../Engine/Script.h"
 
+
 namespace OpenXcom
 {
 
+namespace RNG { class RandomState; }
 class Surface;
 class SurfaceSet;
 class Soldier;
@@ -163,6 +165,11 @@ class ModScript
 		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
+	struct TryPsiAttackItemParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleItem*, const BattleUnit*, const BattleUnit*, int, int, int, RNG::RandomState*, int, int>
+	{
+		TryPsiAttackItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
 	////////////////////////////////////////////////////////////
 	//					bonus stat script
 	////////////////////////////////////////////////////////////
@@ -268,6 +275,7 @@ public:
 	using SelectItemSprite = MACRO_NAMED_SCRIPT("selectItemSprite", SelectItemParser);
 
 	using ReactionWeaponAction = MACRO_NAMED_SCRIPT("reactionWeaponAction", ReactionUnitParser);
+	using TryPsiAttackItem = MACRO_NAMED_SCRIPT("tryPsiAttackItem", TryPsiAttackItemParser);
 
 	using CreateItem = MACRO_NAMED_SCRIPT("createItem", CreateItemParser);
 	using NewTurnItem = MACRO_NAMED_SCRIPT("newTurnItem", NewTurnItemParser);
@@ -349,6 +357,7 @@ public:
 		SelectItemSprite,
 
 		ReactionWeaponAction,
+		TryPsiAttackItem,
 
 		CreateItem,
 		NewTurnItem

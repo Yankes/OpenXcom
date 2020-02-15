@@ -3863,18 +3863,22 @@ int TileEngine::psiAttackCalculate(BattleActionAttack::ReadOnly attack, const Ba
 	int defenseStrength = 30 + victim->getArmor()->getPsiDefence(victim);
 
 	auto dis = Position::distance(attacker->getPosition().toVoxel(), victim->getPosition().toVoxel());
-	attackStrength -= weapon->getRules()->getPsiAccuracyRangeReduction(dis);
-	attackStrength += RNG::generate(0,55);
 
-	int psiAttackResult = attackStrength - defenseStrength;
-	
-	ModScript::TryPsiAttackUnit::Output args { psiAttackResult };
-	ModScript::TryPsiAttackUnit::Worker work { weapon, attacker, victim, (int)attackStrength, (int)defenseStrength, type, };
-	
-	work.execute(victim->getArmor()->getScript<ModScript::TryPsiAttackUnit>(), args);
-	
-	psiAttackResult = args.getFirst();
-	
+	auto rng = RNG::globalRandomState().subSequence();
+	int psiAttackResult = 0;
+
+	psiAttackResult = ModScript::scriptFunc1<ModScript::TryPsiAttackItem>(
+		weapon->getRules(),
+		psiAttackResult,
+		weapon, attacker, victim, attackStrength, defenseStrength, type, &rng, (int)dis, (int)weapon->getRules()->getPsiAccuracyRangeReduction(dis)
+	);
+
+	psiAttackResult =  ModScript::scriptFunc1<ModScript::TryPsiAttackUnit>(
+		victim->getArmor(),
+		psiAttackResult,
+		weapon, attacker, victim, attackStrength, defenseStrength, type
+	);
+
 	return psiAttackResult;
 }
 

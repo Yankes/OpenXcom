@@ -1521,6 +1521,26 @@ ModScript::NewTurnItemParser::NewTurnItemParser(ScriptGlobal* shared, const std:
 	b.addCustomPtr<const Mod>("rules", mod);
 }
 
+ModScript::TryPsiAttackItemParser::TryPsiAttackItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name,
+	"psi_attack_success",
+
+	"item",
+	"attacker",
+	"victim",
+	"attack_strength",
+	"defense_strength",
+	"battle_action",
+	"random",
+	"distance",
+	"distance_strength_reduction" }
+{
+	BindBase b { this };
+
+	b.addCustomPtr<const Mod>("rules", mod);
+
+	setDefault("var int r; random.randomRange r 0 55; add attack_strength r; sub psi_attack_success defense_strength; sub psi_attack_success distance_strength_reduction; return attack_strength;");
+}
+
 /**
  * Init all required data in script using object data.
  */
