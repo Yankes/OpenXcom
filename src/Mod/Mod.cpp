@@ -85,6 +85,7 @@
 #include "RuleMissionScript.h"
 #include "../Geoscape/Globe.h"
 #include "../Savegame/SavedGame.h"
+#include "../Savegame/SavedBattleGame.h"
 #include "../Savegame/Region.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/Country.h"
@@ -278,6 +279,14 @@ class ModScriptGlobal : public ScriptGlobal
 	}
 
 public:
+	/// Initialize shaded globals like types.
+	void initParserGlobals(ScriptParserBase* parser) override
+	{
+		parser->registerPointerType<Mod>();
+		parser->registerPointerType<SavedGame>();
+		parser->registerPointerType<SavedBattleGame>();
+	}
+
 	/// Prepare for loading data.
 	void beginLoad() override
 	{

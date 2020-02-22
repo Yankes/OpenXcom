@@ -2086,6 +2086,8 @@ ScriptParserBase::ScriptParserBase(ScriptGlobal* shared, const std::string& name
 	addSortHelper(_typeList, { labelName, ArgLabel, { } });
 	addSortHelper(_typeList, { nullName, ArgNull, { } });
 	addSortHelper(_refList, { nullName, ArgNull });
+
+	_shared->initParserGlobals(this);
 }
 
 /**
@@ -3055,7 +3057,7 @@ void ScriptGlobal::pushParser(ScriptParserEventsBase* parser)
  */
 void ScriptGlobal::addConst(const std::string& name, ScriptValueData i)
 {
-	for (auto p : _parserNames)
+	for (auto& p : _parserNames)
 	{
 		p.second->addConst(name, i);
 	}
@@ -3066,7 +3068,7 @@ void ScriptGlobal::addConst(const std::string& name, ScriptValueData i)
  */
 void ScriptGlobal::updateConst(const std::string& name, ScriptValueData i)
 {
-	for (auto p : _parserNames)
+	for (auto& p : _parserNames)
 	{
 		p.second->updateConst(name, i);
 	}
