@@ -1298,6 +1298,7 @@ void Map::drawTerrain(Surface *surface)
 									ss << "%";
 								}
 
+								//TODO: merge this code with `InventoryState::calculateCurrentDamageTooltip` as 90% is same or should be same
 								// display additional damage and psi-effectiveness info
 								if (_isAltPressed)
 								{
