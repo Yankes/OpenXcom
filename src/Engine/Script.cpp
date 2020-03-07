@@ -2603,7 +2603,7 @@ void ScriptParserBase::load(const YAML::Node& node)
 /**
  * Print all metadata
  */
-void ScriptParserBase::logScriptMetadata(bool haveEvents) const
+void ScriptParserBase::logScriptMetadata(bool haveEvents, const std::string& groupName) const
 {
 	if (Options::debug && Options::verboseLogging)
 	{
@@ -2634,10 +2634,12 @@ void ScriptParserBase::logScriptMetadata(bool haveEvents) const
 
 			#undef MACRO_ALL_LOG
 			#undef MACRO_STRCAT
+
+			opLog.get(LOG_DEBUG) << "Total size: " << offset << "\n";
 		}
 
 		Logger refLog;
-		refLog.get(LOG_DEBUG) << "Script info for: " << _name << "\n" << std::left;
+		refLog.get(LOG_DEBUG) << "Script info for:  '" << _name << "'  in group:  '" << groupName << "'\n" << std::left;
 		refLog.get(LOG_DEBUG) << "\n";
 		if (haveEvents)
 		{
@@ -3036,18 +3038,18 @@ ScriptRef ScriptGlobal::addNameRef(const std::string& s)
 /**
  * Store parser.
  */
-void ScriptGlobal::pushParser(ScriptParserBase* parser)
+void ScriptGlobal::pushParser(const std::string& groupName, ScriptParserBase* parser)
 {
-	parser->logScriptMetadata(false);
+	parser->logScriptMetadata(false, groupName);
 	_parserNames.insert(std::make_pair(parser->getName(), parser));
 }
 
 /**
  * Store parser with events.
  */
-void ScriptGlobal::pushParser(ScriptParserEventsBase* parser)
+void ScriptGlobal::pushParser(const std::string& groupName, ScriptParserEventsBase* parser)
 {
-	parser->logScriptMetadata(true);
+	parser->logScriptMetadata(true, groupName);
 	_parserNames.insert(std::make_pair(parser->getName(), parser));
 	_parserEvents.push_back(parser);
 }

@@ -1281,7 +1281,7 @@ public:
 	virtual void load(const YAML::Node& node);
 
 	/// Show all script informations.
-	void logScriptMetadata(bool haveEvents) const;
+	void logScriptMetadata(bool haveEvents, const std::string& groupName) const;
 
 	/// Get name of script.
 	const std::string& getName() const { return _name; }
@@ -1608,9 +1608,9 @@ public:
 	virtual ~ScriptGlobal();
 
 	/// Store parser.
-	void pushParser(ScriptParserBase* parser);
+	void pushParser(const std::string& groupName, ScriptParserBase* parser);
 	/// Store parser.
-	void pushParser(ScriptParserEventsBase* parser);
+	void pushParser(const std::string& groupName, ScriptParserEventsBase* parser);
 
 	/// Add new const value.
 	void addConst(const std::string& name, ScriptValueData i);
@@ -1795,10 +1795,11 @@ public:
 	using Container = ScriptGroupContainer<ScriptGroup, Parsers...>;
 
 	/// Constructor.
-	ScriptGroup(ScriptGlobal* shared, Master* master) : Parsers{ shared, master, }...
+	ScriptGroup(ScriptGlobal* shared, Master* master, const std::string& groupName) : Parsers{ shared, master, }...
 	{
 		(void)master;
-		(shared->pushParser(&get<Parsers>()), ...);
+		(void)groupName;
+		(shared->pushParser(groupName, &get<Parsers>()), ...);
 	}
 
 	/// Get parser by type.

@@ -60,6 +60,10 @@ class RuleUfo;
 class SavedBattleGame;
 class SavedGame;
 
+
+/**
+ * Main class handling all scripts types used by game.
+ */
 class ModScript
 {
 	friend class Mod;
@@ -392,12 +396,12 @@ public:
 	////////////////////////////////////////////////////////////
 	//					members
 	////////////////////////////////////////////////////////////
-	BattleUnitScripts battleUnitScripts = { _shared, _mod, };
-	BattleItemScripts battleItemScripts = { _shared, _mod, };
-	BonusStatsScripts bonusStatsScripts = { _shared, _mod, };
-	SkillScripts skillScripts = { _shared, _mod, };
-	UfoScripts ufoScripts = { _shared, _mod, };
-	SoldierBonusScripts soldierBonusScripts = { _shared, _mod, };
+	BattleUnitScripts battleUnitScripts = { _shared, _mod, "unit" };
+	BattleItemScripts battleItemScripts = { _shared, _mod, "item" };
+	BonusStatsScripts bonusStatsScripts = { _shared, _mod, "bonuses" };
+	SkillScripts skillScripts = { _shared, _mod, "skill" };
+	UfoScripts ufoScripts = { _shared, _mod, "ufo" };
+	SoldierBonusScripts soldierBonusScripts = { _shared, _mod, "soldier" };
 
 
 	////////////////////////////////////////////////////////////
