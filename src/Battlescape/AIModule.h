@@ -107,7 +107,7 @@ public:
 	bool findFirePoint();
 	/// Decides if we should throw a grenade/launch a missile to this position.
 	int explosiveEfficacy(Position targetPos, BattleUnit *attackingUnit, int radius, int diff, bool grenade = false) const;
-	bool getNodeOfBestEfficacy(BattleAction *action);
+	bool getNodeOfBestEfficacy(BattleAction *action, int radius);
 	/// Attempts to take a melee attack/charge an enemy we can see.
 	void meleeAction();
 	/// Attempts to fire a waypoint projectile at an enemy we, or one of our teammates sees.

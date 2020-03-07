@@ -1832,7 +1832,7 @@ std::vector<TileEngine::ReactionScore> TileEngine::getSpottingUnits(BattleUnit* 
 						if (rs.attackType == BA_SNAPSHOT && Options::battleUFOExtenderAccuracy)
 						{
 							BattleItem *weapon = rs.weapon;
-							int accuracy = (*i)->getFiringAccuracy(rs.attackType, weapon, _save->getBattleGame()->getMod());
+							int accuracy = BattleUnit::getFiringAccuracy(BattleActionAttack::GetBeforeShoot(rs.attackType, rs.unit, weapon), _save->getBattleGame()->getMod());
 							int distance = Position::distance2d((*i)->getPosition(), unit->getPosition());
 							int upperLimit = weapon->getRules()->getSnapRange();
 							int lowerLimit = weapon->getRules()->getMinRange();
@@ -1998,7 +1998,7 @@ bool TileEngine::tryReaction(ReactionScore *reaction, BattleUnit *target, const 
 				unit->setAIModule(ai);
 			}
 
-			int radius = ammo->getRules()->getExplosionRadius(unit);
+			int radius = ammo->getRules()->getExplosionRadius({ action.type, action.actor, action.weapon, ammo });
 			if (action.type != BA_HIT && radius > 0 &&
 				ai->explosiveEfficacy(action.target, unit, radius, -1) == 0)
 			{
@@ -3850,13 +3850,17 @@ void TileEngine::togglePersonalLighting()
  * @param weapon Attack item.
  * @return Value greater than zero mean successful attack.
  */
-int TileEngine::psiAttackCalculate(BattleActionType type, const BattleUnit *attacker, const BattleUnit *victim, const BattleItem *weapon)
+int TileEngine::psiAttackCalculate(BattleActionAttack::ReadOnly attack, const BattleUnit *victim)
 {
 	if (!victim)
 		return 0;
 
-	float attackStrength = attacker->getPsiAccuracy(type, weapon);
-	float defenseStrength = 30.0f + victim->getArmor()->getPsiDefence(victim);
+	auto type = attack.type;
+	auto attacker = attack.attacker;
+	auto weapon = attack.weapon_item;
+
+	int attackStrength = BattleUnit::getPsiAccuracy(attack);
+	int defenseStrength = 30 + victim->getArmor()->getPsiDefence(victim);
 
 	auto dis = Position::distance(attacker->getPosition().toVoxel(), victim->getPosition().toVoxel());
 	attackStrength -= weapon->getRules()->getPsiAccuracyRangeReduction(dis);
@@ -3886,7 +3890,7 @@ bool TileEngine::psiAttack(BattleActionAttack attack, BattleUnit *victim)
 
 	attack.attacker->addPsiSkillExp();
 	if (Options::allowPsiStrengthImprovement) victim->addPsiStrengthExp();
-	if (psiAttackCalculate(attack.type, attack.attacker, victim, attack.weapon_item) > 0)
+	if (psiAttackCalculate(attack, victim) > 0)
 	{
 		attack.attacker->addPsiSkillExp();
 		attack.attacker->addPsiSkillExp();
@@ -3954,14 +3958,9 @@ bool TileEngine::psiAttack(BattleActionAttack attack, BattleUnit *victim)
  */
 bool TileEngine::meleeAttack(BattleActionAttack attack, BattleUnit *victim)
 {
-	int hitChance;
-	if (attack.type == BA_CQB)
+	int hitChance = BattleUnit::getFiringAccuracy(attack, _save->getBattleGame()->getMod());
+	if (attack.type != BA_CQB)
 	{
-		hitChance = attack.attacker->getFiringAccuracy(BA_CQB, attack.weapon_item, _save->getBattleGame()->getMod());
-	}
-	else
-	{
-		hitChance = attack.attacker->getFiringAccuracy(BA_HIT, attack.weapon_item, _save->getBattleGame()->getMod());
 		// hit log - new melee attack
 		_save->appendToHitLog(HITLOG_NEW_SHOT, attack.attacker->getFaction());
 	}

@@ -167,7 +167,7 @@ class ModScript
 	//					bonus stat script
 	////////////////////////////////////////////////////////////
 
-	struct BonusStatsBaseParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleUnit*, int>
+	struct BonusStatsBaseParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleUnit*, int, const BattleItem*, const BattleItem*, int, const RuleSkill*>
 	{
 		BonusStatsBaseParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 

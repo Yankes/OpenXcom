@@ -24,7 +24,10 @@
 namespace OpenXcom
 {
 
+namespace helper { struct BattleActionAttackReadOnlyImpl; }
+
 class BattleUnit;
+class BattleItem;
 typedef std::pair<float (*)(const BattleUnit*), float> RuleStatBonusData;
 typedef std::pair<std::string, std::vector<float> > RuleStatBonusDataOrig;
 /**
@@ -66,6 +69,8 @@ public:
 	void setEnergyRecovery();
 	/// Set default for Stun recovery.
 	void setStunRecovery();
+	/// Get bonus based on attack unit and weapons.
+	int getBonus(helper::BattleActionAttackReadOnlyImpl unit, int externalBonuses = 0) const;
 	/// Get bonus based on unit stats.
 	int getBonus(const BattleUnit* unit, int externalBonuses = 0) const;
 	/// Used for "Stats for Nerds".

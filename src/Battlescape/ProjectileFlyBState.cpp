@@ -438,9 +438,10 @@ bool ProjectileFlyBState::createNewProjectile()
 		accuracyDivider = 200.0;
 	}
 
+	auto attack = BattleActionAttack::GetAferShoot(_action, _ammo);
 	if (_action.type == BA_THROW)
 	{
-		_projectileImpact = projectile->calculateThrow(_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / accuracyDivider);
+		_projectileImpact = projectile->calculateThrow(BattleUnit::getFiringAccuracy(attack, _parent->getMod()) / accuracyDivider);
 		const RuleItem *ruleItem = _action.weapon->getRules();
 		if (_projectileImpact == V_FLOOR || _projectileImpact == V_UNIT || _projectileImpact == V_OBJECT)
 		{
@@ -469,7 +470,7 @@ bool ProjectileFlyBState::createNewProjectile()
 	}
 	else if (_action.weapon->getArcingShot(_action.type)) // special code for the "spit" trajectory
 	{
-		_projectileImpact = projectile->calculateThrow(_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / accuracyDivider);
+		_projectileImpact = projectile->calculateThrow(BattleUnit::getFiringAccuracy(attack, _parent->getMod()) / accuracyDivider);
 		if (_projectileImpact != V_EMPTY && _projectileImpact != V_OUTOFBOUNDS)
 		{
 			// set the soldier in an aiming position
@@ -506,11 +507,11 @@ bool ProjectileFlyBState::createNewProjectile()
 	{
 		if (_originVoxel != TileEngine::invalid)
 		{
-			_projectileImpact = projectile->calculateTrajectory(_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / accuracyDivider, _originVoxel, false);
+			_projectileImpact = projectile->calculateTrajectory(BattleUnit::getFiringAccuracy(attack, _parent->getMod()) / accuracyDivider, _originVoxel, false);
 		}
 		else
 		{
-			_projectileImpact = projectile->calculateTrajectory(_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / accuracyDivider);
+			_projectileImpact = projectile->calculateTrajectory(BattleUnit::getFiringAccuracy(attack, _parent->getMod()) / accuracyDivider);
 		}
 		if (_targetVoxel != TileEngine::invalid.toVoxel() && (_projectileImpact != V_EMPTY || _action.type == BA_LAUNCH))
 		{
@@ -609,6 +610,7 @@ void ProjectileFlyBState::think()
 	}
 	else
 	{
+		auto attack = BattleActionAttack::GetAferShoot(_action, _ammo);
 		if (_action.type != BA_THROW && _ammo && _ammo->getRules()->getShotgunPellets() != 0)
 		{
 			// shotgun pellets move to their terminal location instantly as fast as possible
@@ -637,7 +639,7 @@ void ProjectileFlyBState::think()
 					if (ruleItem->getBattleType() == BT_GRENADE || ruleItem->getBattleType() == BT_PROXIMITYGRENADE)
 					{
 						// it's a hot grenade to explode immediately
-						_parent->statePushFront(new ExplosionBState(_parent, _parent->getMap()->getProjectile()->getPosition(-1), BattleActionAttack{ _action, _action.weapon, }));
+						_parent->statePushFront(new ExplosionBState(_parent, _parent->getMap()->getProjectile()->getPosition(-1), attack));
 					}
 					else
 					{
@@ -649,7 +651,7 @@ void ProjectileFlyBState::think()
 					_parent->dropItem(pos, _action.weapon);
 					if (_unit->getFaction() != FACTION_PLAYER && ruleItem->getBattleType() == BT_GRENADE)
 					{
-						_parent->getTileEngine()->setDangerZone(pos, ruleItem->getExplosionRadius(_action.actor), _action.actor);
+						_parent->getTileEngine()->setDangerZone(pos, ruleItem->getExplosionRadius(attack), _action.actor);
 					}
 				}
 			}
@@ -685,14 +687,14 @@ void ProjectileFlyBState::think()
 					bool shotgun = _ammo && _ammo->getRules()->getShotgunPellets() != 0 && _ammo->getRules()->getDamageType()->isDirect();
 					int offset = 0;
 					// explosions impact not inside the voxel but two steps back (projectiles generally move 2 voxels at a time)
-					if (_ammo && _ammo->getRules()->getExplosionRadius(_action.actor) != 0 && _projectileImpact != V_UNIT)
+					if (_ammo && _ammo->getRules()->getExplosionRadius(attack) != 0 && _projectileImpact != V_UNIT)
 					{
 						offset = -2;
 					}
 
 					_parent->statePushFront(new ExplosionBState(
 						_parent, _parent->getMap()->getProjectile()->getPosition(offset),
-						{ _action, _ammo }, 0,
+						attack, 0,
 						_action.weapon->haveNextShotsForAction(_action.type, _action.autoShotCounter) || !_action.weapon->getAmmoForAction(_action.type),
 						shotgun ? 0 : _range + _parent->getMap()->getProjectile()->getDistance()
 					));
@@ -745,7 +747,7 @@ void ProjectileFlyBState::think()
 							{
 								// pellet spread based on spread and firing accuracy with diminishing formula
 								// identical with vanilla formula when spread = 100 (default)
-								secondaryImpact = proj->calculateTrajectory(std::max(0.0, (_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) / 100.0) - i * 5.0 * spread / 100.0));
+								secondaryImpact = proj->calculateTrajectory(std::max(0.0, (BattleUnit::getFiringAccuracy(attack, _parent->getMod()) / 100.0) - i * 5.0 * spread / 100.0));
 							}
 
 							if (secondaryImpact != V_EMPTY)
@@ -760,9 +762,9 @@ void ProjectileFlyBState::think()
 										projectileHitUnit(proj->getPosition(offset));
 									}
 									Explosion *explosion = new Explosion(proj->getPosition(offset), _ammo->getRules()->getHitAnimation());
-									int power = _ammo->getRules()->getPowerBonus(_unit) - _ammo->getRules()->getPowerRangeReduction(proj->getDistance());
+									int power = _ammo->getRules()->getPowerBonus(attack) - _ammo->getRules()->getPowerRangeReduction(proj->getDistance());
 									_parent->getMap()->getExplosions()->push_back(explosion);
-									_parent->getSave()->getTileEngine()->hit({ _action, _ammo }, proj->getPosition(offset), power, _ammo->getRules()->getDamageType());
+									_parent->getSave()->getTileEngine()->hit(attack, proj->getPosition(offset), power, _ammo->getRules()->getDamageType());
 
 									//do not work yet
 //									if (_ammo->getRules()->getExplosionRadius(_unit) != 0)
@@ -901,7 +903,7 @@ void ProjectileFlyBState::projectileHitUnit(Position pos)
 			{
 				_unit->getStatistics()->longDistanceHitCounter++;
 			}
-			if (_unit->getFiringAccuracy(_action.type, _action.weapon, _parent->getMod()) < Position::distance2d(_action.actor->getPosition(), victim->getPosition()))
+			if (BattleUnit::getFiringAccuracy(BattleActionAttack::GetAferShoot(_action, _ammo), _parent->getMod()) < Position::distance2d(_action.actor->getPosition(), victim->getPosition()))
 			{
 				_unit->getStatistics()->lowAccuracyHitCounter++;
 			}

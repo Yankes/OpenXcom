@@ -1196,11 +1196,12 @@ void Map::drawTerrain(Surface *surface)
 								BattleAction *action = _save->getBattleGame()->getCurrentAction();
 								const RuleItem *weapon = action->weapon->getRules();
 								std::ostringstream ss;
+								auto attack = BattleActionAttack::GetBeforeShoot(*action);
 								int distance = Position::distance2d(Position(itX, itY, itZ), action->actor->getPosition());
 
 								if (_cursorType == CT_AIM)
 								{
-									int accuracy = action->actor->getFiringAccuracy(action->type, action->weapon, _game->getMod());
+									int accuracy = BattleUnit::getFiringAccuracy(attack, _game->getMod());
 									int upperLimit = 200;
 									int lowerLimit = weapon->getMinRange();
 									switch (action->type)
@@ -1310,9 +1311,10 @@ void Map::drawTerrain(Surface *surface)
 									}
 									else if (action->weapon->needsAmmoForAction(action->type))
 									{
-										if (action->weapon->getAmmoForAction(action->type) != 0)
+										auto ammo = attack.damage_item;
+										if (ammo != nullptr)
 										{
-											rule = action->weapon->getAmmoForAction(action->type)->getRules();
+											rule = ammo->getRules();
 										}
 										else
 										{
@@ -1356,7 +1358,7 @@ void Map::drawTerrain(Surface *surface)
 									{
 										if (rule->getBattleType() == BT_PSIAMP)
 										{
-											float attackStrength = action->actor->getPsiAccuracy(action->type, action->weapon);
+											float attackStrength = BattleUnit::getPsiAccuracy(attack);
 											float defenseStrength = 30.0f; // indicator ignores: +victim->getArmor()->getPsiDefence(victim);
 
 											float dis = Position::distance(action->actor->getPosition().toVoxel(), Position(itX, itY, itZ).toVoxel());
@@ -1374,7 +1376,7 @@ void Map::drawTerrain(Surface *surface)
 										if (rule->getBattleType() != BT_PSIAMP || action->type == BA_USE)
 										{
 											int totalDamage = 0;
-											totalDamage += rule->getPowerBonus(action->actor);
+											totalDamage += rule->getPowerBonus(attack);
 											totalDamage -= rule->getPowerRangeReduction(distance * 16);
 											if (totalDamage < 0) totalDamage = 0;
 											if (_cursorType != CT_WAYPOINT)

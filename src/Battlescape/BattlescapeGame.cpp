@@ -171,43 +171,6 @@ bool BattleActionCost::spendTU(std::string *message)
 }
 
 /**
- * Constructor for Battle Action attack.
- * @param action type of action.
- * @param unit unit performing attack.
- * @param item weapon of choice.
- */
-BattleActionAttack::BattleActionAttack(BattleActionType action, BattleUnit *unit, BattleItem *item, BattleItem *ammo) : type{ action }, attacker{ unit }
-{
-	if (item)
-	{
-		weapon_item = item;
-		damage_item = ammo;
-		const auto battleType = item->getRules()->getBattleType();
-		if (battleType == BT_PROXIMITYGRENADE || battleType == BT_GRENADE)
-		{
-			if (!attacker && weapon_item->getPreviousOwner())
-			{
-				attacker = weapon_item->getPreviousOwner();
-			}
-		}
-	}
-}
-
-/**
- * Constructor from BattleActionCost.
- * @param action Action.
- */
-BattleActionAttack::BattleActionAttack(const BattleActionCost& action, BattleItem *ammo) : BattleActionAttack{ action.type, action.actor, action.weapon, ammo }
-{
-
-}
-
-BattleActionAttack::BattleActionAttack(const BattleAction &action, BattleItem *ammo) : BattleActionAttack{ action.type, action.actor, action.weapon, ammo }
-{
-	skill_rules = action.skillRules;
-}
-
-/**
  * Initializes all the elements in the Battlescape screen.
  * @param save Pointer to the save game.
  * @param parentState Pointer to the parent battlescape state.

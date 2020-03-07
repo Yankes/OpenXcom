@@ -2248,14 +2248,15 @@ std::string BattlescapeState::getMeleeDamagePreview(BattleUnit *actor, BattleIte
 	{
 		int totalDamage = 0;
 		const RuleDamageType *dmgType;
+		auto attack = BattleActionAttack::GetBeforeShoot(BA_HIT, actor, weapon);
 		if (weapon->getRules()->getBattleType() == BT_MELEE)
 		{
-			totalDamage += weapon->getRules()->getPowerBonus(actor);
+			totalDamage += weapon->getRules()->getPowerBonus(attack);
 			dmgType = weapon->getRules()->getDamageType();
 		}
 		else
 		{
-			totalDamage += weapon->getRules()->getMeleeBonus(actor);
+			totalDamage += weapon->getRules()->getMeleeBonus(attack);
 			dmgType = weapon->getRules()->getMeleeType();
 		}
 

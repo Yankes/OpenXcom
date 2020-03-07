@@ -335,11 +335,11 @@ public:
 	/// Clear visible tiles.
 	void clearVisibleTiles();
 	/// Calculate psi attack accuracy.
-	int getPsiAccuracy(BattleActionType actionType, const BattleItem *item) const;
+	static int getPsiAccuracy(BattleActionAttack::ReadOnly attack);
 	/// Calculate firing accuracy.
-	int getFiringAccuracy(BattleActionType actionType, BattleItem *item, Mod *mod);
+	static int getFiringAccuracy(BattleActionAttack::ReadOnly attack, Mod *mod);
 	/// Calculate accuracy modifier.
-	int getAccuracyModifier(BattleItem *item = 0);
+	int getAccuracyModifier(const BattleItem *item = 0) const;
 	/// Set armor value.
 	void setArmor(int armor, UnitSide side);
 	/// Get armor value.

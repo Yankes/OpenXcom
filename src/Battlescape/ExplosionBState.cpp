@@ -96,17 +96,17 @@ void ExplosionBState::init()
 		_psi = type == BT_PSIAMP && action != BA_USE && !_hit;
 		if (_hit && type != BT_MELEE)
 		{
-			_power += itemRule->getMeleeBonus(_attack.attacker);
+			_power += itemRule->getMeleeBonus(_attack);
 
 			_radius = 0;
 			_damageType = itemRule->getMeleeType();
 		}
 		else
 		{
-			_power += itemRule->getPowerBonus(_attack.attacker);
+			_power += itemRule->getPowerBonus(_attack);
 			_power -= itemRule->getPowerRangeReduction(_range);
 
-			_radius = itemRule->getExplosionRadius(_attack.attacker);
+			_radius = itemRule->getExplosionRadius(_attack);
 			_damageType = itemRule->getDamageType();
 		}
 
@@ -180,9 +180,9 @@ void ExplosionBState::init()
 	else if (_attack.attacker && (_attack.attacker->getSpecialAbility() == SPECAB_EXPLODEONDEATH || _attack.attacker->getSpecialAbility() == SPECAB_BURN_AND_EXPLODE))
 	{
 		itemRule = _parent->getMod()->getItem(_attack.attacker->getArmor()->getCorpseGeoscape(), true);
-		_power = itemRule->getPowerBonus(_attack.attacker);
+		_power = itemRule->getPowerBonus(_attack);
 		_damageType = itemRule->getDamageType();
-		_radius = itemRule->getExplosionRadius(_attack.attacker);
+		_radius = itemRule->getExplosionRadius(_attack);
 		_areaOfEffect = true;
 		if (!RNG::percent(itemRule->getSpecialChance()))
 		{

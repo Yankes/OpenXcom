@@ -35,6 +35,90 @@
 namespace OpenXcom
 {
 
+namespace
+{
+
+/**
+ * Update `attacker` from `weapon_item`.
+ */
+void UpdateAttacker(BattleActionAttack& attack)
+{
+	if (attack.weapon_item && !attack.attacker)
+	{
+		const auto battleType = attack.weapon_item->getRules()->getBattleType();
+		if (battleType == BT_PROXIMITYGRENADE || battleType == BT_GRENADE)
+		{
+			auto owner = attack.weapon_item->getPreviousOwner();
+			if (owner)
+			{
+				attack.attacker = owner;
+			}
+		}
+	}
+}
+
+/**
+ * Update `damage_item` from `weapon_item`.
+ */
+void UpdateAmmo(BattleActionAttack& attack)
+{
+	if (attack.weapon_item && !attack.damage_item)
+	{
+		const auto battleType = attack.weapon_item->getRules()->getBattleType();
+		if (battleType == BT_PROXIMITYGRENADE || battleType == BT_GRENADE || battleType == BT_PSIAMP)
+		{
+			attack.damage_item = attack.weapon_item;
+		}
+		else
+		{
+			attack.damage_item = attack.weapon_item->getAmmoForAction(attack.type);
+		}
+	}
+}
+
+}
+
+/**
+ * Generate ActionAttack before shoot, this mean we can get ammo from weapon.
+ * @param action BattleCost of attack.
+ * @return All attack action data.
+ */
+BattleActionAttack BattleActionAttack::GetBeforeShoot(const BattleActionCost &action)
+{
+	return GetBeforeShoot(action.type, action.actor, action.weapon, action.skillRules);
+}
+
+BattleActionAttack BattleActionAttack::GetBeforeShoot(BattleActionType type, BattleUnit *unit, BattleItem *wepon, const RuleSkill *skill)
+{
+	auto attack = BattleActionAttack{ type, unit, wepon };
+	UpdateAttacker(attack);
+	UpdateAmmo(attack);
+	attack.skill_rules = skill;
+	return attack;
+}
+
+/**
+ * Generate ActionAttack after shoot, ammo can be already spend and unloaded from weapon.
+ * @param action BattleCost of attack.
+ * @param ammo Ammo used to shoot/attack.
+ * @return All attack action data.
+ */
+BattleActionAttack BattleActionAttack::GetAferShoot(const BattleActionCost &action, BattleItem *ammo)
+{
+	return GetAferShoot(action.type, action.actor, action.weapon, ammo, action.skillRules);
+}
+
+BattleActionAttack BattleActionAttack::GetAferShoot(BattleActionType type, BattleUnit *unit, BattleItem *wepon, BattleItem *ammo, const RuleSkill *skill)
+{
+	auto attack = BattleActionAttack{ type, unit, wepon };
+	UpdateAttacker(attack);
+	attack.damage_item = ammo;
+	attack.skill_rules = skill;
+	return attack;
+}
+
+
+
 const float VexelsToTiles = 0.0625f;
 const float TilesToVexels = 16.0f;
 
@@ -1681,13 +1765,13 @@ const std::string &RuleItem::getMediKitCustomBackground() const
  * @param stats unit stats
  * @return The radius.
  */
-int RuleItem::getExplosionRadius(const BattleUnit *unit) const
+int RuleItem::getExplosionRadius(BattleActionAttack::ReadOnly attack) const
 {
 	int radius = 0;
 
 	if (_damageType.FixRadius == -1)
 	{
-		radius = getPowerBonus(unit) * _damageType.RadiusEffectiveness;
+		radius = getPowerBonus(attack) * _damageType.RadiusEffectiveness;
 		if (_damageType.FireBlastCalc)
 		{
 			radius += 1;
@@ -2237,9 +2321,9 @@ bool RuleItem::isManaRequired() const
  * @param stats unit stats
  * @return bonus power.
  */
-int RuleItem::getPowerBonus(const BattleUnit *unit) const
+int RuleItem::getPowerBonus(BattleActionAttack::ReadOnly attack) const
 {
-	return _damageBonus.getBonus(unit, _power);
+	return _damageBonus.getBonus(attack, _power);
 }
 
 /**
@@ -2247,9 +2331,9 @@ int RuleItem::getPowerBonus(const BattleUnit *unit) const
  * @param stats unit stats
  * @return bonus power.
  */
-int RuleItem::getMeleeBonus(const BattleUnit *unit) const
+int RuleItem::getMeleeBonus(BattleActionAttack::ReadOnly attack) const
 {
-	return _meleeBonus.getBonus(unit, _meleePower);
+	return _meleeBonus.getBonus(attack, _meleePower);
 }
 
 /**
@@ -2257,9 +2341,9 @@ int RuleItem::getMeleeBonus(const BattleUnit *unit) const
  * @param stats unit stats
  * @return multiplier.
  */
-int RuleItem::getMeleeMultiplier(const BattleUnit *unit) const
+int RuleItem::getMeleeMultiplier(BattleActionAttack::ReadOnly attack) const
 {
-	return _meleeMulti.getBonus(unit);
+	return _meleeMulti.getBonus(attack);
 }
 
 /**
@@ -2267,9 +2351,9 @@ int RuleItem::getMeleeMultiplier(const BattleUnit *unit) const
  * @param stats unit stats
  * @return multiplier.
  */
-int RuleItem::getAccuracyMultiplier(const BattleUnit *unit) const
+int RuleItem::getAccuracyMultiplier(BattleActionAttack::ReadOnly attack) const
 {
-	return _accuracyMulti.getBonus(unit);
+	return _accuracyMulti.getBonus(attack);
 }
 
 /**
@@ -2277,9 +2361,9 @@ int RuleItem::getAccuracyMultiplier(const BattleUnit *unit) const
  * @param stats unit stats
  * @return multiplier.
  */
-int RuleItem::getThrowMultiplier(const BattleUnit *unit) const
+int RuleItem::getThrowMultiplier(BattleActionAttack::ReadOnly attack) const
 {
-	return _throwMulti.getBonus(unit);
+	return _throwMulti.getBonus(attack);
 }
 
 /**
@@ -2287,9 +2371,9 @@ int RuleItem::getThrowMultiplier(const BattleUnit *unit) const
  * @param stats unit stats
  * @return multiplier.
  */
-int RuleItem::getCloseQuartersMultiplier(const BattleUnit *unit) const
+int RuleItem::getCloseQuartersMultiplier(BattleActionAttack::ReadOnly attack) const
 {
-	return _closeQuartersMulti.getBonus(unit);
+	return _closeQuartersMulti.getBonus(attack);
 }
 
 /**

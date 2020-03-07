@@ -1721,7 +1721,7 @@ RuleItemUseCost BattleUnit::getActionTUs(BattleActionType actionType, const Rule
 	}
 	RuleItemUseCost cost(skillRules->getCost());
 	applyPercentages(cost, skillRules->getFlat());
-	
+
 	return cost;
 }
 
@@ -2009,8 +2009,11 @@ void BattleUnit::clearVisibleTiles()
  * @param item Psi-Amp.
  * @return Attack bonus.
  */
-int BattleUnit::getPsiAccuracy(BattleActionType actionType, const BattleItem *item) const
+int BattleUnit::getPsiAccuracy(BattleActionAttack::ReadOnly attack)
 {
+	auto actionType = attack.type;
+	auto item = attack.weapon_item;
+
 	int psiAcc = 0;
 	if (actionType == BA_MINDCONTROL)
 	{
@@ -2025,7 +2028,7 @@ int BattleUnit::getPsiAccuracy(BattleActionType actionType, const BattleItem *it
 		psiAcc = item->getRules()->getAccuracyUse();
 	}
 
-	psiAcc += item->getRules()->getAccuracyMultiplier(this);
+	psiAcc += item->getRules()->getAccuracyMultiplier(attack);
 
 	return psiAcc;
 }
@@ -2037,37 +2040,40 @@ int BattleUnit::getPsiAccuracy(BattleActionType actionType, const BattleItem *it
  * @param item
  * @return firing Accuracy
  */
-int BattleUnit::getFiringAccuracy(BattleActionType actionType, BattleItem *item, Mod *mod)
+int BattleUnit::getFiringAccuracy(BattleActionAttack::ReadOnly attack, Mod *mod)
 {
-	const int modifier = getAccuracyModifier(item);
+	auto actionType = attack.type;
+	auto item = attack.weapon_item;
+	const int modifier = attack.attacker->getAccuracyModifier(item);
 	int result = 0;
-	bool kneeled = _kneeled;
+	bool kneeled = attack.attacker->_kneeled;
+
 	if (actionType == BA_SNAPSHOT)
 	{
-		result = item->getRules()->getAccuracyMultiplier(this) * item->getRules()->getAccuracySnap() / 100;
+		result = item->getRules()->getAccuracyMultiplier(attack) * item->getRules()->getAccuracySnap() / 100;
 	}
 	else if (actionType == BA_AIMEDSHOT || actionType == BA_LAUNCH)
 	{
-		result = item->getRules()->getAccuracyMultiplier(this) * item->getRules()->getAccuracyAimed() / 100;
+		result = item->getRules()->getAccuracyMultiplier(attack) * item->getRules()->getAccuracyAimed() / 100;
 	}
 	else if (actionType == BA_AUTOSHOT)
 	{
-		result = item->getRules()->getAccuracyMultiplier(this) * item->getRules()->getAccuracyAuto() / 100;
+		result = item->getRules()->getAccuracyMultiplier(attack) * item->getRules()->getAccuracyAuto() / 100;
 	}
 	else if (actionType == BA_HIT)
 	{
 		kneeled = false;
-		result = item->getRules()->getMeleeMultiplier(this) * item->getRules()->getAccuracyMelee() / 100;
+		result = item->getRules()->getMeleeMultiplier(attack) * item->getRules()->getAccuracyMelee() / 100;
 	}
 	else if (actionType == BA_THROW)
 	{
 		kneeled = false;
-		result = item->getRules()->getThrowMultiplier(this) * item->getRules()->getAccuracyThrow() / 100;
+		result = item->getRules()->getThrowMultiplier(attack) * item->getRules()->getAccuracyThrow() / 100;
 	}
 	else if (actionType == BA_CQB)
 	{
 		kneeled = false;
-		result = item->getRules()->getCloseQuartersMultiplier(this) * item->getRules()->getAccuracyCloseQuarters(mod) / 100;
+		result = item->getRules()->getCloseQuartersMultiplier(attack) * item->getRules()->getAccuracyCloseQuarters(mod) / 100;
 	}
 
 	if (kneeled)
@@ -2078,14 +2084,14 @@ int BattleUnit::getFiringAccuracy(BattleActionType actionType, BattleItem *item,
 	if (item->getRules()->isTwoHanded())
 	{
 		// two handed weapon, means one hand should be empty
-		if (getRightHandWeapon() != 0 && getLeftHandWeapon() != 0)
+		if (attack.attacker->getRightHandWeapon() != 0 && attack.attacker->getLeftHandWeapon() != 0)
 		{
 			result = result * item->getRules()->getOneHandedPenalty(mod) / 100;
 		}
 		else if (item->getRules()->isSpecialUsingEmptyHand())
 		{
 			// for special weapons that use an empty hand... already one hand with an item is enough for the penalty to apply
-			if (getRightHandWeapon() != 0 || getLeftHandWeapon() != 0)
+			if (attack.attacker->getRightHandWeapon() != 0 || attack.attacker->getLeftHandWeapon() != 0)
 			{
 				result = result * item->getRules()->getOneHandedPenalty(mod) / 100;
 			}
@@ -2101,7 +2107,7 @@ int BattleUnit::getFiringAccuracy(BattleActionType actionType, BattleItem *item,
  * @param item the item we are shooting right now.
  * @return modifier
  */
-int BattleUnit::getAccuracyModifier(BattleItem *item)
+int BattleUnit::getAccuracyModifier(const BattleItem *item) const
 {
 	int wounds = _fatalWounds[BODYPART_HEAD];
 

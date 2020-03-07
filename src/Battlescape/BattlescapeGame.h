@@ -40,7 +40,6 @@ class InfoboxOKState;
 class SoldierDiary;
 class RuleSkill;
 
-enum BattleActionType : Uint8 { BA_NONE, BA_TURN, BA_WALK, BA_KNEEL, BA_PRIME, BA_UNPRIME, BA_THROW, BA_AUTOSHOT, BA_SNAPSHOT, BA_AIMEDSHOT, BA_HIT, BA_USE, BA_LAUNCH, BA_MINDCONTROL, BA_PANIC, BA_RETHINK, BA_CQB };
 enum BattleActionMove { BAM_NORMAL = 0, BAM_RUN = 1, BAM_STRAFE = 2 };
 
 struct BattleActionCost : RuleItemUseCost
@@ -94,30 +93,6 @@ struct BattleAction : BattleActionCost
 	{
 		return strafe ? BAM_STRAFE : run ? BAM_RUN : BAM_NORMAL;
 	}
-};
-
-struct BattleActionAttack
-{
-	BattleActionType type;
-	BattleUnit *attacker = nullptr;
-	BattleItem *weapon_item = nullptr;
-	BattleItem *damage_item = nullptr;
-	const RuleSkill *skill_rules = nullptr;
-
-	/// Default constructor.
-	BattleActionAttack(BattleActionType action = BA_NONE, BattleUnit *unit = nullptr) : type{ action }, attacker{ unit }
-	{
-
-	}
-
-	/// Constructor.
-	BattleActionAttack(BattleActionType action, BattleUnit *unit, BattleItem *item, BattleItem *ammo);
-
-	/// Constructor.
-	BattleActionAttack(const BattleActionCost &action, BattleItem *ammo);
-
-	/// Constructor for skill-based attacks.
-	BattleActionAttack(const BattleAction &action, BattleItem *ammo);
 };
 
 /**

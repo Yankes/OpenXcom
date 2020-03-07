@@ -223,7 +223,7 @@ void MeleeAttackBState::performMeleeAttack()
 
 
 	// make an explosion action
-	_parent->statePushFront(new ExplosionBState(_parent, damagePosition, BattleActionAttack{ _action, _ammo, }, 0, true));
+	_parent->statePushFront(new ExplosionBState(_parent, damagePosition, BattleActionAttack::GetAferShoot(_action, _ammo), 0, true));
 
 
 	_reaction = true;

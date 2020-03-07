@@ -19,9 +19,11 @@
 #include <assert.h>
 #include "Unit.h"
 #include "RuleStatBonus.h"
+#include "RuleSkill.h"
 #include "../Engine/RNG.h"
 #include "../Engine/ScriptBind.h"
 #include "../Savegame/BattleUnit.h"
+#include "../Savegame/BattleItem.h"
 #include "../fmath.h"
 
 namespace OpenXcom
@@ -515,6 +517,20 @@ void RuleStatBonus::setStunRecovery()
 }
 
 /**
+ * Calculate bonus based on attack unit and weapons.
+ */
+int RuleStatBonus::getBonus(BattleActionAttack::ReadOnly attack, int externalBonuses) const
+{
+	assert(!_refresh && "RuleStatBonus not loaded correctly");
+
+	ModScript::BonusStatsCommon::Output arg{ externalBonuses };
+	ModScript::BonusStatsCommon::Worker work{ attack.attacker, externalBonuses, attack.weapon_item, attack.damage_item, attack.type, attack.skill_rules };
+	work.execute(_container, arg);
+
+	return arg.getFirst();
+}
+
+/**
  * Calculate bonus based on unit stats.
  */
 int RuleStatBonus::getBonus(const BattleUnit* unit, int externalBonuses) const
@@ -522,7 +538,7 @@ int RuleStatBonus::getBonus(const BattleUnit* unit, int externalBonuses) const
 	assert(!_refresh && "RuleStatBonus not loaded correctly");
 
 	ModScript::BonusStatsCommon::Output arg{ externalBonuses };
-	ModScript::BonusStatsCommon::Worker work{ unit, externalBonuses };
+	ModScript::BonusStatsCommon::Worker work{ unit, externalBonuses, nullptr, nullptr, BA_NONE, nullptr };
 	work.execute(_container, arg);
 
 	return arg.getFirst();
@@ -532,7 +548,9 @@ int RuleStatBonus::getBonus(const BattleUnit* unit, int externalBonuses) const
 //					Script binding
 ////////////////////////////////////////////////////////////
 
-ModScript::BonusStatsBaseParser::BonusStatsBaseParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "bonus", "unit", "external_bonuses" }
+ModScript::BonusStatsBaseParser::BonusStatsBaseParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name,
+	"bonus",
+	"unit", "external_bonuses", "weapon", "ammo", "battle_action", "skill" }
 {
 	Bind<BattleUnit> bu = { this };
 

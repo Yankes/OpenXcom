@@ -1341,6 +1341,7 @@ void InventoryState::calculateCurrentDamageTooltip()
 	if (!_currentDamageTooltipItem)
 		return;
 
+	const BattleItem *damageItem = _currentDamageTooltipItem;
 	const RuleItem *weaponRule = _currentDamageTooltipItem->getRules();
 	const int PRIMARY_SLOT = 0;
 
@@ -1352,9 +1353,11 @@ void InventoryState::calculateCurrentDamageTooltip()
 	}
 	else if (_currentDamageTooltipItem->needsAmmoForSlot(PRIMARY_SLOT))
 	{
-		if (_currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT) != 0)
+		auto ammo = _currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT);
+		if (ammo != nullptr)
 		{
-			rule = _currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT)->getRules();
+			damageItem = ammo;
+			rule = ammo->getRules();
 		}
 		else
 		{
@@ -1399,7 +1402,7 @@ void InventoryState::calculateCurrentDamageTooltip()
 		if (rule->getBattleType() != BT_CORPSE)
 		{
 			int totalDamage = 0;
-			totalDamage += rule->getPowerBonus(currentUnit);
+			totalDamage += rule->getPowerBonus({ BA_NONE, currentUnit, _currentDamageTooltipItem, damageItem }); //TODO: find what exactly attack we can do
 			//totalDamage -= rule->getPowerRangeReduction(distance * 16);
 			if (totalDamage < 0) totalDamage = 0;
 			std::ostringstream ss;
@@ -1794,7 +1797,7 @@ void InventoryState::txtArmorTooltipIn(Action *action)
 			_currentTooltip = action->getSender()->getTooltip();
 			{
 				std::ostringstream ss;
-				
+
 				if (unit->getGeoscapeSoldier())
 				{
 					auto soldierRules = unit->getGeoscapeSoldier()->getRules();
@@ -1804,7 +1807,7 @@ void InventoryState::txtArmorTooltipIn(Action *action)
 						ss << ": ";
 					}
 				}
-				
+
 				ss << tr(_currentTooltip);
 				if (unit->getArmor()->getWeight() != 0)
 				{

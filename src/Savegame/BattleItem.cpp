@@ -1191,7 +1191,7 @@ bool BattleItem::getGlow() const
 int BattleItem::getGlowRange() const
 {
 	auto owner = _unit ? _unit : _previousOwner;
-	return owner ? _rules->getPowerBonus(owner) : _rules->getPower();
+	return _rules->getPowerBonus({ BA_NONE, owner, this, this });
 }
 
 /**
