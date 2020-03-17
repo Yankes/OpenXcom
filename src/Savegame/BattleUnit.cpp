@@ -620,6 +620,7 @@ void BattleUnit::load(const YAML::Node &node, const ScriptGlobal *shared)
 	_mindControllerID = node["mindControllerID"].as<int>(_mindControllerID);
 	_summonedPlayerUnit = node["summonedPlayerUnit"].as<bool>(_summonedPlayerUnit);
 	_scriptValues.load(node, shared);
+	_visibleModes.load(node["visibleModes"], shared);
 }
 
 /**
@@ -701,6 +702,7 @@ YAML::Node BattleUnit::save(const ScriptGlobal *shared) const
 	node["mindControllerID"] = _mindControllerID;
 	node["summonedPlayerUnit"] = _summonedPlayerUnit;
 	_scriptValues.save(node, shared);
+	_visibleModes.save((node["visibleModes"] = YAML::Node()), shared);
 
 	return node;
 }
@@ -5169,6 +5171,7 @@ void BattleUnit::ScriptRegister(ScriptParserBase* parser)
 	parser->registerPointerType<BattleItem>();
 	parser->registerPointerType<Soldier>();
 	parser->registerPointerType<RuleSkill>();
+	parser->registerPointerType<BattleUnitVisibility>();
 
 	Bind<BattleUnit> bu = { parser };
 
@@ -5252,6 +5255,7 @@ void BattleUnit::ScriptRegister(ScriptParserBase* parser)
 	bu.add<&setBaseStatRangeScript<&BattleUnit::_turnsSinceStunned, 0, 255>>("setTurnsSinceStunned");
 
 	bu.addScriptValue<&BattleUnit::_scriptValues>();
+	bu.addScriptValue<&BattleUnit::_visibleModes>(false);
 	bu.addDebugDisplay<&debugDisplayScript>();
 
 
