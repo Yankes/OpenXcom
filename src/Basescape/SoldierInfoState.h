@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 /*
  * Copyright 2010-2016 OpenXcom Developers.
  *
