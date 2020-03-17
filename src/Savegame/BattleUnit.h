@@ -102,6 +102,7 @@ private:
 	BattleItem* _specWeapon[SPEC_WEAPON_MAX];
 	AIModule *_currentAIState;
 	bool _visible;
+	ScriptValues<BattleUnitVisibility> _visibleModes;
 	UnitStats _exp, _expTmp;
 	int _motionPoints;
 	int _scannedTurn;
