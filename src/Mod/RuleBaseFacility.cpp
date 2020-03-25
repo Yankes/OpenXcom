@@ -22,6 +22,7 @@
 #include "MapScript.h"
 #include "../Battlescape/Position.h"
 #include "../Engine/Exception.h"
+#include "../Engine/Collections.h"
 
 
 namespace OpenXcom
@@ -146,10 +147,10 @@ void RuleBaseFacility::load(const YAML::Node &node, Mod *mod, int listOrder)
 		}
 	}
 
-	_leavesBehindOnSell = node["leavesBehindOnSell"].as< std::vector<std::string> >(_leavesBehindOnSell);
+	_leavesBehindOnSellNames = node["leavesBehindOnSell"].as< std::vector<std::string> >(_leavesBehindOnSellNames);
 	_removalTime = node["removalTime"].as<int>(_removalTime);
 	_canBeBuiltOver = node["canBeBuiltOver"].as<bool>(_canBeBuiltOver);
-	_buildOverFacilities = node["buildOverFacilities"].as< std::vector<std::string> >(_buildOverFacilities);
+	_buildOverFacilitiesNames = node["buildOverFacilities"].as< std::vector<std::string> >(_buildOverFacilitiesNames);
 	std::sort(_buildOverFacilities.begin(), _buildOverFacilities.end());
 
 	_storageTiles = node["storageTiles"].as<std::vector<Position> >(_storageTiles);
@@ -169,10 +170,46 @@ void RuleBaseFacility::afterLoad(const Mod* mod)
 			throw Exception("Destroyed version of a facility must have the same size as the original facility.");
 		}
 	}
+	if (_leavesBehindOnSellNames.size())
+	{
+		_leavesBehindOnSell.resize(_leavesBehindOnSellNames.size());
+		auto first = mod->getBaseFacility(_leavesBehindOnSellNames.at(0), true);
+		if (first->getSize() == _size)
+		{
+			if (_leavesBehindOnSellNames.size() != 1)
+			{
+				throw Exception("Sell versions of a facility must have only one replacement if fist one have same size.");
+			}
+			_leavesBehindOnSell.push_back(first);
+		}
+		else
+		{
+			for (const auto& n : _leavesBehindOnSellNames)
+			{
+				auto r = mod->getBaseFacility(n, true);
+				if (r->getSize() != 1)
+				{
+					throw Exception("Sell versions of a facility must have size of 1 if there are multiple of them.");
+				}
+				_leavesBehindOnSell.push_back(r);
+			}
+		}
+	}
+	if (_buildOverFacilitiesNames.size())
+	{
+		_buildOverFacilities.resize(_buildOverFacilitiesNames.size());
+		for (const auto& n : _buildOverFacilitiesNames)
+		{
+			_buildOverFacilities.push_back(mod->getBaseFacility(n, true));
+		}
+		Collections::sortVector(_buildOverFacilities);
+	}
 	if (_mapName.empty())
 	{
 		throw Exception("Battlescape map name is missing.");
 	}
+	Collections::removeAll(_leavesBehindOnSellNames);
+	Collections::removeAll(_buildOverFacilitiesNames);
 }
 
 /**
@@ -559,15 +596,6 @@ const std::vector<VerticalLevel> &RuleBaseFacility::getVerticalLevels() const
 }
 
 /**
- * Gets the facility/facilities left behind when this one is sold
- * @return the list of facilities
- */
-const std::vector<std::string> &RuleBaseFacility::getLeavesBehindOnSell() const
-{
-	return _leavesBehindOnSell;
-}
-
-/**
  * Gets how long facilities left behind when this one is sold should take to build
  * @return the number of days, -1 = from other facilities' rulesets, 0 = instant, > 0 is that many days
  */
@@ -586,13 +614,18 @@ bool RuleBaseFacility::getCanBeBuiltOver() const
 }
 
 /**
- * Gets the list of other base facilities this one can be built over
- * If empty, it can be built over anything with canBeBuiltOver: true
- * @return the list of facilities
+ * Check if given facility are allowed to be replaced by this building
  */
-const std::vector<std::string> &RuleBaseFacility::getBuildOverFacilities() const
+bool RuleBaseFacility::getCanBuildOverOtherFacility(const RuleBaseFacility* fac) const
 {
-	return _buildOverFacilities;
+	if (_buildOverFacilities.empty())
+	{
+		return true;
+	}
+	else
+	{
+		return Collections::sortVectorHave(_buildOverFacilities, fac);
+	}
 }
 
 /**

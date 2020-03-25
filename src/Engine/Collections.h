@@ -20,6 +20,7 @@
 #include <vector>
 #include <map>
 #include <list>
+#include <algorithm>
 #include "Exception.h"
 
 namespace OpenXcom
@@ -229,6 +230,24 @@ public:
 				break;
 			}
 		}
+	}
+
+	/**
+	 * Sort vector using `std::less`.
+	 */
+	template<typename T>
+	static void sortVector(std::vector<T>& vec)
+	{
+		std::sort(vec.begin(), vec.end(), std::less<>());
+	}
+
+	/**
+	 * Check for value in sorted vector by `std::less`.
+	 */
+	template<typename T>
+	static bool sortVectorHave(const std::vector<T>& vec, T v)
+	{
+		return std::binary_search(vec.begin(), vec.end(), v, std::less<>());
 	}
 
 	////////////////////////////////////////////////////////////

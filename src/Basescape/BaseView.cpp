@@ -246,13 +246,11 @@ int BaseView::getPlacementError(const RuleBaseFacility *rule, BaseFacility *faci
 							|| _facilities[x][y]->getY() < _gridY || _facilities[x][y]->getY() + _facilities[x][y]->getRules()->getSize() > _gridY + rule->getSize())
 							return 4;
 
-						const std::vector<std::string> &buildOverFacilities = rule->getBuildOverFacilities();
 						// If the list of base facilities we can build over is empty, then we can build over anything that allows it
 						// otherwise we need to check if the facility we're trying to build over is on the list
-						if (!buildOverFacilities.empty())
+						if (rule->getCanBuildOverOtherFacility(_facilities[x][y]->getRules()) == false)
 						{
-							if (!std::binary_search(buildOverFacilities.begin(), buildOverFacilities.end(), _facilities[x][y]->getRules()->getType()))
-								return 5;
+							return 5;
 						}
 
 						buildingOverExisting = true;

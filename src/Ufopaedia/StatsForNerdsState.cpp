@@ -2672,10 +2672,10 @@ void StatsForNerdsState::initFacilityList()
 
 	addRightClickActionType(ss, facilityRule->getRightClickActionType(), "rightClickActionType");
 
-	addVectorOfStrings(ss, facilityRule->getLeavesBehindOnSell(), "leavesBehindOnSell");
+	addVectorOfRules(ss, facilityRule->getLeavesBehindOnSell(), "leavesBehindOnSell");
 	addInteger(ss, facilityRule->getRemovalTime(), "removalTime");
 	addBoolean(ss, facilityRule->getCanBeBuiltOver(), "canBeBuiltOver");
-	addVectorOfStrings(ss, facilityRule->getBuildOverFacilities(), "buildOverFacilities");
+	addVectorOfRules(ss, facilityRule->getBuildOverFacilities(), "buildOverFacilities");
 
 	if (_showDebug)
 	{

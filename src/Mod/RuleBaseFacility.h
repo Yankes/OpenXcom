@@ -58,13 +58,18 @@ private:
 	int _prisonType;
 	int _rightClickActionType;
 	std::vector<VerticalLevel> _verticalLevels;
-	std::vector<std::string> _leavesBehindOnSell;
+	std::vector<const RuleBaseFacility*> _leavesBehindOnSell;
 	int _removalTime;
 	bool _canBeBuiltOver;
-	std::vector<std::string> _buildOverFacilities;
+	std::vector<const RuleBaseFacility*> _buildOverFacilities;
 	std::vector<Position> _storageTiles;
 	std::string _destroyedFacilityName;
 	const RuleBaseFacility* _destroyedFacility;
+
+
+	std::vector<std::string> _leavesBehindOnSellNames;
+	std::vector<std::string> _buildOverFacilitiesNames;
+
 public:
 	/// Creates a blank facility ruleset.
 	RuleBaseFacility(const std::string &type);
@@ -164,13 +169,15 @@ public:
 	/// Gets the vertical levels for this facility map generation.
 	const std::vector<VerticalLevel> &getVerticalLevels() const;
 	/// Gets the facility left behind when this one is sold
-	const std::vector<std::string> &getLeavesBehindOnSell() const;
+	const std::vector<const RuleBaseFacility*> &getLeavesBehindOnSell() const { return _leavesBehindOnSell; }
 	/// Gets how long facilities left behind when this one is sold should take to build
 	int getRemovalTime() const;
 	/// Gets whether or not this facility can be built over by other ones
 	bool getCanBeBuiltOver() const;
+	/// Check if given facility are allowed to be replaced by this building
+	bool getCanBuildOverOtherFacility(const RuleBaseFacility* fac) const;
 	/// Gets which facilities are allowed to be replaced by this building
-	const std::vector<std::string> &getBuildOverFacilities() const;
+	const std::vector<const RuleBaseFacility*> &getBuildOverFacilities() const { return _buildOverFacilities; }
 	/// Gets a list of which tiles are used to place items stored in this facility
 	const std::vector<Position> &getStorageTiles() const;
 	/// Gets the ruleset for the destroyed version of this facility.
