@@ -2685,7 +2685,7 @@ void StatsForNerdsState::initFacilityList()
 		addSingleString(ss, facilityRule->getType(), "type");
 		addInteger(ss, facilityRule->getListOrder(), "listOrder");
 		addInteger(ss, facilityRule->getMissileAttraction(), "missileAttraction", 100);
-		addSingleString(ss, facilityRule->getDestroyedFacility() == 0 ? "" : facilityRule->getDestroyedFacility()->getType(), "destroyedFacility");
+		addRule(ss, facilityRule->getDestroyedFacility(), "destroyedFacility");
 
 		addSection("{Visuals}", "", _white);
 		addInteger(ss, facilityRule->getFakeUnderwaterRaw(), "fakeUnderwater", -1);
