@@ -21,13 +21,13 @@
 #include <vector>
 #include <map>
 #include <yaml-cpp/yaml.h>
-#include "MapScript.h"
 
 namespace OpenXcom
 {
 
 class Mod;
 class Position;
+class VerticalLevel;
 
 /**
  * Represents a specific type of base facility.
