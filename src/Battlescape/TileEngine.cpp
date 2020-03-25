@@ -169,13 +169,13 @@ bool calculateLineHitHelper(const Position& origin, const Position& target, Func
  * @param func Call back.
  */
 template<typename TileFunc>
-void iterateTiles(SavedBattleGame* save, GraphSubset gs, TileFunc func)
+void iterateTiles(SavedBattleGame* save, MapSubset gs, TileFunc func)
 {
 	const auto totalSizeX = save->getMapSizeX();
 	const auto totalSizeY = save->getMapSizeY();
 	const auto totalSizeZ = save->getMapSizeZ();
 
-	gs = GraphSubset::intersection(gs, GraphSubset{ totalSizeX, totalSizeY });
+	gs = MapSubset::intersection(gs, MapSubset{ totalSizeX, totalSizeY });
 	if (gs.size_x() && gs.size_y())
 	{
 		for (int z = 0; z < totalSizeZ; ++z)
@@ -199,12 +199,12 @@ void iterateTiles(SavedBattleGame* save, GraphSubset gs, TileFunc func)
  * @param radius Radius of area.
  * @return Subset of map.
  */
-GraphSubset mapArea(Position position, int radius)
+MapSubset mapArea(Position position, int radius)
 {
 	return { std::make_pair(position.x - radius, position.x + radius + 1), std::make_pair(position.y - radius, position.y + radius + 1) };
 }
 
-GraphSubset mapAreaExpand(GraphSubset gs, int radius)
+MapSubset mapAreaExpand(MapSubset gs, int radius)
 {
 	return { std::make_pair(gs.beg_x - radius, gs.end_x + radius), std::make_pair(gs.beg_y - radius, gs.end_y + radius) };
 }
@@ -247,7 +247,7 @@ TileEngine::~TileEngine()
 /**
   * Calculates sun shading for the whole terrain.
   */
-void TileEngine::calculateSunShading(GraphSubset gs)
+void TileEngine::calculateSunShading(MapSubset gs)
 {
 	int power = 15 - _save->getGlobalShade();
 
@@ -282,7 +282,7 @@ void TileEngine::calculateSunShading(GraphSubset gs)
 /**
   * Recalculates lighting for the terrain: fire.
   */
-void TileEngine::calculateTerrainBackground(GraphSubset gs)
+void TileEngine::calculateTerrainBackground(MapSubset gs)
 {
 	const int fireLightPower = 15; // amount of light a fire generates
 
@@ -329,7 +329,7 @@ void TileEngine::calculateTerrainBackground(GraphSubset gs)
 /**
   * Recalculates lighting for the terrain: objects,items.
   */
-void TileEngine::calculateTerrainItems(GraphSubset gs)
+void TileEngine::calculateTerrainItems(MapSubset gs)
 {
 	// add lighting of terrain
 	iterateTiles(
@@ -359,7 +359,7 @@ void TileEngine::calculateTerrainItems(GraphSubset gs)
 /**
   * Recalculates lighting for the units.
   */
-void TileEngine::calculateUnitLighting(GraphSubset gs)
+void TileEngine::calculateUnitLighting(MapSubset gs)
 {
 	const int fireLightPower = 15; // amount of light a fire generates
 
@@ -408,7 +408,7 @@ void TileEngine::calculateUnitLighting(GraphSubset gs)
 
 void TileEngine::calculateLighting(LightLayers layer, Position position, int eventRadius, bool terrianChanged)
 {
-	auto gsDynamic = GraphSubset{ _save->getMapSizeX(), _save->getMapSizeY() };
+	auto gsDynamic = MapSubset{ _save->getMapSizeX(), _save->getMapSizeY() };
 	auto gsStatic = gsDynamic;
 
 	if (position != invalid)
@@ -510,8 +510,8 @@ void TileEngine::calculateLighting(LightLayers layer, Position position, int eve
  * @param power Power.
  * @param layer Light is separated in 4 layers: Ambient, Tiles, Items, Units.
  */
-void TileEngine::addLight(GraphSubset gs, Position center, int power, LightLayers layer)
-{
+void TileEngine::addLight(MapSubset gs, Position center, int power, LightLayers layer)
+	{
 	if (power <= 0)
 	{
 		return;
@@ -533,7 +533,7 @@ void TileEngine::addLight(GraphSubset gs, Position center, int power, LightLayer
 
 	iterateTiles(
 		_save,
-		GraphSubset::intersection(gs, mapArea(center, power - 1)),
+		MapSubset::intersection(gs, mapArea(center, power - 1)),
 		[&](Tile* tile)
 		{
 			const auto target = tile->getPosition();

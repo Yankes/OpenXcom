@@ -23,16 +23,18 @@
 namespace OpenXcom
 {
 
-
-
-struct GraphSubset
+/**
+ * Generic class that represents some subset of 2d space
+ */
+template<typename Tag, typename DataType>
+struct AreaSubset
 {
 
 	//define part of surface
-	int beg_x, end_x;
-	int beg_y, end_y;
+	DataType beg_x, end_x;
+	DataType beg_y, end_y;
 
-	GraphSubset(int max_x, int max_y):
+	AreaSubset(int max_x, int max_y):
 			beg_x(0), end_x(max_x),
 			beg_y(0), end_y(max_y)
 	{
@@ -40,23 +42,23 @@ struct GraphSubset
 	}
 
 
-	GraphSubset(std::pair<int, int> range_x, std::pair<int, int> range_y):
+	AreaSubset(std::pair<int, int> range_x, std::pair<int, int> range_y):
 			beg_x(range_x.first), end_x(range_x.second),
 			beg_y(range_y.first), end_y(range_y.second)
 	{
 
 	}
 
-	GraphSubset(const GraphSubset& r):
+	AreaSubset(const AreaSubset& r):
 			beg_x(r.beg_x), end_x(r.end_x),
 			beg_y(r.beg_y), end_y(r.end_y)
 	{
 
 	}
 
-	inline GraphSubset offset(int x, int y) const
+	inline AreaSubset offset(int x, int y) const
 	{
-		GraphSubset ret = *this;
+		AreaSubset ret = *this;
 		ret.beg_x += x;
 		ret.end_x += x;
 		ret.beg_y += y;
@@ -75,7 +77,7 @@ struct GraphSubset
 	}
 
 
-	static inline void intersection_range(int& begin_a, int& end_a, const int& begin_b, const int& end_b)
+	static inline void intersection_range(DataType& begin_a, DataType& end_a, const DataType& begin_b, const DataType& end_b)
 	{
 		if (begin_a >= end_b || begin_b >= end_a)
 		{
@@ -88,28 +90,33 @@ struct GraphSubset
 			end_a = std::min(end_a, end_b);
 		}
 	}
-	static inline GraphSubset intersection(const GraphSubset& a, const GraphSubset& b)
+	static inline AreaSubset intersection(const AreaSubset& a, const AreaSubset& b)
 	{
-		GraphSubset ret = a;
+		AreaSubset ret = a;
 		intersection_range(ret.beg_x, ret.end_x, b.beg_x, b.end_x);
 		intersection_range(ret.beg_y, ret.end_y, b.beg_y, b.end_y);
 		return ret;
 	}
-	static inline GraphSubset intersection(const GraphSubset& a, const GraphSubset& b,  const GraphSubset& c)
+	static inline AreaSubset intersection(const AreaSubset& a, const AreaSubset& b,  const AreaSubset& c)
 	{
-		GraphSubset ret =  intersection(a, b);
+		AreaSubset ret =  intersection(a, b);
 		intersection_range(ret.beg_x, ret.end_x, c.beg_x, c.end_x);
 		intersection_range(ret.beg_y, ret.end_y, c.beg_y, c.end_y);
 		return ret;
 	}
-	static inline GraphSubset intersection(const GraphSubset& a, const GraphSubset& b,  const GraphSubset& c, const GraphSubset& d)
+	static inline AreaSubset intersection(const AreaSubset& a, const AreaSubset& b,  const AreaSubset& c, const AreaSubset& d)
 	{
-		GraphSubset ret =  intersection(a, b, c);
+		AreaSubset ret =  intersection(a, b, c);
 		intersection_range(ret.beg_x, ret.end_x, d.beg_x, d.end_x);
 		intersection_range(ret.beg_y, ret.end_y, d.beg_y, d.end_y);
 		return ret;
 	}
 
 };
+
+/**
+ * Subset of graphic surface
+ */
+using GraphSubset = AreaSubset<void, int>;
 
 }//namespace OpenXcom
