@@ -36,7 +36,7 @@ class Craft;
 class BaseFacility
 {
 private:
-	RuleBaseFacility *_rules;
+	const RuleBaseFacility *_rules;
 	Base *_base;
 	int _x, _y, _buildTime;
 	bool _disabled;
@@ -44,7 +44,7 @@ private:
 	bool _hadPreviousFacility;
 public:
 	/// Creates a base facility of the specified type.
-	BaseFacility(RuleBaseFacility *rules, Base *base);
+	BaseFacility(const RuleBaseFacility *rules, Base *base);
 	/// Cleans up the base facility.
 	~BaseFacility();
 	/// Loads the base facility from YAML.
@@ -52,7 +52,7 @@ public:
 	/// Saves the base facility to YAML.
 	YAML::Node save() const;
 	/// Gets the facility's ruleset.
-	RuleBaseFacility *getRules() const;
+	const RuleBaseFacility *getRules() const;
 	/// Gets the facility's X position.
 	int getX() const;
 	/// Sets the facility's X position.

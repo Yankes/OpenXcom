@@ -211,7 +211,7 @@ void BaseView::setSelectable(int size)
  * 6: trying to upgrade over existing facility, but ruleset disallows it
  * 7: trying to upgrade over existing facility, but all buildings next to it are under construction and build queue is off
  */
-int BaseView::getPlacementError(RuleBaseFacility *rule, BaseFacility *facilityBeingMoved) const
+int BaseView::getPlacementError(const RuleBaseFacility *rule, BaseFacility *facilityBeingMoved) const
 {
 	// We'll need to know for the final check if we're upgrading an existing facility
 	bool buildingOverExisting = false;
@@ -317,7 +317,7 @@ int BaseView::getPlacementError(RuleBaseFacility *rule, BaseFacility *facilityBe
  * @param rule Facility type.
  * @return True if queued, False otherwise.
  */
-bool BaseView::isQueuedBuilding(RuleBaseFacility *rule) const
+bool BaseView::isQueuedBuilding(const RuleBaseFacility *rule) const
 {
 	for (int i = 0; i < rule->getSize(); ++i)
 	{
@@ -355,7 +355,7 @@ void BaseView::reCalcQueuedBuildings()
 			if ((*i)->getBuildTime() < (*min)->getBuildTime()) min=i;
 		BaseFacility* facility=(*min);
 		facilities.erase(min);
-		RuleBaseFacility *rule=facility->getRules();
+		const RuleBaseFacility *rule=facility->getRules();
 		int x=facility->getX(), y=facility->getY();
 		for (int i = 0; i < rule->getSize(); ++i)
 		{

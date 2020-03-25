@@ -609,7 +609,7 @@ const std::vector<Position> &RuleBaseFacility::getStorageTiles() const
  * Gets the ruleset for the destroyed version of this facility.
  * @return Facility ruleset or null.
  */
-RuleBaseFacility* RuleBaseFacility::getDestroyedFacility() const
+const RuleBaseFacility* RuleBaseFacility::getDestroyedFacility() const
 {
 	return _destroyedFacility;
 }

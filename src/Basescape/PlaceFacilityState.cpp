@@ -44,7 +44,7 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param rule Pointer to the facility ruleset to build.
  */
-PlaceFacilityState::PlaceFacilityState(Base *base, RuleBaseFacility *rule, BaseFacility *origFac) : _base(base), _rule(rule), _origFac(origFac)
+PlaceFacilityState::PlaceFacilityState(Base *base, const RuleBaseFacility *rule, BaseFacility *origFac) : _base(base), _rule(rule), _origFac(origFac)
 {
 	_screen = false;
 

@@ -285,7 +285,7 @@ bool Base::isOverlappingOrOverflowing()
 
 	for (std::vector<BaseFacility*>::iterator f = _facilities.begin(); f != _facilities.end(); ++f)
 	{
-		RuleBaseFacility *rules = (*f)->getRules();
+		const RuleBaseFacility *rules = (*f)->getRules();
 		int facilityX = (*f)->getX();
 		int facilityY = (*f)->getY();
 		int facilitySize = rules->getSize();

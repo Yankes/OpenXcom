@@ -38,7 +38,7 @@ class PlaceFacilityState : public State
 {
 protected:
 	Base *_base;
-	RuleBaseFacility *_rule;
+	const RuleBaseFacility *_rule;
 	BaseFacility *_origFac;
 
 	BaseView *_view;
@@ -47,7 +47,7 @@ protected:
 	Text *_txtFacility, *_txtCost, *_numCost, *_numResources, *_txtTime, *_numTime, *_txtMaintenance, *_numMaintenance;
 public:
 	/// Creates the Place Facility state.
-	PlaceFacilityState(Base *base, RuleBaseFacility *rule, BaseFacility *origFac = 0);
+	PlaceFacilityState(Base *base, const RuleBaseFacility *rule, BaseFacility *origFac = 0);
 	/// Cleans up the Place Facility state.
 	~PlaceFacilityState();
 	/// Handler for clicking the Cancel button.

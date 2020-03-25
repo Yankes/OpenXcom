@@ -64,7 +64,7 @@ private:
 	std::vector<std::string> _buildOverFacilities;
 	std::vector<Position> _storageTiles;
 	std::string _destroyedFacilityName;
-	RuleBaseFacility* _destroyedFacility;
+	const RuleBaseFacility* _destroyedFacility;
 public:
 	/// Creates a blank facility ruleset.
 	RuleBaseFacility(const std::string &type);
@@ -174,7 +174,7 @@ public:
 	/// Gets a list of which tiles are used to place items stored in this facility
 	const std::vector<Position> &getStorageTiles() const;
 	/// Gets the ruleset for the destroyed version of this facility.
-	RuleBaseFacility* getDestroyedFacility() const;
+	const RuleBaseFacility* getDestroyedFacility() const;
 };
 
 }
