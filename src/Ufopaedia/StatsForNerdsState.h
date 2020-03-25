@@ -71,9 +71,17 @@ private:
 	void addSection(const std::string &name, const std::string &desc, Uint8 color, bool forceShow = false);
 	void addHeading(const std::string &propertyName, const std::string &moreDetail = "", bool addDifficulty = false);
 	void endHeading();
+
 	void addSingleString(std::ostringstream &ss, const std::string &id, const std::string &propertyName, const std::string &defaultId = "", bool translate = true);
 	void addVectorOfStrings(std::ostringstream &ss, const std::vector<std::string> &vec, const std::string &propertyName);
+
 	void addVectorOfResearch(std::ostringstream &ss, const std::vector<const RuleResearch *> &vec, const std::string &propertyName);
+
+	template<typename T>
+	void addRule(std::ostringstream &ss, T* rule, const std::string &propertyName);
+	template<typename T>
+	void addVectorOfRules(std::ostringstream &ss, const std::vector<T*> &vec, const std::string &propertyName);
+
 	void addBoolean(std::ostringstream &ss, const bool &value, const std::string &propertyName, const bool &defaultvalue = false);
 	void addFloat(std::ostringstream &ss, const float &value, const std::string &propertyName, const float &defaultvalue = 0.0f);
 	void addFloatAsPercentage(std::ostringstream &ss, const float &value, const std::string &propertyName, const float &defaultvalue = 0.0f);

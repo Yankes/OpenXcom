@@ -576,6 +576,46 @@ void StatsForNerdsState::addVectorOfResearch(std::ostringstream &ss, const std::
 }
 
 /**
+ * Adds generic Rule (need having `getType()`)
+ */
+template<typename T>
+void StatsForNerdsState::addRule(std::ostringstream &ss, T* rule, const std::string &propertyName)
+{
+	addSingleString(ss, rule ? rule->getType() : "", propertyName);
+}
+
+/**
+ * Adds a vector of generic Rules (need having `getType()`)
+ */
+template<typename T>
+void StatsForNerdsState::addVectorOfRules(std::ostringstream &ss, const std::vector<T*> &vec, const std::string &propertyName)
+{
+	if (vec.empty() && !_showDefaults)
+	{
+		return;
+	}
+	resetStream(ss);
+	int i = 0;
+	ss << "{";
+	for (auto &item : vec)
+	{
+		if (i > 0)
+		{
+			ss << ", ";
+		}
+		addTranslation(ss, item->getType());
+		i++;
+	}
+	ss << "}";
+	_lstRawData->addRow(2, trp(propertyName).c_str(), ss.str().c_str());
+	++_counter;
+	if (!vec.empty())
+	{
+		_lstRawData->setCellColor(_lstRawData->getTexts() - 1, 1, _pink);
+	}
+}
+
+/**
  * Adds a single boolean value to the table.
  */
 void StatsForNerdsState::addBoolean(std::ostringstream &ss, const bool &value, const std::string &propertyName, const bool &defaultvalue)
