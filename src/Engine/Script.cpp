@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <bitset>
+#include <array>
 
 #include "Logger.h"
 #include "Options.h"
@@ -1329,6 +1330,48 @@ ScriptRef addString(std::vector<std::vector<char>>& list, const std::string& s)
 	return ref;
 }
 
+//groups of different types of ASCII characters
+using CharClasses = Uint8;
+constexpr CharClasses CC_none = 0x1;
+constexpr CharClasses CC_spec = 0x2;
+constexpr CharClasses CC_digit = 0x4;
+constexpr CharClasses CC_digitHex = 0x8;
+constexpr CharClasses CC_charRest = 0x10;
+constexpr CharClasses CC_digitSign = 0x20;
+constexpr CharClasses CC_digitHexX = 0x40;
+constexpr CharClasses CC_quote = 0x80;
+
+constexpr std::array<CharClasses, 256> charDecoderInit()
+{
+	std::array<CharClasses, 256> r = { };
+	for(int i = 0; i < 256; ++i)
+	{
+		if (i == '#' || i == ' ' || i == '\r' || i == '\n' || i == '\t')	r[i] |= CC_none;
+		if (i == ':' || i == ';')	r[i] |= CC_spec;
+
+		if (i == '+' || i == '-')	r[i] |= CC_digitSign;
+		if (i >= '0' && i <= '9')	r[i] |= CC_digit;
+		if (i >= 'A' && i <= 'F')	r[i] |= CC_digitHex;
+		if (i >= 'a' && i <= 'f')	r[i] |= CC_digitHex;
+		if (i == 'x' || i == 'X')	r[i] |= CC_digitHexX;
+
+		if (i >= 'A' && i <= 'Z')	r[i] |= CC_charRest;
+		if (i >= 'a' && i <= 'z')	r[i] |= CC_charRest;
+		if (i == '_' || i == '.')	r[i] |= CC_charRest;
+
+		if (i == '"')				r[i] |= CC_quote;
+	}
+	return r;
+}
+
+CharClasses getCharClassOf(char c)
+{
+	//array storing data about every ASCII character
+	constexpr static std::array<CharClasses, 256> charDecoder = charDecoderInit();
+	return charDecoder[(Uint8)c];
+}
+
+
 } //namespace
 
 ////////////////////////////////////////////////////////////
@@ -1426,42 +1469,6 @@ public:
  */
 SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 {
-	//groups of different types of ASCII characters
-	using CharClasses = Uint8;
-	constexpr CharClasses none = 0x1;
-	constexpr CharClasses spec = 0x2;
-	constexpr CharClasses digit = 0x4;
-	constexpr CharClasses digitHex = 0x8;
-	constexpr CharClasses charRest = 0x10;
-	constexpr CharClasses digitSign = 0x20;
-	constexpr CharClasses digitHexX = 0x40;
-	constexpr CharClasses quote = 0x80;
-
-	//array storing data about every ASCII character
-	static CharClasses charDecoder[256] = { 0 };
-	static bool init = true;
-	if (init)
-	{
-		init = false;
-		for(int i = 0; i < 256; ++i)
-		{
-			if (i == '#' || isspace(i))	charDecoder[i] |= none;
-			if (i == ':' || i == ';')	charDecoder[i] |= spec;
-
-			if (i == '+' || i == '-')	charDecoder[i] |= digitSign;
-			if (i >= '0' && i <= '9')	charDecoder[i] |= digit;
-			if (i >= 'A' && i <= 'F')	charDecoder[i] |= digitHex;
-			if (i >= 'a' && i <= 'f')	charDecoder[i] |= digitHex;
-			if (i == 'x' || i == 'X')	charDecoder[i] |= digitHexX;
-
-			if (i >= 'A' && i <= 'Z')	charDecoder[i] |= charRest;
-			if (i >= 'a' && i <= 'z')	charDecoder[i] |= charRest;
-			if (i == '_' || i == '.')	charDecoder[i] |= charRest;
-
-			if (i == '"')				charDecoder[i] |= quote;
-		}
-	}
-
 	struct NextSymbol
 	{
 		char c;
@@ -1474,14 +1481,15 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 		bool is(CharClasses t) const { return decode & t; }
 
 		/// Is this symbol starting next token?
-		bool isStartOfNextToken() const { return is(spec | none); }
+		bool isStartOfNextToken() const { return is(CC_spec | CC_none); }
 	};
 
 	auto peekCharacter = [&]() -> NextSymbol const
 	{
 		if (_begin != _end)
 		{
-			return NextSymbol{ *_begin, charDecoder[(Uint8)*_begin] };
+			const auto c = *_begin;
+			return NextSymbol{ c, getCharClassOf(c) };
 		}
 		else
 		{
@@ -1506,7 +1514,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 	};
 
 	//find first no whitespace character.
-	if (peekCharacter().is(none))
+	if (peekCharacter().is(CC_none))
 	{
 		while(const auto next = readCharacter())
 		{
@@ -1521,7 +1529,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 				}
 				continue;
 			}
-			else if (next.is(none))
+			else if (next.is(CC_none))
 			{
 				continue;
 			}
@@ -1545,7 +1553,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 	const auto first = readCharacter();
 
 	//text like `"abcdef"`
-	if (first.is(quote))
+	if (first.is(CC_quote))
 	{
 		type = TokenText;
 		while (const auto next = readCharacter())
@@ -1590,7 +1598,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 
 	}
 	//special symbol like `;` or `:`
-	else if (first.is(spec))
+	else if (first.is(CC_spec))
 	{
 		if (first.c == ':')
 		{
@@ -1615,17 +1623,17 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 		}
 	}
 	//number like `0x1234` or `5432` or `+232`
-	else if (first.is(digitSign | digit))
+	else if (first.is(CC_digitSign | CC_digit))
 	{
 		auto firstDigit = first;
 		//sign
-		if (firstDigit.is(digitSign))
+		if (firstDigit.is(CC_digitSign))
 		{
 			firstDigit = readCharacter();
 		}
-		if (firstDigit.is(digit))
+		if (firstDigit.is(CC_digit))
 		{
-			const auto hex = firstDigit.c == '0' && peekCharacter().is(digitHexX);
+			const auto hex = firstDigit.c == '0' && peekCharacter().is(CC_digitHexX);
 			if (hex)
 			{
 				//eat `x`
@@ -1637,7 +1645,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 				type = TokenNumber;
 			}
 
-			const CharClasses serachClass = hex ? (digitHex | digit) : digit;
+			const CharClasses serachClass = hex ? (CC_digitHex | CC_digit) : CC_digit;
 
 			while (const auto next = readCharacter())
 			{
@@ -1660,7 +1668,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 		}
 	}
 	//symbol like `abcd` or `p12345`
-	else if (first.is(charRest))
+	else if (first.is(CC_charRest))
 	{
 		type = TokenSymbol;
 		while (const auto next = readCharacter())
@@ -1671,7 +1679,7 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 				backCharacter();
 				break;
 			}
-			else if (!next.is(charRest | digit))
+			else if (!next.is(CC_charRest | CC_digit))
 			{
 				type = TokenInvaild;
 				break;

@@ -153,9 +153,9 @@ enum ArgSpecEnum : ArgEnumBase
 {
 	ArgSpecNone = 0x0,
 	ArgSpecReg = 0x1,
-	ArgSpecVar = 0x3,
+	ArgSpecVar = 0x2 + ArgSpecReg,
 	ArgSpecPtr = 0x4,
-	ArgSpecPtrE = 0xC,
+	ArgSpecPtrE = 0x8 + ArgSpecPtr,
 	ArgSpecSize = 0x10,
 };
 constexpr ArgSpecEnum operator|(ArgSpecEnum a, ArgSpecEnum b)
