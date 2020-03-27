@@ -18,6 +18,8 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <yaml-cpp/yaml.h>
+#include <SDL_stdinc.h>
+#include "../Mod/RuleBaseFacility.h"
 
 namespace OpenXcom
 {
@@ -61,6 +63,8 @@ public:
 	int getY() const;
 	/// Sets the facility's Y position.
 	void setY(int y);
+	/// Get placement of facility in base.
+	BaseAreaSubset getPlacement() const;
 	/// Gets the facility's construction time.
 	int getBuildTime() const;
 	/// Sets the facility's construction time.

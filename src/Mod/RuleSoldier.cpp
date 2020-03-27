@@ -80,9 +80,7 @@ void RuleSoldier::load(const YAML::Node &node, Mod *mod, int listOrder, const Mo
 
 	//requires
 	_requires = node["requires"].as< std::vector<std::string> >(_requires);
-	_requiresBuyBaseFunc = node["requiresBuyBaseFunc"].as< std::vector<std::string> >(_requiresBuyBaseFunc);
-
-	std::sort(_requiresBuyBaseFunc.begin(), _requiresBuyBaseFunc.end());
+	mod->loadBaseFunction(_type, _requiresBuyBaseFunc, node["requiresBuyBaseFunc"]);
 
 
 	_minStats.merge(node["minStats"].as<UnitStats>(_minStats));
@@ -256,15 +254,6 @@ int RuleSoldier::getListOrder() const
 const std::vector<std::string> &RuleSoldier::getRequirements() const
 {
 	return _requires;
-}
-
-/**
- * Gets the base functions required to buy solder.
- * @retreturn The sorted list of base functions ID
- */
-const std::vector<std::string> &RuleSoldier::getRequiresBuyBaseFunc() const
-{
-	return _requiresBuyBaseFunc;
 }
 
 /**

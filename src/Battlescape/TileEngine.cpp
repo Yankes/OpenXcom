@@ -176,7 +176,7 @@ void iterateTiles(SavedBattleGame* save, MapSubset gs, TileFunc func)
 	const auto totalSizeZ = save->getMapSizeZ();
 
 	gs = MapSubset::intersection(gs, MapSubset{ totalSizeX, totalSizeY });
-	if (gs.size_x() && gs.size_y())
+	if (gs)
 	{
 		for (int z = 0; z < totalSizeZ; ++z)
 		{

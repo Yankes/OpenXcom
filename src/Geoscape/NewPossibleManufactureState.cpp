@@ -76,17 +76,14 @@ NewPossibleManufactureState::NewPossibleManufactureState(Base * base, const std:
 
 	// Caveat
 	{
-		std::unordered_set<std::string> requiredServices;
+		RuleBaseFacilityFunctions requiredServices;
 		for (auto& it : possibilities)
 		{
-			for (auto& srv : it->getRequireBaseFunc())
-			{
-				requiredServices.insert(srv);
-			}
+			requiredServices |= it->getRequireBaseFunc();
 		}
 		std::ostringstream ss;
 		int i = 0;
-		for (auto& it : requiredServices)
+		for (auto& it : _game->getMod()->getBaseFunctionNames(requiredServices))
 		{
 			if (i > 0)
 				ss << ", ";
@@ -97,7 +94,7 @@ NewPossibleManufactureState::NewPossibleManufactureState(Base * base, const std:
 
 		_txtCaveat->setAlign(ALIGN_CENTER);
 		_txtCaveat->setText(tr("STR_REQUIRED_BASE_SERVICES").arg(argument));
-		_txtCaveat->setVisible(!requiredServices.empty());
+		_txtCaveat->setVisible(requiredServices.any());
 	}
 
 	_lstPossibilities->setColumns(1, 250);

@@ -63,14 +63,10 @@ void RuleBaseFacility::load(const YAML::Node &node, Mod *mod, int listOrder)
 	}
 	_type = node["type"].as<std::string>(_type);
 	_requires = node["requires"].as< std::vector<std::string> >(_requires);
-	_requiresBaseFunc = node["requiresBaseFunc"].as< std::vector<std::string> >(_requiresBaseFunc);
-	_provideBaseFunc = node["provideBaseFunc"].as< std::vector<std::string> >(_provideBaseFunc);
-	_forbiddenBaseFunc = node["forbiddenBaseFunc"].as< std::vector<std::string> >(_forbiddenBaseFunc);
 
-	std::sort(_requiresBaseFunc.begin(), _requiresBaseFunc.end());
-	std::sort(_provideBaseFunc.begin(), _provideBaseFunc.end());
-	std::sort(_forbiddenBaseFunc.begin(), _forbiddenBaseFunc.end());
-
+	mod->loadBaseFunction(_type, _requiresBaseFunc, node["requiresBaseFunc"]);
+	mod->loadBaseFunction(_type, _provideBaseFunc, node["provideBaseFunc"]);
+	mod->loadBaseFunction(_type, _forbiddenBaseFunc, node["forbiddenBaseFunc"]);
 
 	mod->loadSpriteOffset(_type, _spriteShape, node["spriteShape"], "BASEBITS.PCK");
 	mod->loadSpriteOffset(_type, _spriteFacility, node["spriteFacility"], "BASEBITS.PCK");
@@ -233,32 +229,6 @@ const std::vector<std::string> &RuleBaseFacility::getRequirements() const
 	return _requires;
 }
 
-/**
- * Gets the list of required functions in base to build thins building.
- * @return List of function IDs.
- */
-const std::vector<std::string> &RuleBaseFacility::getRequireBaseFunc() const
-{
-	return _requiresBaseFunc;
-}
-
-/**
- * Get the list of provided functions by this building.
- * @return List of function IDs.
- */
-const std::vector<std::string> &RuleBaseFacility::getProvidedBaseFunc() const
-{
-	return _provideBaseFunc;
-}
-
-/**
- * Gets the list of forbidden functions by this building.
- * @return List of function IDs.
- */
-const std::vector<std::string> &RuleBaseFacility::getForbiddenBaseFunc() const
-{
-	return _forbiddenBaseFunc;
-}
 /**
  * Gets the ID of the sprite used to draw the
  * base structure of the facility that defines its shape.

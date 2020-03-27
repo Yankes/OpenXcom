@@ -34,11 +34,11 @@ RuleResearch::RuleResearch(const std::string &name) : _name(name), _cost(0), _po
  * @param node YAML node.
  * @param listOrder The list weight for this research.
  */
-void RuleResearch::load(const YAML::Node &node, int listOrder)
+void RuleResearch::load(const YAML::Node &node, Mod* mod, int listOrder)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		load(parent, listOrder);
+		load(parent, mod, listOrder);
 	}
 	_name = node["name"].as<std::string>(_name);
 	_lookup = node["lookup"].as<std::string>(_lookup);
@@ -51,7 +51,7 @@ void RuleResearch::load(const YAML::Node &node, int listOrder)
 	_disablesName = node["disables"].as< std::vector<std::string> >(_disablesName);
 	_getOneFreeName = node["getOneFree"].as< std::vector<std::string> >(_getOneFreeName);
 	_requiresName = node["requires"].as< std::vector<std::string> >(_requiresName);
-	_requiresBaseFunc = node["requiresBaseFunc"].as< std::vector<std::string> >(_requiresBaseFunc);
+	mod->loadBaseFunction(_name, _requiresBaseFunc, node["requiresBaseFunc"]);
 	_sequentialGetOneFree = node["sequentialGetOneFree"].as<bool>(_sequentialGetOneFree);
 	_getOneFreeProtectedName = node["getOneFreeProtected"].as< std::map<std::string, std::vector<std::string> > >(_getOneFreeProtectedName);
 	_needItem = node["needItem"].as<bool>(_needItem);
@@ -61,7 +61,6 @@ void RuleResearch::load(const YAML::Node &node, int listOrder)
 	{
 		_listOrder = listOrder;
 	}
-	std::sort(_requiresBaseFunc.begin(), _requiresBaseFunc.end());
 	// This is necessary, research code assumes it!
 	if (!_requiresName.empty() && _cost != 0)
 	{
@@ -217,15 +216,6 @@ const std::string &RuleResearch::getLookup() const
 const std::vector<const RuleResearch*> &RuleResearch::getRequirements() const
 {
 	return _requires;
-}
-
-/**
- * Gets the require base functions to start this ResearchProject.
- * @return List of functions IDs
- */
-const std::vector<std::string> &RuleResearch::getRequireBaseFunc() const
-{
-	return _requiresBaseFunc;
 }
 
 /**

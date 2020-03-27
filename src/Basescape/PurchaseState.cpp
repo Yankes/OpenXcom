@@ -152,13 +152,13 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		_armors.insert(rule->getStoreItem());
 	}
 
-	const std::vector<std::string> &providedBaseFunc = _base->getProvidedBaseFunc();
+	auto providedBaseFunc = _base->getProvidedBaseFunc({});
 	const std::vector<std::string> &soldiers = _game->getMod()->getSoldiersList();
 	for (std::vector<std::string>::const_iterator i = soldiers.begin(); i != soldiers.end(); ++i)
 	{
 		RuleSoldier *rule = _game->getMod()->getSoldier(*i);
-		const std::vector<std::string> &purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
-		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && std::includes(providedBaseFunc.begin(), providedBaseFunc.end(), purchaseBaseFunc.begin(), purchaseBaseFunc.end()))
+		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
+		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
 			TransferRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCountAndSalary(rule->getType()).first, 0, 0 };
 			_items.push_back(row);
@@ -191,8 +191,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	for (std::vector<std::string>::const_iterator i = crafts.begin(); i != crafts.end(); ++i)
 	{
 		RuleCraft *rule = _game->getMod()->getCraft(*i);
-		const std::vector<std::string> &purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
-		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && std::includes(providedBaseFunc.begin(), providedBaseFunc.end(), purchaseBaseFunc.begin(), purchaseBaseFunc.end()))
+		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
+		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
 			TransferRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule), 0, 0 };
 			_items.push_back(row);
@@ -207,8 +207,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
 		RuleItem *rule = _game->getMod()->getItem(*i);
-		const std::vector<std::string> &purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
-		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && _game->getSavedGame()->isResearched(rule->getBuyRequirements()) && std::includes(providedBaseFunc.begin(), providedBaseFunc.end(), purchaseBaseFunc.begin(), purchaseBaseFunc.end()))
+		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
+		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && _game->getSavedGame()->isResearched(rule->getBuyRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
 			TransferRow row = { TRANSFER_ITEM, rule, tr(rule->getType()), rule->getBuyCost(), _base->getStorageItems()->getItem(rule->getType()), 0, 0 };
 			_items.push_back(row);

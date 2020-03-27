@@ -25,6 +25,7 @@
 #include "Unit.h"
 #include "ModScript.h"
 #include "RuleResearch.h"
+#include "RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -285,7 +286,7 @@ private:
 	std::vector<std::string> _requiresName;
 	std::vector<std::string> _requiresBuyName;
 	std::vector<const RuleResearch *> _requires, _requiresBuy;
-	std::vector<std::string> _requiresBuyBaseFunc;
+	RuleBaseFacilityFunctions _requiresBuyBaseFunc;
 	std::map<std::string, int> _recoveryDividers;
 	std::map<std::string, std::vector<int> > _recoveryTransformationsName;
 	std::map<const RuleItem*, std::vector<int> > _recoveryTransformations;
@@ -412,7 +413,7 @@ public:
 	/// Gets the item's buy requirements.
 	const std::vector<const RuleResearch*> &getBuyRequirements() const;
 	/// Gets the base functions required to buy craft.
-	const std::vector<std::string> &getRequiresBuyBaseFunc() const;
+	RuleBaseFacilityFunctions getRequiresBuyBaseFunc() const { return _requiresBuyBaseFunc; }
 	/// Gets the dividers used for recovery of special items.
 	const std::map<std::string, int> &getRecoveryDividers() const;
 	/// Gets the item(s) to be recovered instead of this item.

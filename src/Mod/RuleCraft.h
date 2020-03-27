@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <yaml-cpp/yaml.h>
+#include "RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -148,7 +149,7 @@ public:
 private:
 	std::string _type;
 	std::vector<std::string> _requires;
-	std::vector<std::string> _requiresBuyBaseFunc;
+	RuleBaseFacilityFunctions _requiresBuyBaseFunc;
 	int _sprite, _marker;
 	int _weapons, _soldiers, _pilots, _vehicles, _costBuy, _costRent, _costSell;
 	char _weaponTypes[WeaponMax][WeaponTypeMax];
@@ -175,7 +176,7 @@ public:
 	/// Gets the craft's requirements.
 	const std::vector<std::string> &getRequirements() const;
 	/// Gets the base functions required to buy craft.
-	const std::vector<std::string> &getRequiresBuyBaseFunc() const;
+	RuleBaseFacilityFunctions getRequiresBuyBaseFunc() const { return _requiresBuyBaseFunc; }
 	/// Gets the craft's sprite.
 	int getSprite() const;
 	/// Gets the craft's globe marker.

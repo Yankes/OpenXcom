@@ -929,6 +929,7 @@
     <ClInclude Include="Mod\Armor.h" />
     <ClInclude Include="Mod\RuleAlienMission.h" />
     <ClInclude Include="Mod\RuleBaseFacility.h" />
+    <ClInclude Include="Mod\RuleBaseFacilityFuncions.h" />
     <ClInclude Include="Mod\RuleCountry.h" />
     <ClInclude Include="Mod\RuleCraft.h" />
     <ClInclude Include="Mod\RuleCraftWeapon.h" />

@@ -185,7 +185,7 @@ void NewManufactureListState::lstProdClickRight(Action *)
 	{
 		// display either category or requirements
 		_showRequirements = !_showRequirements;
-		const std::vector<std::string> &baseFunc = _base->getProvidedBaseFunc();
+		auto baseFunc = _base->getProvidedBaseFunc({});
 
 		for (size_t row = 0; row < _lstManufacture->getRows(); ++row)
 		{
@@ -196,12 +196,9 @@ void NewManufactureListState::lstProdClickRight(Action *)
 				{
 					std::ostringstream ss;
 					int count = 0;
-					for (std::vector<std::string>::const_iterator iter = info->getRequireBaseFunc().begin(); iter != info->getRequireBaseFunc().end(); ++iter)
+					auto missed = _game->getMod()->getBaseFunctionNames(~baseFunc & info->getRequireBaseFunc());
+					for (std::vector<std::string>::const_iterator iter = missed.begin(); iter != missed.end(); ++iter)
 					{
-						if (std::find(baseFunc.begin(), baseFunc.end(), *iter) != baseFunc.end())
-						{
-							continue;
-						}
 						if (count > 0)
 						{
 							ss << ", ";

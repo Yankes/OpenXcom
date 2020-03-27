@@ -21,6 +21,7 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 #include "Mod.h"
+#include "RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -41,7 +42,8 @@ class RuleResearch
  private:
 	std::string _name, _lookup, _cutscene, _spawnedItem;
 	int _cost, _points;
-	std::vector<std::string> _dependenciesName, _unlocksName, _disablesName, _getOneFreeName, _requiresName, _requiresBaseFunc;
+	std::vector<std::string> _dependenciesName, _unlocksName, _disablesName, _getOneFreeName, _requiresName;
+	RuleBaseFacilityFunctions _requiresBaseFunc;
 	std::vector<const RuleResearch*> _dependencies, _unlocks, _disables, _getOneFree, _requires;
 	bool _sequentialGetOneFree;
 	std::map<std::string, std::vector<std::string> > _getOneFreeProtectedName;
@@ -55,7 +57,7 @@ public:
 	RuleResearch(const std::string &name);
 
 	/// Loads the research from YAML.
-	void load(const YAML::Node& node, int listOrder);
+	void load(const YAML::Node& node, Mod* mod, int listOrder);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 
@@ -86,7 +88,7 @@ public:
 	/// Gets the requirements for this ResearchProject.
 	const std::vector<const RuleResearch*> &getRequirements() const;
 	/// Gets the base requirements for this ResearchProject.
-	const std::vector<std::string> &getRequireBaseFunc() const;
+	RuleBaseFacilityFunctions getRequireBaseFunc() const { return _requiresBaseFunc; }
 	/// Gets the list weight for this research item.
 	int getListOrder() const;
 	/// Gets the cutscene to play when this item is researched

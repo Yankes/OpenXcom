@@ -40,11 +40,11 @@ RuleManufacture::RuleManufacture(const std::string &name) : _name(name), _space(
  * @param node YAML node.
  * @param listOrder The list weight for this manufacture.
  */
-void RuleManufacture::load(const YAML::Node &node, int listOrder)
+void RuleManufacture::load(const YAML::Node &node, Mod* mod, int listOrder)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		load(parent, listOrder);
+		load(parent, mod, listOrder);
 	}
 	bool same = (1 == _producedItemsNames.size() && _name == _producedItemsNames.begin()->first);
 	_name = node["name"].as<std::string>(_name);
@@ -56,7 +56,7 @@ void RuleManufacture::load(const YAML::Node &node, int listOrder)
 	}
 	_category = node["category"].as<std::string>(_category);
 	_requiresName = node["requires"].as< std::vector<std::string> >(_requiresName);
-	_requiresBaseFunc = node["requiresBaseFunc"].as< std::vector<std::string> >(_requiresBaseFunc);
+	mod->loadBaseFunction(_name, _requiresBaseFunc, node["requiresBaseFunc"]);
 	_space = node["space"].as<int>(_space);
 	_time = node["time"].as<int>(_time);
 	_cost = node["cost"].as<int>(_cost);
@@ -71,7 +71,6 @@ void RuleManufacture::load(const YAML::Node &node, int listOrder)
 	{
 		_listOrder = listOrder;
 	}
-	std::sort(_requiresBaseFunc.begin(), _requiresBaseFunc.end());
 }
 
 /**
@@ -156,9 +155,7 @@ void RuleManufacture::breakDown(const Mod* mod, const RuleManufactureShortcut* r
 	std::map<const RuleResearch*, bool> tempRequires;
 	for (auto& r : _requires)
 		tempRequires[r] = true;
-	std::map<std::string, bool> tempRequiresBaseFunc;
-	for (auto& rbf : _requiresBaseFunc)
-		tempRequiresBaseFunc[rbf] = true;
+	auto tempRequiresBaseFunc = _requiresBaseFunc;
 
 	// 2. break down iteratively
 	bool doneSomething = false;
@@ -183,8 +180,8 @@ void RuleManufacture::breakDown(const Mod* mod, const RuleManufactureShortcut* r
 					tempRequiredItems[ri.first] += count * ri.second;
 				for (auto& r : projectRule->getRequirements())
 					tempRequires[r] = true;
-				for (auto& rbf : projectRule->getRequireBaseFunc())
-					tempRequiresBaseFunc[rbf] = true;
+
+				tempRequiresBaseFunc |= projectRule->getRequireBaseFunc();
 			}
 		}
 	}
@@ -206,10 +203,7 @@ void RuleManufacture::breakDown(const Mod* mod, const RuleManufactureShortcut* r
 	}
 	if (recipe->getBreakDownRequiresBaseFunc())
 	{
-		_requiresBaseFunc.clear();
-		for (auto& item : tempRequiresBaseFunc)
-			if (item.second)
-				_requiresBaseFunc.push_back(item.first);
+		_requiresBaseFunc = tempRequiresBaseFunc;
 	}
 }
 
@@ -239,16 +233,6 @@ const std::string &RuleManufacture::getCategory() const
 const std::vector<const RuleResearch*> &RuleManufacture::getRequirements() const
 {
 	return _requires;
-}
-
-/**
- * Gets the list of base functions required to
- * manufacture this object.
- * @return A list of functions IDs.
- */
-const std::vector<std::string> &RuleManufacture::getRequireBaseFunc() const
-{
-	return _requiresBaseFunc;
 }
 
 /**

@@ -216,51 +216,63 @@ int BaseView::getPlacementError(const RuleBaseFacility *rule, BaseFacility *faci
 	// We'll need to know for the final check if we're upgrading an existing facility
 	bool buildingOverExisting = false;
 
-	// Check if square isn't occupied
-	for (int y = _gridY; y < _gridY + rule->getSize(); ++y)
+	// Area where we want place new bulding
+	const BaseAreaSubset placementArea = BaseAreaSubset(rule->getSize(), rule->getSize()).offset(_gridX, _gridY);
+	// Whole base
+	const BaseAreaSubset baseArea = BaseAreaSubset(BASE_SIZE, BASE_SIZE);
+
+	// Check if facility do fit base edges
+	if (BaseAreaSubset::intersection(placementArea, baseArea) != placementArea)
 	{
-		for (int x = _gridX; x < _gridX + rule->getSize(); ++x)
+		return 1;
+	}
+
+	// Check use of facilites in area that will be replaced by new building
+	if (facilityBeingMoved == nullptr && _base->isAreaInUse(placementArea, rule))
+	{
+		return 2;
+	}
+
+	// Check if square isn't occupied
+	for (int y = placementArea.beg_y; y < placementArea.end_y; ++y)
+	{
+		for (int x = placementArea.beg_x; x < placementArea.end_x; ++x)
 		{
-			if (x < 0 || x >= BASE_SIZE || y < 0 || y >= BASE_SIZE)
-			{
-				return 1;
-			}
-			if (_facilities[x][y] != 0)
+			auto facility = _facilities[x][y];
+			if (facility != 0)
 			{
 				// when moving an existing facility, it should not block itself
 				if (facilityBeingMoved == 0)
 				{
 					// Further check to see if the facility already there can be built over and we're not removing an important base function
-					if (_facilities[x][y]->getRules()->getCanBeBuiltOver())
-					{
-						// Make sure this facility is not in use
-						if (_facilities[x][y]->inUse())
-							return 2;
-
-						// Make sure this facility is not already being upgraded
-						if (_facilities[x][y]->getIfHadPreviousFacility() && _facilities[x][y]->getBuildTime() != 0)
-							return 3;
-
-						// Make sure the facility we're building over is entirely within the size of the one we're checking
-						if (_facilities[x][y]->getX() < _gridX || _facilities[x][y]->getX() + _facilities[x][y]->getRules()->getSize() > _gridX + rule->getSize()
-							|| _facilities[x][y]->getY() < _gridY || _facilities[x][y]->getY() + _facilities[x][y]->getRules()->getSize() > _gridY + rule->getSize())
-							return 4;
-
-						// If the list of base facilities we can build over is empty, then we can build over anything that allows it
-						// otherwise we need to check if the facility we're trying to build over is on the list
-						if (rule->getCanBuildOverOtherFacility(_facilities[x][y]->getRules()) == false)
-						{
-							return 5;
-						}
-
-						buildingOverExisting = true;
-					}
-					else
+					if (facility->getRules()->getCanBeBuiltOver() == false)
 					{
 						return 6;
 					}
+
+					// If the list of base facilities we can build over is empty, then we can build over anything that allows it
+					// otherwise we need to check if the facility we're trying to build over is on the list
+					if (rule->getCanBuildOverOtherFacility(facility->getRules()) == false)
+					{
+						return 5;
+					}
+
+					// Make sure the facility we're building over is entirely within the size of the one we're checking
+					const auto removedArea = facility->getPlacement();
+					if (BaseAreaSubset::intersection(placementArea, removedArea) != removedArea)
+					{
+						return 4;
+					}
+
+					// Make sure this facility is not already being upgraded
+					if (facility->getIfHadPreviousFacility() && facility->getBuildTime() != 0)
+					{
+						return 3;
+					}
+
+					buildingOverExisting = true;
 				}
-				else if (_facilities[x][y] != facilityBeingMoved)
+				else if (facility != facilityBeingMoved)
 				{
 					return 1;
 				}

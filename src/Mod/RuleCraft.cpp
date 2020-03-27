@@ -76,10 +76,7 @@ void RuleCraft::load(const YAML::Node &node, Mod *mod, int listOrder)
 
 	//requires
 	_requires = node["requires"].as< std::vector<std::string> >(_requires);
-	_requiresBuyBaseFunc = node["requiresBuyBaseFunc"].as< std::vector<std::string> >(_requiresBuyBaseFunc);
-
-	std::sort(_requiresBuyBaseFunc.begin(), _requiresBuyBaseFunc.end());
-
+	mod->loadBaseFunction(_type, _requiresBuyBaseFunc, node["requiresBuyBaseFunc"]);
 
 	if (node["sprite"])
 	{
@@ -184,15 +181,6 @@ const std::string &RuleCraft::getType() const
 const std::vector<std::string> &RuleCraft::getRequirements() const
 {
 	return _requires;
-}
-
-/**
- * Gets the base functions required to buy craft.
- * @retreturn The sorted list of base functions ID
- */
-const std::vector<std::string> &RuleCraft::getRequiresBuyBaseFunc() const
-{
-	return _requiresBuyBaseFunc;
 }
 
 /**

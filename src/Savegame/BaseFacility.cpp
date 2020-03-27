@@ -18,6 +18,7 @@
  */
 #include "BaseFacility.h"
 #include "../Mod/RuleBaseFacility.h"
+#include "../Engine/GraphSubset.h"
 #include "Base.h"
 #include <algorithm>
 
@@ -122,6 +123,15 @@ void BaseFacility::setY(int y)
 }
 
 /**
+ * Get placement of facility in base.
+ */
+BaseAreaSubset BaseFacility::getPlacement() const
+{
+	auto size = _rules->getSize();
+	return BaseAreaSubset(size, size).offset(_x, _y);
+}
+
+/**
  * Returns the base facility's remaining time
  * until it's finished building (0 = complete).
  * @return Time left in days.
@@ -163,24 +173,7 @@ bool BaseFacility::inUse() const
 		return false;
 	}
 
-	const std::vector<std::string> &otherBaseFunc = _base->getProvidedBaseFunc(this);
-	const std::vector<std::string> &usedBaseFunc = _base->getRequireBaseFunc(this);
-
-	const std::vector<std::string> &thisProve = getRules()->getProvidedBaseFunc();
-	for (std::vector<std::string>::const_iterator i = thisProve.begin(); i != thisProve.end(); ++i)
-	{
-		if (!std::binary_search(std::begin(otherBaseFunc),std::end(otherBaseFunc), *i) && std::binary_search(std::begin(usedBaseFunc),std::end(usedBaseFunc), *i)) //we provide something unique and someone else using it.
-			return true;
-	}
-
-	return ((_rules->getPersonnel() > 0 && _base->getAvailableQuarters() - _rules->getPersonnel() < _base->getUsedQuarters()) ||
-			(_rules->getStorage() > 0 && _base->getAvailableStores() - _rules->getStorage() < _base->getUsedStores()) ||
-			(_rules->getLaboratories() > 0 && _base->getAvailableLaboratories() - _rules->getLaboratories() < _base->getUsedLaboratories()) ||
-			(_rules->getWorkshops() > 0 && _base->getAvailableWorkshops() - _rules->getWorkshops() < _base->getUsedWorkshops()) ||
-			(_rules->getCrafts() > 0 && _base->getAvailableHangars() - _rules->getCrafts() < _base->getUsedHangars()) ||
-			(_rules->getPsiLaboratories() > 0 && _base->getAvailablePsiLabs() - _rules->getPsiLaboratories() < _base->getUsedPsiLabs()) ||
-			(_rules->getTrainingFacilities() > 0 && _base->getAvailableTraining() - _rules->getTrainingFacilities() < _base->getUsedTraining()) ||
-			(_rules->getAliens() > 0 && _base->getAvailableContainment(_rules->getPrisonType()) - _rules->getAliens() < _base->getUsedContainment(_rules->getPrisonType())));
+	return _base->isAreaInUse(getPlacement());
 }
 
 /**

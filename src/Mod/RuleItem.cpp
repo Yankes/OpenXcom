@@ -356,9 +356,7 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 	//requires
 	_requiresName = node["requires"].as< std::vector<std::string> >(_requiresName);
 	_requiresBuyName = node["requiresBuy"].as< std::vector<std::string> >(_requiresBuyName);
-	_requiresBuyBaseFunc = node["requiresBuyBaseFunc"].as< std::vector<std::string> >(_requiresBuyBaseFunc);
-
-	std::sort(_requiresBuyBaseFunc.begin(), _requiresBuyBaseFunc.end());
+	mod->loadBaseFunction(_type, _requiresBuyBaseFunc, node["requiresBuyBaseFunc"]);
 
 
 	_recoveryDividers = node["recoveryDividers"].as< std::map<std::string, int> >(_recoveryDividers);
@@ -760,15 +758,6 @@ const std::vector<const RuleResearch *> &RuleItem::getRequirements() const
 const std::vector<const RuleResearch *> &RuleItem::getBuyRequirements() const
 {
 	return _requiresBuy;
-}
-
-/**
- * Gets the base functions required to buy item.
- * @return The sorted list of base functions ID
- */
-const std::vector<std::string> &RuleItem::getRequiresBuyBaseFunc() const
-{
-	return _requiresBuyBaseFunc;
 }
 
 /**

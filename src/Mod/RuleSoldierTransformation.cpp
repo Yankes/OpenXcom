@@ -18,6 +18,7 @@
  */
 #include <algorithm>
 #include "RuleSoldierTransformation.h"
+#include "Mod.h"
 
 namespace OpenXcom
 {
@@ -41,11 +42,11 @@ RuleSoldierTransformation::RuleSoldierTransformation(const std::string &name) :
  * @param node YAML node.
  * @param listOrder The list weight for this transformation project.
  */
-void RuleSoldierTransformation::load(const YAML::Node &node, int listOrder)
+void RuleSoldierTransformation::load(const YAML::Node &node, Mod* mod, int listOrder)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		load(parent, listOrder);
+		load(parent, mod, listOrder);
 	}
 	_listOrder = node["listOrder"].as<int>(_listOrder);
 	if (!_listOrder)
@@ -54,7 +55,7 @@ void RuleSoldierTransformation::load(const YAML::Node &node, int listOrder)
 	}
 
 	_requires = node["requires"].as<std::vector<std::string > >(_requires);
-	_requiresBaseFunc = node["requiresBaseFunc"].as<std::vector<std::string > >(_requiresBaseFunc);
+	mod->loadBaseFunction(_name, _requiresBaseFunc, node["requiresBaseFunc"]);
 	_producedItem = node["producedItem"].as<std::string >(_producedItem);
 	_producedSoldierType = node["producedSoldierType"].as<std::string >(_producedSoldierType);
 	_producedSoldierArmor = node["producedSoldierArmor"].as<std::string >(_producedSoldierArmor);
@@ -90,8 +91,6 @@ void RuleSoldierTransformation::load(const YAML::Node &node, int listOrder)
 	_upperBoundAtStatCaps = node["upperBoundAtStatCaps"].as<bool >(_upperBoundAtStatCaps);
 	_reset = node["reset"].as<bool >(_reset);
 	_soldierBonusType = node["soldierBonusType"].as<std::string >(_soldierBonusType);
-
-	std::sort(_requiresBaseFunc.begin(), _requiresBaseFunc.end());
 }
 
 /**
@@ -119,15 +118,6 @@ int RuleSoldierTransformation::getListOrder() const
 const std::vector<std::string > &RuleSoldierTransformation::getRequiredResearch() const
 {
 	return _requires;
-}
-
-/**
- * Gets the list of required base functions for this project
- * @return The list of required base functions
- */
-const std::vector<std::string > &RuleSoldierTransformation::getRequiredBaseFuncs() const
-{
-	return _requiresBaseFunc;
 }
 
 /**
@@ -222,7 +212,7 @@ const std::vector<std::string > &RuleSoldierTransformation::getRequiredPreviousT
 
 /**
  * Gets the list of previous soldier transformations that make a soldier ineligible for this project
- * @return The list of forbidden previous 
+ * @return The list of forbidden previous
  */
 const std::vector<std::string > &RuleSoldierTransformation::getForbiddenPreviousTransformations() const
 {

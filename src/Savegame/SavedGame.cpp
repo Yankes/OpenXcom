@@ -1662,8 +1662,7 @@ void SavedGame::getAvailableResearchProjects(std::vector<RuleResearch *> &projec
 			}
 
 			// Check for required buildings/functions in the given base
-			const std::vector<std::string> &baseFunc = base->getProvidedBaseFunc();
-			if (!std::includes(baseFunc.begin(), baseFunc.end(), research->getRequireBaseFunc().begin(), research->getRequireBaseFunc().end()))
+			if ((~base->getProvidedBaseFunc({}) & research->getRequireBaseFunc()).any())
 			{
 				continue;
 			}
@@ -1715,7 +1714,7 @@ void SavedGame::getAvailableProductions (std::vector<RuleManufacture *> & produc
 {
 	const std::vector<std::string> &items = mod->getManufactureList();
 	const std::vector<Production *> &baseProductions = base->getProductions();
-	const std::vector<std::string> &baseFunc = base->getProvidedBaseFunc();
+	auto baseFunc = base->getProvidedBaseFunc({});
 
 	for (std::vector<std::string>::const_iterator iter = items.begin();
 		iter != items.end();
@@ -1730,7 +1729,7 @@ void SavedGame::getAvailableProductions (std::vector<RuleManufacture *> & produc
 		{
 			continue;
 		}
-		if (!std::includes(baseFunc.begin(), baseFunc.end(), m->getRequireBaseFunc().begin(), m->getRequireBaseFunc().end()))
+		if ((~baseFunc & m->getRequireBaseFunc()).any())
 		{
 			if (filter != MANU_FILTER_FACILITY_REQUIRED)
 				continue;
@@ -1783,7 +1782,7 @@ void SavedGame::getDependableManufacture (std::vector<RuleManufacture *> & depen
 void SavedGame::getAvailableTransformations (std::vector<RuleSoldierTransformation *> & transformations, const Mod * mod, Base * base) const
 {
 	const std::vector<std::string> &items = mod->getSoldierTransformationList();
-	const std::vector<std::string> &baseFunc = base->getProvidedBaseFunc();
+	auto baseFunc = base->getProvidedBaseFunc({});
 
 	for (std::vector<std::string>::const_iterator iter = items.begin(); iter != items.end(); ++iter)
 	{
@@ -1792,7 +1791,7 @@ void SavedGame::getAvailableTransformations (std::vector<RuleSoldierTransformati
 		{
 			continue;
 		}
-		if (!std::includes(baseFunc.begin(), baseFunc.end(), m->getRequiredBaseFuncs().begin(), m->getRequiredBaseFuncs().end()))
+		if ((~baseFunc & m->getRequiredBaseFuncs()).any())
 		{
 			continue;
 		}

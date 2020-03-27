@@ -20,12 +20,15 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <bitset>
 #include <yaml-cpp/yaml.h>
+#include "RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
 
 class Mod;
+class Base;
 class Position;
 class VerticalLevel;
 
@@ -39,7 +42,10 @@ class RuleBaseFacility
 {
 private:
 	std::string _type;
-	std::vector<std::string> _requires, _requiresBaseFunc, _provideBaseFunc, _forbiddenBaseFunc;
+	std::vector<std::string> _requires;
+	RuleBaseFacilityFunctions _requiresBaseFunc = 0;
+	RuleBaseFacilityFunctions _provideBaseFunc = 0;
+	RuleBaseFacilityFunctions _forbiddenBaseFunc = 0;
 	int _spriteShape, _spriteFacility;
 	int _missileAttraction;
 	int _fakeUnderwater;
@@ -84,11 +90,11 @@ public:
 	/// Gets the facility's requirements.
 	const std::vector<std::string> &getRequirements() const;
 	/// Gets the facility's required function in base to build.
-	const std::vector<std::string> &getRequireBaseFunc() const;
+	RuleBaseFacilityFunctions getRequireBaseFunc() const { return _requiresBaseFunc; }
 	/// Gets the functions that facility provide in base.
-	const std::vector<std::string> &getProvidedBaseFunc() const;
+	RuleBaseFacilityFunctions getProvidedBaseFunc() const { return _provideBaseFunc; }
 	/// Gets the functions that facility prevent in base.
-	const std::vector<std::string> &getForbiddenBaseFunc() const;
+	RuleBaseFacilityFunctions getForbiddenBaseFunc() const { return _forbiddenBaseFunc; }
 	/// Gets the facility's shape sprite.
 	int getSpriteShape() const;
 	/// Gets the facility's content sprite.

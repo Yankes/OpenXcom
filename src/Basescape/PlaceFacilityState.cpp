@@ -236,11 +236,11 @@ void PlaceFacilityState::viewClick(Action *)
 			// Remove any facilities we're building over
 			int reducedBuildTime = 0;
 			bool buildingOver = false;
+			const BaseAreaSubset areaToBuildOver = BaseAreaSubset(_rule->getSize(), _rule->getSize()).offset(_view->getGridX(), _view->getGridY());
 			for (int i = _base->getFacilities()->size() - 1; i >= 0; --i)
 			{
 				BaseFacility *checkFacility = _base->getFacilities()->at(i);
-				if (checkFacility && checkFacility->getX() >= _view->getGridX() && checkFacility->getX() < _view->getGridX() + _rule->getSize() // Make sure the facility is in the same place as the one we're building
-					&& checkFacility->getY() >= _view->getGridY() && checkFacility->getY() < _view->getGridY() + _rule->getSize())
+				if (BaseAreaSubset::intersection(areaToBuildOver, checkFacility->getPlacement()))
 				{
 					// Get a refund from the facility we're building over
 					const std::map<std::string, std::pair<int, int> > &itemCost = checkFacility->getRules()->getBuildCostItems();

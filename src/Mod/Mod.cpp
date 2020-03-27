@@ -1188,6 +1188,45 @@ int Mod::getOffset(int id, int max) const
 		return id;
 }
 
+/**
+ * Load base functions to bit set.
+ */
+void Mod::loadBaseFunction(const std::string& parent, std::bitset<128>& f, const YAML::Node& node)
+{
+	if (node)
+	{
+		try
+		{
+			f.reset();
+			for (YAML::const_iterator i = node.begin(); i != node.end(); ++i)
+			{
+				f.set(_baseFunctionNames.addName(i->as<std::string>(), f.size()));
+			}
+		}
+		catch(Exception& ex)
+		{
+			throw Exception("Error for '" + parent + "': " + ex.what());
+		}
+	}
+}
+
+/**
+ * Get names of function names in given bitset.
+ */
+std::vector<std::string> Mod::getBaseFunctionNames(RuleBaseFacilityFunctions f) const
+{
+	std::vector<std::string> vec;
+	vec.reserve(f.count());
+	for (size_t i = 0; i < f.size(); ++i)
+	{
+		if (f.test(i))
+		{
+			vec.push_back(_baseFunctionNames.getName(i));
+		}
+	}
+	return vec;
+}
+
 
 template<typename T>
 static void afterLoadHelper(const char* name, Mod* mod, std::map<std::string, T*>& list, void (T::* func)(const Mod*))
@@ -1767,7 +1806,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		if (rule != 0)
 		{
 			_researchListOrder += 100;
-			rule->load(*i, _researchListOrder);
+			rule->load(*i, this, _researchListOrder);
 			if ((*i)["unlockFinalMission"].as<bool>(false))
 			{
 				_finalResearch = (*i)["name"].as<std::string>(_finalResearch);
@@ -1780,7 +1819,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		if (rule != 0)
 		{
 			_manufactureListOrder += 100;
-			rule->load(*i, _manufactureListOrder);
+			rule->load(*i, this, _manufactureListOrder);
 		}
 	}
 	for (YAML::const_iterator i = doc["manufactureShortcut"].begin(); i != doc["manufactureShortcut"].end(); ++i)
@@ -1805,7 +1844,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		if (rule != 0)
 		{
 			_transformationListOrder += 100;
-			rule->load(*i, _transformationListOrder);
+			rule->load(*i, this, _transformationListOrder);
 		}
 	}
 	for (YAML::const_iterator i = doc["ufopaedia"].begin(); i != doc["ufopaedia"].end(); ++i)

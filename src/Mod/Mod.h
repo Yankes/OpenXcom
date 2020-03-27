@@ -20,14 +20,17 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <bitset>
 #include <SDL.h>
 #include <yaml-cpp/yaml.h>
 #include "../Engine/Options.h"
 #include "../Engine/FileMap.h"
+#include "../Engine/Collections.h"
 #include "../Savegame/GameTime.h"
 #include "RuleDamageType.h"
 #include "Unit.h"
 #include "RuleAlienMission.h"
+#include "RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -227,8 +230,12 @@ private:
 	int _shortRadarRange;
 	int _defeatScore, _defeatFunds;
 	std::pair<std::string, int> _alienFuel;
-	std::string _fontName, _finalResearch, _psiUnlockResearch, _destroyedFacility;
+	std::string _fontName, _finalResearch, _psiUnlockResearch;
+
+	std::string _destroyedFacility;
 	YAML::Node _startingBaseDefault, _startingBaseBeginner, _startingBaseExperienced, _startingBaseVeteran, _startingBaseGenius, _startingBaseSuperhuman;
+	Collections::NamesToIndex _baseFunctionNames;
+
 	GameTime _startingTime;
 	int _startingDifficulty;
 	int _baseDefenseMapFromLocation;
@@ -396,6 +403,11 @@ public:
 	void loadSoundOffset(const std::string &parent, std::vector<int>& sounds, const YAML::Node &node, const std::string &set) const;
 	/// Gets the mod offset for a generic value.
 	int getOffset(int id, int max) const;
+
+	/// Gets base functions from string array in yaml.
+	void loadBaseFunction(const std::string &parent, RuleBaseFacilityFunctions& f, const YAML::Node &node);
+	/// Get names of function names in given bitset.
+	std::vector<std::string> getBaseFunctionNames(RuleBaseFacilityFunctions f) const;
 
 	/// Loads a list of mods.
 	void loadAll();

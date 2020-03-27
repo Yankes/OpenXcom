@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
+#include "../Mod/RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -260,14 +261,16 @@ public:
 	void destroyFacility(std::vector<BaseFacility*>::iterator facility);
 	/// Cleans up the defenses vector and optionally reclaims the tanks and their ammo.
 	void cleanupDefenses(bool reclaimItems);
+	/// Check if faciletes in area are used.
+	bool isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment = nullptr) const;
 	/// Gets available base functionality.
-	std::vector<std::string> getProvidedBaseFunc(const BaseFacility *skip = 0) const;
+	RuleBaseFacilityFunctions getProvidedBaseFunc(BaseAreaSubset skip) const;
 	/// Gets used base functionality.
-	std::vector<std::string> getRequireBaseFunc(const BaseFacility *skip = 0) const;
+	RuleBaseFacilityFunctions getRequireBaseFunc(BaseAreaSubset skip) const;
 	/// Gets forbidden base functionality.
-	std::vector<std::string> getForbiddenBaseFunc() const;
+	RuleBaseFacilityFunctions getForbiddenBaseFunc(BaseAreaSubset skip) const;
 	/// Gets future base functionality.
-	std::vector<std::string> getFutureBaseFunc() const;
+	RuleBaseFacilityFunctions getFutureBaseFunc(BaseAreaSubset skip) const;
 	/// Checks if it is possible to build another facility of a given type.
 	bool isMaxAllowedLimitReached(RuleBaseFacility *rule) const;
 	/// Gets the base's daily sum recovery rate.

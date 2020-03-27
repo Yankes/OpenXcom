@@ -20,6 +20,7 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include "Unit.h"
+#include "RuleBaseFacilityFunctions.h"
 #include "../Engine/Script.h"
 
 namespace OpenXcom
@@ -63,7 +64,7 @@ private:
 	std::string _type;
 	int _listOrder;
 	std::vector<std::string> _requires;
-	std::vector<std::string> _requiresBuyBaseFunc;
+	RuleBaseFacilityFunctions _requiresBuyBaseFunc;
 	UnitStats _minStats, _maxStats, _statCaps, _trainingStatCaps, _dogfightExperience;
 	std::string _armor;
 	std::string _specWeaponName;
@@ -110,7 +111,7 @@ public:
 	/// Gets the soldier's requirements.
 	const std::vector<std::string> &getRequirements() const;
 	/// Gets the base functions required to buy solder.
-	const std::vector<std::string> &getRequiresBuyBaseFunc() const;
+	RuleBaseFacilityFunctions getRequiresBuyBaseFunc() const { return _requiresBuyBaseFunc; }
 	/// Gets the minimum stats for the random stats generator.
 	UnitStats getMinStats() const;
 	/// Gets the maximum stats for the random stats generator.

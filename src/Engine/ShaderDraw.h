@@ -45,7 +45,7 @@ static inline void ShaderDrawImpl(Func&& f, helper::controler<SrcType>... src)
 	(src.mod_range(end_temp), ...);
 
 	const GraphSubset end = end_temp;
-	if (end.size_x() == 0 || end.size_y() == 0)
+	if (!end)
 		return;
 
 	//set final draw range in 2d space

@@ -20,6 +20,7 @@
 #include <string>
 #include <map>
 #include <yaml-cpp/yaml.h>
+#include "RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -32,7 +33,7 @@ enum ManufacturingFilterType
 	MANU_FILTER_FACILITY_REQUIRED,
 	MANU_FILTER_HIDDEN
 };
-	
+
 class RuleManufactureShortcut;
 class RuleResearch;
 class RuleItem;
@@ -47,7 +48,8 @@ class RuleManufacture
 private:
 	std::string _name, _category;
 	std::string _spawnedPersonType, _spawnedPersonName;
-	std::vector<std::string> _requiresName, _requiresBaseFunc;
+	std::vector<std::string> _requiresName;
+	RuleBaseFacilityFunctions _requiresBaseFunc;
 	std::vector<const RuleResearch*> _requires;
 	int _space, _time, _cost;
 	bool _refund;
@@ -67,7 +69,7 @@ public:
 	RuleManufacture(const std::string &name);
 
 	/// Loads the manufacture from YAML.
-	void load(const YAML::Node& node, int listOrder);
+	void load(const YAML::Node& node, Mod* mod, int listOrder);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 	/// Change the name and break down the sub-projects into simpler components.
@@ -80,7 +82,7 @@ public:
 	/// Gets the manufacture's requirements.
 	const std::vector<const RuleResearch*> &getRequirements() const;
 	/// Gets the base requirements.
-	const std::vector<std::string> &getRequireBaseFunc() const;
+	RuleBaseFacilityFunctions getRequireBaseFunc() const { return _requiresBaseFunc; }
 	/// Gets the required workshop space.
 	int getRequiredSpace() const;
 	/// Gets the time required to manufacture one object.

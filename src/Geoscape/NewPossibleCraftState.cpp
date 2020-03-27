@@ -75,17 +75,14 @@ NewPossibleCraftState::NewPossibleCraftState(Base * base, const std::vector<Rule
 
 	// Caveat
 	{
-		std::unordered_set<std::string> requiredServices;
+		RuleBaseFacilityFunctions requiredServices;
 		for (auto& it : possibilities)
 		{
-			for (auto& srv : it->getRequiresBuyBaseFunc())
-			{
-				requiredServices.insert(srv);
-			}
+			requiredServices |= it->getRequiresBuyBaseFunc();
 		}
 		std::ostringstream ss;
 		int i = 0;
-		for (auto& it : requiredServices)
+		for (auto& it : _game->getMod()->getBaseFunctionNames(requiredServices))
 		{
 			if (i > 0)
 				ss << ", ";
@@ -96,7 +93,7 @@ NewPossibleCraftState::NewPossibleCraftState(Base * base, const std::vector<Rule
 
 		_txtCaveat->setAlign(ALIGN_CENTER);
 		_txtCaveat->setText(tr("STR_REQUIRED_BASE_SERVICES").arg(argument));
-		_txtCaveat->setVisible(!requiredServices.empty());
+		_txtCaveat->setVisible(requiredServices.any());
 	}
 
 	_lstPossibilities->setColumns(1, 250);

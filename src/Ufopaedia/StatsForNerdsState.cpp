@@ -1841,7 +1841,7 @@ void StatsForNerdsState::initItemList()
 
 	addVectorOfResearch(ss, itemRule->getRequirements(), "requires");
 	addVectorOfResearch(ss, itemRule->getBuyRequirements(), "requiresBuy");
-	addVectorOfStrings(ss, itemRule->getRequiresBuyBaseFunc(), "requiresBuyBaseFunc");
+	addVectorOfStrings(ss, mod->getBaseFunctionNames(itemRule->getRequiresBuyBaseFunc()), "requiresBuyBaseFunc");
 	addVectorOfStrings(ss, itemRule->getCategories(), "categories");
 	addVectorOfStrings(ss, itemRule->getSupportedInventorySections(), "supportedInventorySections");
 
@@ -2640,9 +2640,9 @@ void StatsForNerdsState::initFacilityList()
 	addInteger(ss, facilityRule->getMonthlyCost(), "monthlyCost", 0, true);
 	addInteger(ss, facilityRule->getRefundValue(), "refundValue", 0, true);
 
-	addVectorOfStrings(ss, facilityRule->getRequireBaseFunc(), "requiresBaseFunc");
-	addVectorOfStrings(ss, facilityRule->getProvidedBaseFunc(), "provideBaseFunc");
-	addVectorOfStrings(ss, facilityRule->getForbiddenBaseFunc(), "forbiddenBaseFunc");
+	addVectorOfStrings(ss, mod->getBaseFunctionNames(facilityRule->getRequireBaseFunc()), "requiresBaseFunc");
+	addVectorOfStrings(ss, mod->getBaseFunctionNames(facilityRule->getProvidedBaseFunc()), "provideBaseFunc");
+	addVectorOfStrings(ss, mod->getBaseFunctionNames(facilityRule->getForbiddenBaseFunc()), "forbiddenBaseFunc");
 
 	addBoolean(ss, facilityRule->isLift(), "lift");
 	addBoolean(ss, facilityRule->isHyperwave(), "hyper");
@@ -2740,7 +2740,7 @@ void StatsForNerdsState::initCraftList()
 	std::ostringstream ss;
 
 	addVectorOfStrings(ss, craftRule->getRequirements(), "requires");
-	addVectorOfStrings(ss, craftRule->getRequiresBuyBaseFunc(), "requiresBuyBaseFunc");
+	addVectorOfStrings(ss, mod->getBaseFunctionNames(craftRule->getRequiresBuyBaseFunc()), "requiresBuyBaseFunc");
 
 	addInteger(ss, craftRule->getBuyCost(), "costBuy", 0, true);
 	addInteger(ss, craftRule->getRentCost(), "costRent", 0, true);

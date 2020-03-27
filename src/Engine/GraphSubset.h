@@ -34,6 +34,13 @@ struct AreaSubset
 	DataType beg_x, end_x;
 	DataType beg_y, end_y;
 
+	AreaSubset():
+			beg_x(0), end_x(0),
+			beg_y(0), end_y(0)
+	{
+
+	}
+
 	AreaSubset(int max_x, int max_y):
 			beg_x(0), end_x(max_x),
 			beg_y(0), end_y(max_y)
@@ -76,6 +83,37 @@ struct AreaSubset
 		return end_y - beg_y;
 	}
 
+	/**
+	 * Check if area is empty.
+	 * @return True if have non-zero area.
+	 */
+	explicit operator bool() const
+	{
+		return size_x() && size_y();
+	}
+
+	/**
+	 * Check if two areas are same.
+	 */
+	bool operator==(AreaSubset& other)
+	{
+		return
+			beg_x == other.beg_x &&
+			end_x == other.end_x &&
+
+			beg_y == other.beg_y &&
+			end_y == other.end_y &&
+
+			true;
+	}
+
+	/**
+	 * Check if two areas are not same.
+	 */
+	bool operator!=(AreaSubset& other)
+	{
+		return !(*this == other);
+	}
 
 	static inline void intersection_range(DataType& begin_a, DataType& end_a, const DataType& begin_b, const DataType& end_b)
 	{
