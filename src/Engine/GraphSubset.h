@@ -95,7 +95,7 @@ struct AreaSubset
 	/**
 	 * Check if two areas are same.
 	 */
-	bool operator==(AreaSubset& other)
+	bool operator==(const AreaSubset& other) const
 	{
 		return
 			beg_x == other.beg_x &&
@@ -110,7 +110,7 @@ struct AreaSubset
 	/**
 	 * Check if two areas are not same.
 	 */
-	bool operator!=(AreaSubset& other)
+	bool operator!=(const AreaSubset& other) const
 	{
 		return !(*this == other);
 	}
