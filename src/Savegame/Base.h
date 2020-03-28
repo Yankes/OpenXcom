@@ -80,7 +80,7 @@ private:
 	std::vector<BaseFacility*> _defenses;
 
 	/// Determines space taken up by ammo clips about to rearm craft.
-	double getIgnoredStores();
+	double getIgnoredStores() const;
 
 	using Target::load;
 public:
@@ -109,11 +109,17 @@ public:
 	/// Pre-calculates soldier stats with various bonuses.
 	void prepareSoldierStatsWithBonuses();
 	/// Gets the base's crafts.
-	std::vector<Craft*> *getCrafts();
+	std::vector<Craft*> *getCrafts() {	return &_crafts; }
+	/// Gets the base's crafts.
+	const std::vector<Craft*> *getCrafts() const { return &_crafts; }
 	/// Gets the base's transfers.
-	std::vector<Transfer*> *getTransfers();
+	std::vector<Transfer*> *getTransfers() { return &_transfers; }
+	/// Gets the base's transfers.
+	const std::vector<Transfer*> *getTransfers() const { return &_transfers; }
 	/// Gets the base's items.
-	ItemContainer *getStorageItems();
+	ItemContainer *getStorageItems() { return _items; }
+	/// Gets the base's items.
+	const ItemContainer *getStorageItems() const { return _items; }
 	/// Gets the base's scientists.
 	int getScientists() const;
 	/// Sets the base's scientists.
@@ -143,7 +149,7 @@ public:
 	/// Gets the base's available living quarters.
 	int getAvailableQuarters() const;
 	/// Gets the base's used storage space.
-	double getUsedStores();
+	double getUsedStores() const;
 	/// Checks if the base's stores are overfull.
 	bool storesOverfull(double offset = 0.0);
 	/// Gets the base's available storage space.

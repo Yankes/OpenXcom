@@ -420,35 +420,6 @@ void Base::prepareSoldierStatsWithBonuses()
 }
 
 /**
- * Returns the list of crafts in the base.
- * @return Pointer to the craft list.
- */
-std::vector<Craft*> *Base::getCrafts()
-{
-	return &_crafts;
-}
-
-/**
- * Returns the list of transfers destined
- * to this base.
- * @return Pointer to the transfer list.
- */
-std::vector<Transfer*> *Base::getTransfers()
-{
-	return &_transfers;
-}
-
-/**
- * Returns the list of items in the base storage rooms.
- * Does NOT return items assigned to craft or in transfer.
- * @return Pointer to the item list.
- */
-ItemContainer *Base::getStorageItems()
-{
-	return _items;
-}
-
-/**
  * Returns the amount of scientists currently in the base.
  * @return Number of scientists.
  */
@@ -812,7 +783,7 @@ int Base::getAvailableQuarters() const
  * and equipment about to arrive.
  * @return Storage space.
  */
-double Base::getUsedStores()
+double Base::getUsedStores() const
 {
 	double total = _items->getTotalSize(_mod);
 	for (std::vector<Craft*>::const_iterator i = _crafts.begin(); i != _crafts.end(); ++i)
@@ -877,18 +848,18 @@ int Base::getAvailableStores() const
  * Determines space taken up by ammo clips about to rearm craft.
  * @return Ignored storage space.
  */
-double Base::getIgnoredStores()
+double Base::getIgnoredStores() const
 {
 	double space = 0;
-	for (std::vector<Craft*>::iterator c = getCrafts()->begin(); c != getCrafts()->end(); ++c)
+	for (auto c : *getCrafts())
 	{
-		if ((*c)->getStatus() == "STR_REARMING")
+		if (c->getStatus() == "STR_REARMING")
 		{
-			for (std::vector<CraftWeapon*>::iterator w = (*c)->getWeapons()->begin(); w != (*c)->getWeapons()->end() ; ++w)
+			for (auto w : *c->getWeapons())
 			{
-				if (*w != 0 && (*w)->isRearming())
+				if (w != nullptr && w->isRearming())
 				{
-					std::string clip = (*w)->getRules()->getClipItem();
+					std::string clip = w->getRules()->getClipItem();
 					int available = getStorageItems()->getItem(clip);
 					if (!clip.empty() && available > 0)
 					{
@@ -896,7 +867,7 @@ double Base::getIgnoredStores()
 						int needed = 0;
 						if (clipSize > 0)
 						{
-							needed = ((*w)->getRules()->getAmmoMax() - (*w)->getAmmo()) / clipSize;
+							needed = (w->getRules()->getAmmoMax() - w->getAmmo()) / clipSize;
 						}
 						space += std::min(available, needed) * _mod->getItem(clip, true)->getSize();
 					}

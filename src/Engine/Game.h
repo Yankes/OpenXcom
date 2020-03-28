@@ -70,11 +70,11 @@ public:
 	/// Adjusts a linear volume level to an exponential one.
 	static double volumeExponent(int volume);
 	/// Gets the game's display screen.
-	Screen *getScreen() const;
+	Screen *getScreen() const { return _screen; }
 	/// Gets the game's cursor.
-	Cursor *getCursor() const;
+	Cursor *getCursor() const { return _cursor; }
 	/// Gets the FpsCounter.
-	FpsCounter *getFpsCounter() const;
+	FpsCounter *getFpsCounter() const { return _fpsCounter; }
 	/// Resets the state stack to a new state.
 	void setState(State *state);
 	/// Pushes a new state into the state stack.
@@ -82,13 +82,13 @@ public:
 	/// Pops the last state from the state stack.
 	void popState();
 	/// Gets the currently loaded language.
-	Language *getLanguage() const;
+	Language *getLanguage() const { return _lang; }
 	/// Gets the currently loaded saved game.
-	SavedGame *getSavedGame() const;
+	SavedGame *getSavedGame() const { return _save; }
 	/// Sets a new saved game for the game.
 	void setSavedGame(SavedGame *save);
 	/// Gets the currently loaded mod.
-	Mod *getMod() const;
+	Mod *getMod() const { return _mod; }
 	/// Loads the mods specified in the game options.
 	void loadMods();
 	/// Sets whether the mouse cursor is activated.

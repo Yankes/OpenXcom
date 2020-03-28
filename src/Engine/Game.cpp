@@ -400,33 +400,6 @@ double Game::volumeExponent(int volume)
 }
 
 /**
- * Returns the display screen used by the game.
- * @return Pointer to the screen.
- */
-Screen *Game::getScreen() const
-{
-	return _screen;
-}
-
-/**
- * Returns the mouse cursor used by the game.
- * @return Pointer to the cursor.
- */
-Cursor *Game::getCursor() const
-{
-	return _cursor;
-}
-
-/**
- * Returns the FpsCounter used by the game.
- * @return Pointer to the FpsCounter.
- */
-FpsCounter *Game::getFpsCounter() const
-{
-	return _fpsCounter;
-}
-
-/**
  * Pops all the states currently in stack and pushes in the new state.
  * A shortcut for cleaning up all the old states when they're not necessary
  * like in one-way transitions.
@@ -467,24 +440,6 @@ void Game::popState()
 }
 
 /**
- * Returns the language currently in use by the game.
- * @return Pointer to the language.
- */
-Language *Game::getLanguage() const
-{
-	return _lang;
-}
-
-/**
- * Returns the saved game currently in use by the game.
- * @return Pointer to the saved game.
- */
-SavedGame *Game::getSavedGame() const
-{
-	return _save;
-}
-
-/**
  * Sets a new saved game for the game to use.
  * @param save Pointer to the saved game.
  */
@@ -492,15 +447,6 @@ void Game::setSavedGame(SavedGame *save)
 {
 	delete _save;
 	_save = save;
-}
-
-/**
- * Returns the mod currently in use by the game.
- * @return Pointer to the mod.
- */
-Mod *Game::getMod() const
-{
-	return _mod;
 }
 
 /**
