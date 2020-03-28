@@ -42,7 +42,29 @@ class Vehicle;
 class Ufo;
 
 enum UfoDetection : int;
-
+enum BasePlacementErrors : int
+{
+	/// 0: ok
+	BPE_None = 0,
+	/// 1: not connected to lift or on top of another facility (standard OXC behavior)
+	BPE_NotConnected = 1,
+	/// 2: trying to upgrade over existing facility, but it's in use
+	BPE_Used = 2,
+	/// 3: trying to upgrade over existing facility, but it's already being upgraded
+	BPE_Upgrading = 3,
+	/// 4: trying to upgrade over existing facility, but size/placement mismatch
+	BPE_UpgradeSizeMismatch = 4,
+	/// 5: trying to upgrade over existing facility, but ruleset of new facility requires a specific existing facility
+	BPE_UpgradeRequireSpecific = 5,
+	/// 6: trying to upgrade over existing facility, but ruleset disallows it
+	BPE_UpgradeDisallowed = 6,
+	/// 7: trying to upgrade over existing facility, but all buildings next to it are under construction and build queue is off
+	BPE_Queue = 7,
+	/// 8: trying to build facility, but other building ruleset forbidd curreont one functionality
+	BPE_ForbiddenByOther = 8,
+	/// 9: trying to build facility, but other building is forbbiden by builded
+	BPE_ForbiddenByThis = 9,
+};
 
 struct BaseSumDailyRecovery
 {
@@ -261,8 +283,9 @@ public:
 	void destroyFacility(std::vector<BaseFacility*>::iterator facility);
 	/// Cleans up the defenses vector and optionally reclaims the tanks and their ammo.
 	void cleanupDefenses(bool reclaimItems);
+
 	/// Check if faciletes in area are used.
-	bool isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment = nullptr) const;
+	BasePlacementErrors isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment = nullptr) const;
 	/// Gets available base functionality.
 	RuleBaseFacilityFunctions getProvidedBaseFunc(BaseAreaSubset skip) const;
 	/// Gets used base functionality.
@@ -273,6 +296,7 @@ public:
 	RuleBaseFacilityFunctions getFutureBaseFunc(BaseAreaSubset skip) const;
 	/// Checks if it is possible to build another facility of a given type.
 	bool isMaxAllowedLimitReached(RuleBaseFacility *rule) const;
+
 	/// Gets the base's daily sum recovery rate.
 	BaseSumDailyRecovery getSumRecoveryPerDay() const;
 	/// Removes a craft from the base.

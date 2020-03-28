@@ -2093,7 +2093,7 @@ void Base::cleanupDefenses(bool reclaimItems)
 /**
  * Check if faciletes in area are used.
  */
-bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) const
+BasePlacementErrors Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) const
 {
 	struct Av
 	{
@@ -2123,9 +2123,10 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 
 	Av available;
 	Av removed;
-	RuleBaseFacilityFunctions provide = 0;
-	RuleBaseFacilityFunctions require = 0;
-	RuleBaseFacilityFunctions forbidden = 0;
+	RuleBaseFacilityFunctions provide;
+	RuleBaseFacilityFunctions require;
+	RuleBaseFacilityFunctions forbidden;
+	RuleBaseFacilityFunctions future;
 
 	int removedBuildings = 0;
 	int removedPrisonType[9] = { };
@@ -2151,7 +2152,7 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 					//too many prision types, give up
 					if (prisonCurr == prisonEnd)
 					{
-						return true;
+						return BPE_Used;
 					}
 					*prisonCurr = type;
 					++prisonCurr;
@@ -2161,7 +2162,7 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 			// if we build over lift better if new one is lift too, rigth now is bit bugged and game can crash if two lifts are defined but for future it can be useful.
 			if (replecment && rule->isLift() && !replecment->isLift())
 			{
-				return true;
+				return BPE_Used;
 			}
 		}
 		else
@@ -2169,6 +2170,7 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 			// sum all old one, not removed
 			require |= rule->getRequireBaseFunc();
 			forbidden |= rule->getForbiddenBaseFunc();
+			future |= rule->getProvidedBaseFunc();
 			if (bf->getBuildTime() == 0)
 			{
 				available.add(rule);
@@ -2192,12 +2194,6 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 
 	}
 
-	// nothing removed, skip.
-	if (removedBuildings == 0)
-	{
-		return false;
-	}
-
 	// sum new one too.
 	if (replecment)
 	{
@@ -2218,14 +2214,26 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 		// there still some other bulding that prevent placing new one
 		if ((forbidden & replecment->getProvidedBaseFunc()).any())
 		{
-			return true;
+			return BPE_ForbiddenByOther;
+		}
+
+		// check if there is any other buildins that is forbidden by this one
+		if ((future & replecment->getForbiddenBaseFunc()).any())
+		{
+			return BPE_ForbiddenByThis;
 		}
 	}
 
 	// if there is any required function that we do not have then it mean we trying remove somthing needed
 	if ((~provide & require).any())
 	{
-		return true;
+		return BPE_Used;
+	}
+
+	// nothing removed, skip.
+	if (removedBuildings == 0)
+	{
+		return BPE_None;
 	}
 
 	if (prisonBegin != prisonCurr)
@@ -2271,7 +2279,7 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 		{
 			if (typeSize.second < getUsedContainment(typeSize.first))
 			{
-				return true;
+				return BPE_Used;
 			}
 		}
 	}
@@ -2286,7 +2294,7 @@ bool Base::isAreaInUse(BaseAreaSubset area, const RuleBaseFacility* replecment) 
 		(removed.psiLaboratories > 0 && available.psiLaboratories < getUsedPsiLabs()) ||
 		(removed.training > 0 && available.training < getUsedTraining()) ||
 		false
-	);
+	) ? BPE_Used : BPE_None;
 }
 
 /**

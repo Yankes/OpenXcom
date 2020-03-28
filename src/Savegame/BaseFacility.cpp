@@ -173,7 +173,7 @@ bool BaseFacility::inUse() const
 		return false;
 	}
 
-	return _base->isAreaInUse(getPlacement());
+	return _base->isAreaInUse(getPlacement()) != BPE_None;
 }
 
 /**
