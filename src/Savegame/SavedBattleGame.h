@@ -103,7 +103,8 @@ private:
 	ScriptValues<SavedBattleGame> _scriptValues;
 	/// Selects a soldier.
 	BattleUnit *selectPlayerUnit(int dir, bool checkReselect = false, bool setReselect = false, bool checkInventory = false);
-
+	/// Run newTurnUnit and newTurnItem scripts
+	void updateScripts();
 public:
 	/// Creates a new battle save, based on the current generic save.
 	SavedBattleGame(Mod *rule, Language *lang);

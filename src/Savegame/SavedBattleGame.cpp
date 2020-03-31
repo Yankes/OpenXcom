@@ -1098,6 +1098,28 @@ void SavedBattleGame::startFirstTurn()
 	}
 
 	_turn = 1;
+
+	updateScripts();
+}
+
+void SavedBattleGame::updateScripts()
+{
+	for (std::vector<BattleUnit*>::iterator i = _units.begin(); i != _units.end(); ++i)
+	{
+		if ((*i)->getStatus() == STATUS_IGNORE_ME)
+		{
+			continue;
+		}
+
+		ModScript::scriptCallback<ModScript::NewTurnUnit>((*i)->getArmor(), (*i), this, this->getTurn(), _side);
+	}
+
+	for (auto& item : _items)
+	{
+		ModScript::scriptCallback<ModScript::NewTurnItem>(item->getRules(), item, this, this->getTurn(), _side);
+	}
+
+	reviveUnconsciousUnits(false);
 }
 
 /**
@@ -1204,22 +1226,7 @@ void SavedBattleGame::endTurn()
 	}
 
 	//scripts update
-	for (std::vector<BattleUnit*>::iterator i = _units.begin(); i != _units.end(); ++i)
-	{
-		if ((*i)->getStatus() == STATUS_IGNORE_ME)
-		{
-			continue;
-		}
-
-		ModScript::scriptCallback<ModScript::NewTurnUnit>((*i)->getArmor(), (*i), this, this->getTurn(), _side);
-	}
-
-	for (auto& item : _items)
-	{
-		ModScript::scriptCallback<ModScript::NewTurnItem>(item->getRules(), item, this, this->getTurn(), _side);
-	}
-
-	reviveUnconsciousUnits(false);
+	updateScripts();
 
 	//fov check will be done by `BattlescapeGame::endTurn`
 
