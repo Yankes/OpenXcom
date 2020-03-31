@@ -99,27 +99,10 @@ AbortMissionState::AbortMissionState(SavedBattleGame *battleGame, BattlescapeSta
 	}
 
 	// Calculate values
-	for (std::vector<BattleUnit*>::iterator i = _battleGame->getUnits()->begin(); i != _battleGame->getUnits()->end(); ++i)
-	{
-		if ((*i)->getOriginalFaction() == FACTION_PLAYER && !(*i)->isOut())
-		{
-			if ((*i)->isSummonedPlayerUnit())
-				continue;
-
-			if ((*i)->isInExitArea(START_POINT))
-			{
-				_inEntrance++;
-			}
-			else if ((*i)->isInExitArea(END_POINT))
-			{
-				_inExit++;
-			}
-			else
-			{
-				_outside++;
-			}
-		}
-	}
+	auto tally = _battleGame->getBattleGame()->tallyUnits();
+	_inEntrance = tally.inEntrance;
+	_inExit = tally.inExit;
+	_outside = tally.inField;
 
 	// Set up objects
 	_window->setHighContrast(true);

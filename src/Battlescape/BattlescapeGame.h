@@ -95,6 +95,25 @@ struct BattleAction : BattleActionCost
 	}
 };
 
+
+/**
+ * Count of diffrent state of units to determine who win
+ */
+struct BattlescapeTally
+{
+	/// number of live enemis (aliens and MC soldiers)
+	int liveAliens = 0;
+	/// number of live soldiers (only one that are not MC, include tanks but not summons)
+	int liveSoldiers = 0;
+
+	/// number of live soldiers on enterace tiles
+	int inEntrance = 0;
+	/// number of live soldiers on exit tiles.
+	int inExit = 0;
+	/// number of live soldiers in the middle of battlefieald.
+	int inField = 0;
+};
+
 /**
  * Battlescape game - the core game engine of the battlescape game.
  */
@@ -255,7 +274,8 @@ public:
 	BattleActionType getReservedAction();
 	/// Tallies the living units, converting them if necessary.
 	bool isSurrendering(BattleUnit* bu);
-	void tallyUnits(int &liveAliens, int &liveSoldiers);
+	/// Check count of units in diffrent state
+	BattlescapeTally tallyUnits();
 	bool convertInfected();
 	/// Sets the kneel reservation setting.
 	void setKneelReserved(bool reserved);

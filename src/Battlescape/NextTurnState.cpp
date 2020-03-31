@@ -398,14 +398,12 @@ void NextTurnState::close()
 	_battleGame->getBattleGame()->cleanupDeleted();
 	_game->popState();
 
-	int liveAliens = 0;
-	int liveSoldiers = 0;
-	_state->getBattleGame()->tallyUnits(liveAliens, liveSoldiers);
+	auto tally = _state->getBattleGame()->tallyUnits();
 
 	if (_battleGame->getBattleGame()->areAllEnemiesNeutralized())
 	{
 		// we don't care if someone was revived in the meantime, the decision to end the battle was already made!
-		liveAliens = 0;
+		tally.liveAliens = 0;
 
 		// mind control anyone who was revived (needed for correct recovery in the debriefing)
 		for (auto bu : *_battleGame->getUnits())
@@ -420,9 +418,9 @@ void NextTurnState::close()
 		_battleGame->getBattleGame()->resetAllEnemiesNeutralized();
 	}
 
-	if ((_battleGame->getObjectiveType() != MUST_DESTROY && liveAliens == 0) || liveSoldiers == 0)		// not the final mission and all aliens dead.
+	if ((_battleGame->getObjectiveType() != MUST_DESTROY && tally.liveAliens == 0) || tally.liveSoldiers == 0)		// not the final mission and all aliens dead.
 	{
-		_state->finishBattle(false, liveSoldiers);
+		_state->finishBattle(false, tally.liveSoldiers);
 	}
 	else
 	{
