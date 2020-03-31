@@ -2752,7 +2752,7 @@ BattlescapeTally BattlescapeGame::tallyUnits()
 
 	for (std::vector<BattleUnit*>::iterator j = _save->getUnits()->begin(); j != _save->getUnits()->end(); ++j)
 	{
-		if (!(*j)->isOut())
+		if (!(*j)->isOut() && !(*j)->isOutThresholdExceed())
 		{
 			if ((*j)->getOriginalFaction() == FACTION_HOSTILE)
 			{
