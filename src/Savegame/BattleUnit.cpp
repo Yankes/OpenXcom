@@ -3199,7 +3199,7 @@ bool BattleUnit::reloadAmmo()
  */
 bool BattleUnit::isInExitArea(SpecialTileType stt) const
 {
-	return _tile && _tile->getMapData(O_FLOOR) && (_tile->getMapData(O_FLOOR)->getSpecialType() == stt);
+	return liesInExitArea(_tile, stt);
 }
 
 /**

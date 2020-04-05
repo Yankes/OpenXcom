@@ -230,9 +230,8 @@ void BriefingState::btnOkClick(Action *)
 	if (_infoOnly) return;
 
 	BattlescapeState *bs = new BattlescapeState;
-	int liveAliens = 0, liveSoldiers = 0;
-	bs->getBattleGame()->tallyUnits(liveAliens, liveSoldiers);
-	if (liveAliens > 0)
+	auto tally = bs->getBattleGame()->tallyUnits();
+	if (tally.liveAliens > 0)
 	{
 		_game->pushState(bs);
 		_game->getSavedGame()->getSavedBattle()->setBattleState(bs);

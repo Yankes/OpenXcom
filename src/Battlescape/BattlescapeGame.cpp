@@ -604,47 +604,13 @@ void BattlescapeGame::endTurn()
 	_save->getTileEngine()->calculateLighting(LL_FIRE, TileEngine::invalid, 0, true);
 	_save->getTileEngine()->recalculateFOV();
 
-	// if all units from either faction are killed - the mission is over.
-	int liveAliens = 0;
-	int liveSoldiers = 0;
-	int inExit = 0;
-
 	// Calculate values
-	for (std::vector<BattleUnit*>::iterator j = _save->getUnits()->begin(); j != _save->getUnits()->end(); ++j)
-	{
-		if (!(*j)->isOut())
-		{
-			if ((*j)->getOriginalFaction() == FACTION_HOSTILE)
-			{
-				if (!Options::allowPsionicCapture || (*j)->getFaction() != FACTION_PLAYER)
-				{
-					liveAliens++;
-				}
-			}
-			else if ((*j)->getOriginalFaction() == FACTION_PLAYER)
-			{
-				if ((*j)->isSummonedPlayerUnit())
-					continue;
+	auto tally = _save->getBattleGame()->tallyUnits();
 
-				if ((*j)->isInExitArea(END_POINT))
-				{
-					inExit++;
-				}
-				if ((*j)->getFaction() == FACTION_PLAYER)
-				{
-					liveSoldiers++;
-				}
-				else
-				{
-					liveAliens++;
-				}
-			}
-		}
-	}
-
+	// if all units from either faction are killed - the mission is over.
 	if (_save->allObjectivesDestroyed() && _save->getObjectiveType() == MUST_DESTROY)
 	{
-		_parentState->finishBattle(false, liveSoldiers);
+		_parentState->finishBattle(false, tally.liveSoldiers);
 		return;
 	}
 	if (_save->getTurnLimit() > 0 && _save->getTurn() > _save->getTurnLimit())
@@ -653,11 +619,11 @@ void BattlescapeGame::endTurn()
 		{
 		case FORCE_ABORT:
 			_save->setAborted(true);
-			_parentState->finishBattle(true, inExit);
+			_parentState->finishBattle(true, tally.inExit);
 			return;
 		case FORCE_WIN:
 		case FORCE_WIN_SURRENDER:
-			_parentState->finishBattle(false, liveSoldiers);
+			_parentState->finishBattle(false, tally.liveSoldiers);
 			return;
 		case FORCE_LOSE:
 		default:
@@ -667,7 +633,7 @@ void BattlescapeGame::endTurn()
 		}
 	}
 
-	if (liveAliens > 0 && liveSoldiers > 0)
+	if (tally.liveAliens > 0 && tally.liveSoldiers > 0)
 	{
 		showInfoBoxQueue();
 
@@ -680,7 +646,7 @@ void BattlescapeGame::endTurn()
 		}
 	}
 
-	bool battleComplete = liveAliens == 0 || liveSoldiers == 0;
+	bool battleComplete = tally.liveAliens == 0 || tally.liveSoldiers == 0;
 
 	if ((_save->getSide() != FACTION_NEUTRAL || battleComplete)
 		&& _endTurnRequested)
@@ -2779,17 +2745,14 @@ bool BattlescapeGame::isSurrendering(BattleUnit* bu)
 
 /**
  * Tallies the living units in the game and, if required, converts units into their spawn unit.
- * @param &liveAliens The integer in which to store the live alien tally.
- * @param &liveSoldiers The integer in which to store the live XCom tally.
- * @param convert Should we convert infected units?
  */
-void BattlescapeGame::tallyUnits(int &liveAliens, int &liveSoldiers)
+BattlescapeTally BattlescapeGame::tallyUnits()
 {
-	liveSoldiers = 0;
-	liveAliens = 0;
+	BattlescapeTally tally = { };
 
 	for (std::vector<BattleUnit*>::iterator j = _save->getUnits()->begin(); j != _save->getUnits()->end(); ++j)
 	{
+		//TODO: add handling if stunned unit for display proporse in abort mission
 		if (!(*j)->isOut())
 		{
 			if ((*j)->getOriginalFaction() == FACTION_HOSTILE)
@@ -2804,7 +2767,7 @@ void BattlescapeGame::tallyUnits(int &liveAliens, int &liveSoldiers)
 				}
 				else
 				{
-					liveAliens++;
+					tally.liveAliens++;
 				}
 			}
 			else if ((*j)->getOriginalFaction() == FACTION_PLAYER)
@@ -2812,17 +2775,33 @@ void BattlescapeGame::tallyUnits(int &liveAliens, int &liveSoldiers)
 				if ((*j)->isSummonedPlayerUnit())
 					continue;
 
-				if ((*j)->getFaction() == FACTION_PLAYER)
+				auto tile = (*j)->getTile() ? (*j)->getTile() : _save->getTile((*j)->getPosition());
+				if ((*j->liesInExitArea(tile, START_POINT)))
 				{
-					liveSoldiers++;
+					tally.inEntrance++;
+				}
+				else if ((*j)->liesInExitArea(tile, END_POINT))
+				{
+					tally.inExit++;
 				}
 				else
 				{
-					liveAliens++;
+					tally.inField++;
+				}
+
+				if ((*j)->getFaction() == FACTION_PLAYER)
+				{
+					tally.liveSoldiers++;
+				}
+				else
+				{
+					tally.liveAliens++;
 				}
 			}
 		}
 	}
+
+	return tally;
 }
 
 bool BattlescapeGame::convertInfected()
@@ -3038,11 +3017,9 @@ void BattlescapeGame::autoEndBattle()
 		}
 		else
 		{
-			int liveAliens = 0;
-			int liveSoldiers = 0;
-			tallyUnits(liveAliens, liveSoldiers);
-			end = (liveAliens == 0 || liveSoldiers == 0);
-			if (liveAliens == 0)
+			auto tally = tallyUnits();
+			end = (tally.liveAliens == 0 || tally.liveSoldiers == 0);
+			if (tally.liveAliens == 0)
 			{
 				_allEnemiesNeutralized = true; // remember that all aliens were neutralized (and the battle should end no matter what)
 				askForConfirmation = true;

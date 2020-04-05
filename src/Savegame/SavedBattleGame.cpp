@@ -1176,11 +1176,10 @@ void SavedBattleGame::endTurn()
 		while (_selectedUnit && _selectedUnit->getFaction() != FACTION_PLAYER)
 			selectNextPlayerUnit();
 	}
-	int liveSoldiers, liveAliens;
 
-	_battleState->getBattleGame()->tallyUnits(liveAliens, liveSoldiers);
+	auto tally = _battleState->getBattleGame()->tallyUnits();
 
-	if ((_turn > _cheatTurn / 2 && liveAliens <= 2) || _turn > _cheatTurn)
+	if ((_turn > _cheatTurn / 2 && tally.liveAliens <= 2) || _turn > _cheatTurn)
 	{
 		_cheating = true;
 	}
