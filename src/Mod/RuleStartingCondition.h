@@ -50,7 +50,7 @@ public:
 	/// Cleans up the Starting Conditions ruleset.
 	~RuleStartingCondition();
 	/// Loads Starting Conditions data from YAML.
-	void load(const YAML::Node& node);
+	void load(const YAML::Node& node, Mod *mod);
 	/// Gets the Starting Conditions's type.
 	const std::string& getType() const { return _type; }
 	/// Gets the allowed armor types.

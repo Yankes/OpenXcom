@@ -113,10 +113,10 @@ void Armor::load(const YAML::Node &node, const ModScript &parsers, Mod *mod)
 	}
 	else if (node["corpseBattle"])
 	{
-		_corpseBattle = node["corpseBattle"].as< std::vector<std::string> >();
-		_corpseGeo = _corpseBattle[0];
+		mod->loadNames(_type, _corpseBattle, node["corpseBattle"]);
+		_corpseGeo = _corpseBattle.at(0);
 	}
-	_builtInWeapons = node["builtInWeapons"].as<std::vector<std::string> >(_builtInWeapons);
+	mod->loadNames(_type, _builtInWeapons, node["builtInWeapons"]);
 	_corpseGeo = node["corpseGeo"].as<std::string>(_corpseGeo);
 	_storeItem = node["storeItem"].as<std::string>(_storeItem);
 	_specWeapon = node["specialWeapon"].as<std::string>(_specWeapon);
@@ -166,7 +166,7 @@ void Armor::load(const YAML::Node &node, const ModScript &parsers, Mod *mod)
 			_damageModifier[i] = dmg[i].as<float>();
 		}
 	}
-	_loftempsSet = node["loftempsSet"].as< std::vector<int> >(_loftempsSet);
+	mod->loadInts(_type, _loftempsSet, node["loftempsSet"]);
 	if (node["loftemps"])
 		_loftempsSet.push_back(node["loftemps"].as<int>());
 	_deathFrames = node["deathFrames"].as<int>(_deathFrames);
@@ -226,14 +226,14 @@ void Armor::load(const YAML::Node &node, const ModScript &parsers, Mod *mod)
 	_hairColorGroup = node["spriteHairGroup"].as<int>(_hairColorGroup);
 	_rankColorGroup = node["spriteRankGroup"].as<int>(_rankColorGroup);
 	_utileColorGroup = node["spriteUtileGroup"].as<int>(_utileColorGroup);
-	_faceColor = node["spriteFaceColor"].as<std::vector<int> >(_faceColor);
-	_hairColor = node["spriteHairColor"].as<std::vector<int> >(_hairColor);
-	_rankColor = node["spriteRankColor"].as<std::vector<int> >(_rankColor);
-	_utileColor = node["spriteUtileColor"].as<std::vector<int> >(_utileColor);
+	mod->loadInts(_type, _faceColor, node["spriteFaceColor"]);
+	mod->loadInts(_type, _hairColor, node["spriteHairColor"]);
+	mod->loadInts(_type, _rankColor, node["spriteRankColor"]);
+	mod->loadInts(_type, _utileColor, node["spriteUtileColor"]);
 
 	_battleUnitScripts.load(_type, node, parsers.battleUnitScripts);
 
-	_units = node["units"].as< std::vector<std::string> >(_units);
+	mod->loadUnorederedNames(_type, _units, node["units"]);
 	_scriptValues.load(node, parsers.getShared());
 	mod->loadSpriteOffset(_type, _customArmorPreviewIndex, node["customArmorPreviewIndex"], "CustomArmorPreviews");
 	loadTriBoolHelper(_allowsRunning, node["allowsRunning"]);

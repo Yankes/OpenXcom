@@ -55,7 +55,7 @@ void RuleManufacture::load(const YAML::Node &node, Mod* mod, int listOrder)
 		_producedItemsNames[_name] = value;
 	}
 	_category = node["category"].as<std::string>(_category);
-	_requiresName = node["requires"].as< std::vector<std::string> >(_requiresName);
+	mod->loadUnorederedNames(_name, _requiresName, node["requires"]);
 	mod->loadBaseFunction(_name, _requiresBaseFunc, node["requiresBaseFunc"]);
 	_space = node["space"].as<int>(_space);
 	_time = node["time"].as<int>(_time);

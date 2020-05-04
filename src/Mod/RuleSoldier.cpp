@@ -79,7 +79,7 @@ void RuleSoldier::load(const YAML::Node &node, Mod *mod, int listOrder, const Mo
 		_type = "STR_SOLDIER";
 
 	//requires
-	_requires = node["requires"].as< std::vector<std::string> >(_requires);
+	mod->loadUnorederedNames(_type, _requires, node["requires"]);
 	mod->loadBaseFunction(_type, _requiresBuyBaseFunc, node["requiresBuyBaseFunc"]);
 
 
@@ -174,13 +174,13 @@ void RuleSoldier::load(const YAML::Node &node, Mod *mod, int listOrder, const Mo
 		_statStrings.push_back(statString);
 	}
 
-	_rankStrings = node["rankStrings"].as< std::vector<std::string> >(_rankStrings);
+	mod->loadNames(_type, _rankStrings, node["rankStrings"]);
 	mod->loadSpriteOffset(_type, _rankSprite, node["rankSprite"], "BASEBITS.PCK");
 	mod->loadSpriteOffset(_type, _rankSpriteBattlescape, node["rankBattleSprite"], "SMOKE.PCK");
 	mod->loadSpriteOffset(_type, _rankSpriteTiny, node["rankTinySprite"], "TinyRanks");
 	mod->loadSpriteOffset(_type, _skillIconSprite, node["skillIconSprite"], "SPICONS.DAT");
 
-	_skillNames = node["skills"].as<std::vector<std::string> >(_skillNames);
+	mod->loadNames(_type, _skillNames, node["skills"]);
 
 	_listOrder = node["listOrder"].as<int>(_listOrder);
 	if (!_listOrder)

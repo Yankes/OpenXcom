@@ -47,26 +47,26 @@ RuleStartingCondition::~RuleStartingCondition()
  * Loads the Starting Conditions from a YAML file.
  * @param node YAML node.
  */
-void RuleStartingCondition::load(const YAML::Node& node)
+void RuleStartingCondition::load(const YAML::Node& node, Mod *mod)
 {
 	if (const YAML::Node& parent = node["refNode"])
 	{
-		load(parent);
+		load(parent, mod);
 	}
 	_type = node["type"].as<std::string>(_type);
 	_defaultArmor = node["defaultArmor"].as< std::map<std::string, std::map<std::string, int> > >(_defaultArmor);
-	_allowedArmors = node["allowedArmors"].as< std::vector<std::string> >(_allowedArmors);
-	_forbiddenArmors = node["forbiddenArmors"].as< std::vector<std::string> >(_forbiddenArmors);
-	_allowedVehicles = node["allowedVehicles"].as< std::vector<std::string> >(_allowedVehicles);
-	_forbiddenVehicles = node["forbiddenVehicles"].as< std::vector<std::string> >(_forbiddenVehicles);
-	_allowedItems = node["allowedItems"].as< std::vector<std::string> >(_allowedItems);
-	_forbiddenItems = node["forbiddenItems"].as< std::vector<std::string> >(_forbiddenItems);
-	_allowedItemCategories = node["allowedItemCategories"].as< std::vector<std::string> >(_allowedItemCategories);
-	_forbiddenItemCategories = node["forbiddenItemCategories"].as< std::vector<std::string> >(_forbiddenItemCategories);
-	_allowedCraft = node["allowedCraft"].as< std::vector<std::string> >(_allowedCraft);
-	_forbiddenCraft = node["forbiddenCraft"].as< std::vector<std::string> >(_forbiddenCraft);
-	_allowedSoldierTypes = node["allowedSoldierTypes"].as< std::vector<std::string> >(_allowedSoldierTypes);
-	_forbiddenSoldierTypes = node["forbiddenSoldierTypes"].as< std::vector<std::string> >(_forbiddenSoldierTypes);
+	mod->loadUnorederedNames(_type, _allowedArmors, node["allowedArmors"]);
+	mod->loadUnorederedNames(_type, _forbiddenArmors, node["forbiddenArmors"]);
+	mod->loadUnorederedNames(_type, _allowedVehicles, node["allowedVehicles"]);
+	mod->loadUnorederedNames(_type, _forbiddenVehicles, node["forbiddenVehicles"]);
+	mod->loadUnorederedNames(_type, _allowedItems, node["allowedItems"]);
+	mod->loadUnorederedNames(_type, _forbiddenItems, node["forbiddenItems"]);
+	mod->loadUnorederedNames(_type, _allowedItemCategories, node["allowedItemCategories"]);
+	mod->loadUnorederedNames(_type, _forbiddenItemCategories, node["forbiddenItemCategories"]);
+	mod->loadUnorederedNames(_type, _allowedCraft, node["allowedCraft"]);
+	mod->loadUnorederedNames(_type, _forbiddenCraft, node["forbiddenCraft"]);
+	mod->loadUnorederedNames(_type, _allowedSoldierTypes, node["allowedSoldierTypes"]);
+	mod->loadUnorederedNames(_type, _forbiddenSoldierTypes, node["forbiddenSoldierTypes"]);
 	_requiredItems = node["requiredItems"].as< std::map<std::string, int> >(_requiredItems);
 	_destroyRequiredItems = node["destroyRequiredItems"].as<bool>(_destroyRequiredItems);
 

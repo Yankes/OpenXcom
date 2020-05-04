@@ -1235,6 +1235,128 @@ std::vector<std::string> Mod::getBaseFunctionNames(RuleBaseFacilityFunctions f) 
 	return vec;
 }
 
+namespace
+{
+
+const std::string YamlTagSeq = "tag:yaml.org,2002:seq";
+const std::string YamlTagMap = "tag:yaml.org,2002:map";
+const std::string YamlTagNonSpecific = "?";
+
+const std::string AddTag = "!add";
+const std::string RemoveTag = "!remove";
+
+bool isListHelper(const YAML::Node &node)
+{
+	return node.IsSequence() == true && (node.Tag() == YamlTagSeq || node.Tag() == YamlTagNonSpecific);
+}
+
+bool isMapHelper(const YAML::Node &node)
+{
+	return node.IsMap() == true && (node.Tag() == YamlTagMap || node.Tag() == YamlTagNonSpecific);
+}
+
+void throwOnBadListHelper(const std::string &parent, const YAML::Node &node)
+{
+	std::ostringstream err;
+	if (node.IsSequence())
+	{
+		//is sequence but still could not be loaded, this mean tag is wrong
+		err << "Error for '" << parent << "': unsupported node tag '" << node.Tag() << "' at line " << node.Mark().line;
+	}
+	else
+	{
+		err << "Error for '" << parent << "': wrong node type, expected list at line " << node.Mark().line;
+	}
+	throw Exception(err.str());
+}
+
+template<typename T>
+void loadVectorHelper(const std::string &parent, std::vector<T>& v, const YAML::Node &node)
+{
+	if (node)
+	{
+		if (isListHelper(node))
+		{
+			v = node.as< std::vector<T> >();
+		}
+		else
+		{
+			throwOnBadListHelper(parent, node);
+		}
+	}
+}
+
+template<typename T>
+void loadUnorederedVectorHelper(const std::string &parent, std::vector<T>& v, const YAML::Node &node)
+{
+	if (node)
+	{
+		if (isListHelper(node))
+		{
+			v = node.as< std::vector<T> >();
+		}
+		else if (node.Tag() == AddTag)
+		{
+			auto add = node.as< std::vector<T> >();
+			v.insert(v.end(), add.begin(), add.end());
+		}
+		else if (node.Tag() == RemoveTag)
+		{
+			const auto remove = node.as< std::vector<T> >();
+
+			const auto begin = v.begin();
+			auto end = v.end();
+			for (auto& r : remove)
+			{
+				end = std::remove(begin, end, r);
+			}
+			v.erase(end, v.end());
+		}
+		else
+		{
+			throwOnBadListHelper(parent, node);
+		}
+	}
+}
+
+} // namespace
+
+/**
+ * Gets list of ints.
+ * Another mod can only override whole list, no partial edits of it.
+ */
+void Mod::loadInts(const std::string &parent, std::vector<int>& ints, const YAML::Node &node)
+{
+	loadVectorHelper(parent, ints, node);
+}
+
+/**
+ * Gets list of ints where order do not matter.
+ * Another mod can remove or add new values without altering whole list.
+ */
+void Mod::loadUnorederedInts(const std::string &parent, std::vector<int>& ints, const YAML::Node &node)
+{
+	loadUnorederedVectorHelper(parent, ints, node);
+}
+
+/**
+ * Gets list of names.
+ * Another mod can only override whole list, no partial edits of it.
+ */
+void Mod::loadNames(const std::string &parent, std::vector<std::string>& names, const YAML::Node &node)
+{
+	loadVectorHelper(parent, names, node);
+}
+
+/**
+ * Gets list of names where order do not matter.
+ * Another mod can remove or add new values without altering whole list.
+ */
+void Mod::loadUnorederedNames(const std::string &parent, std::vector<std::string>& names, const YAML::Node &node)
+{
+	loadUnorederedVectorHelper(parent, names, node);
+}
+
 
 template<typename T>
 static void afterLoadHelper(const char* name, Mod* mod, std::map<std::string, T*>& list, void (T::* func)(const Mod*))
@@ -1791,7 +1913,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		RuleSkill *rule = loadRule(*i, &_skills, &_skillsIndex);
 		if (rule != 0)
 		{
-			rule->load(*i, parsers);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i = doc["soldiers"].begin(); i != doc["soldiers"].end(); ++i)
@@ -1832,7 +1954,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		RuleStartingCondition *rule = loadRule(*i, &_startingConditions, &_startingConditionsIndex);
 		if (rule != 0)
 		{
-			rule->load(*i);
+			rule->load(*i, this);
 		}
 	}
 	for (YAML::const_iterator i = doc["alienDeployments"].begin(); i != doc["alienDeployments"].end(); ++i)

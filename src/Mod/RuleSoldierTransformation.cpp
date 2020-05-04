@@ -54,7 +54,7 @@ void RuleSoldierTransformation::load(const YAML::Node &node, Mod* mod, int listO
 		_listOrder = listOrder;
 	}
 
-	_requires = node["requires"].as<std::vector<std::string > >(_requires);
+	mod->loadUnorederedNames(_name, _requires, node["requires"]);
 	mod->loadBaseFunction(_name, _requiresBaseFunc, node["requiresBaseFunc"]);
 	_producedItem = node["producedItem"].as<std::string >(_producedItem);
 	_producedSoldierType = node["producedSoldierType"].as<std::string >(_producedSoldierType);
@@ -65,9 +65,9 @@ void RuleSoldierTransformation::load(const YAML::Node &node, Mod* mod, int listO
 	_allowsDeadSoldiers = node["allowsDeadSoldiers"].as<bool >(_allowsDeadSoldiers);
 	_allowsLiveSoldiers = node["allowsLiveSoldiers"].as<bool >(_allowsLiveSoldiers);
 	_allowsWoundedSoldiers = node["allowsWoundedSoldiers"].as<bool >(_allowsWoundedSoldiers);
-	_allowedSoldierTypes = node["allowedSoldierTypes"].as<std::vector<std::string > >(_allowedSoldierTypes);
-	_requiredPreviousTransformations = node["requiredPreviousTransformations"].as<std::vector<std::string > >(_requiredPreviousTransformations);
-	_forbiddenPreviousTransformations = node["forbiddenPreviousTransformations"].as<std::vector<std::string > >(_forbiddenPreviousTransformations);
+	mod->loadUnorederedNames(_name, _allowedSoldierTypes, node["allowedSoldierTypes"]);
+	mod->loadUnorederedNames(_name, _requiredPreviousTransformations, node["requiredPreviousTransformations"]);
+	mod->loadUnorederedNames(_name, _forbiddenPreviousTransformations, node["forbiddenPreviousTransformations"]);
 	_requiredMinStats = node["requiredMinStats"].as<UnitStats >(_requiredMinStats);
 	_requiredItems = node["requiredItems"].as< std::map<std::string, int> >(_requiredItems);
 	_requiredCommendations = node["requiredCommendations"].as< std::map<std::string, int> >(_requiredCommendations);

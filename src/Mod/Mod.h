@@ -414,6 +414,16 @@ public:
 	/// Get names of function names in given bitset.
 	std::vector<std::string> getBaseFunctionNames(RuleBaseFacilityFunctions f) const;
 
+	/// Gets list of ints.
+	void loadInts(const std::string &parent, std::vector<int>& ints, const YAML::Node &node);
+	/// Gets list of ints where order do not matter.
+	void loadUnorederedInts(const std::string &parent, std::vector<int>& ints, const YAML::Node &node);
+
+	/// Gets list of names.
+	void loadNames(const std::string &parent, std::vector<std::string>& names, const YAML::Node &node);
+	/// Gets list of names where order do not matter.
+	void loadUnorederedNames(const std::string &parent, std::vector<std::string>& names, const YAML::Node &node);
+
 	/// Loads a list of mods.
 	void loadAll();
 	/// Generates the starting saved game.

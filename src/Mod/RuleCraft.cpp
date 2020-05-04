@@ -75,7 +75,7 @@ void RuleCraft::load(const YAML::Node &node, Mod *mod, int listOrder)
 	_type = node["type"].as<std::string>(_type);
 
 	//requires
-	_requires = node["requires"].as< std::vector<std::string> >(_requires);
+	mod->loadUnorederedNames(_type, _requires, node["requires"]);
 	mod->loadBaseFunction(_type, _requiresBuyBaseFunc, node["requiresBuyBaseFunc"]);
 
 	if (node["sprite"])
