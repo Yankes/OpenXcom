@@ -569,7 +569,7 @@ void TileEngine::addLight(MapSubset gs, Position center, int power, LightLayers 
 		{
 			const auto target = tile->getPosition();
 			const auto diff = target - center;
-			const auto distance = (int)Round(Position::distance(target, center));
+			const auto distance = (int)Round(Position::distance(target.toVoxel(), center.toVoxel()) / Position::TileXY);
 			const auto targetLight = tile->getLightMulti(layer);
 			auto currLight = power - distance;
 
