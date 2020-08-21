@@ -87,7 +87,7 @@ public:
 	 * @param direction Source direction.
 	 * @param vector Pointer to a position (which acts as a vector).
 	 */
-	static void directionToVector(int direction, Position *vector)
+	constexpr static void directionToVector(int direction, Position *vector)
 	{
 		vector->x = dir_x[direction];
 		vector->y = dir_y[direction];
@@ -99,18 +99,28 @@ public:
 	 * @param vector Pointer to a position (which acts as a vector).
 	 * @param dir Resulting direction.
 	 */
-	static void vectorToDirection(const Position &vector, int &dir)
+	constexpr static void vectorToDirection(Position vector, int &dir)
 	{
-		dir = -1;
+		dir = vectorToDirection(vector);
+	}
+
+	/**
+	 * Converts direction to a vector. Direction starts north = 0 and goes clockwise.
+	 * @param vector Pointer to a position (which acts as a vector).
+	 * @return dir Resulting direction.
+	 */
+	constexpr static int vectorToDirection(Position vector)
+	{
 		for (int i = 0; i < 8; ++i)
 		{
 			if (dir_x[i] == vector.x && dir_y[i] == vector.y)
 			{
-				dir = i;
-				return;
+				return i;
 			}
 		}
+		return -1;
 	}
+
 	/// Checks whether a path is ready and gives the first direction.
 	int getStartDirection() const;
 	/// Dequeues a direction.

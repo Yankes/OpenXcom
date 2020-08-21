@@ -66,18 +66,73 @@ private:
 	 */
 	struct VisibilityBlockCache
 	{
-		Uint8 blockDir;
-		Uint8 blockDirUp;
-		Uint8 blockDirDown;
+		Uint32 blockDir;
 
 		Uint8 bigWall;
 
 		Uint8 height;
 
-		Uint8 blockUp: 1;
-		Uint8 blockDown: 1;
-		Uint8 smoke: 1;
-		Uint8 fire: 1;
+		constexpr static Uint32 MaskBlockDirMul = 8;
+		constexpr static Uint32 MaskBlockDirOffset = MaskBlockDirMul * 1;
+
+		constexpr static Uint32 MaskBlockUpDownOffset = MaskBlockDirMul * 3;
+		constexpr static Uint32 MaskBlockDown = (1u << (MaskBlockUpDownOffset + 0));
+		constexpr static Uint32 MaskBlockDummy = (1u << (MaskBlockUpDownOffset + 1));
+		constexpr static Uint32 MaskBlockUp = (1u << (MaskBlockUpDownOffset + 2));
+
+		constexpr static Uint32 MaskFire = (1u << (MaskBlockUpDownOffset + 3));
+		constexpr static Uint32 MaskSmoke = (1u << (MaskBlockUpDownOffset + 4));
+
+
+		bool getBlockUpDown(int z) const
+		{
+			return blockDir & (1u << (MaskBlockUpDownOffset + 1 + z));
+		}
+		bool getBlockDir(int dir, int z) const
+		{
+			return blockDir & (1u << (MaskBlockDirOffset + MaskBlockDirMul * z + dir));
+		}
+		void addBlockDir(int dir, int z, bool p)
+		{
+			blockDir |= p * (1u << (MaskBlockDirOffset + MaskBlockDirMul * z + dir));
+		}
+
+		bool getBlockUp() const
+		{
+			return blockDir & MaskBlockUp;
+		}
+		void addBlockUp(bool p)
+		{
+			blockDir |= p * MaskBlockUp;
+		}
+
+		bool getBlockDown() const
+		{
+			return blockDir & MaskBlockDown;
+		}
+		void addBlockDown(bool p)
+		{
+			blockDir |= p * MaskBlockDown;
+		}
+
+		bool getFire() const
+		{
+			return blockDir & MaskFire;
+		}
+		void addFire(bool p)
+		{
+			blockDir |= p * MaskFire;
+		}
+
+		bool getSmoke() const
+		{
+			return blockDir & MaskSmoke;
+		}
+		void addSmoke(bool p)
+		{
+			blockDir |= p * MaskSmoke;
+		}
+
 	};
 	/**
 	 * Helper class storing reaction data.
