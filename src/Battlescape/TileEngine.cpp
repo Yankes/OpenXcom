@@ -2891,7 +2891,7 @@ int TileEngine::verticalBlockage(Tile *startTile, Tile *endTile, ItemDamageType 
 	int block = 0;
 
 	// safety check
-	if (startTile == 0 || endTile == 0) return 0;
+	if (startTile == 0 || endTile == 0) return 255;
 
 	auto startPos = startTile->getPosition();
 	auto endPos = endTile->getPosition();
@@ -2949,7 +2949,7 @@ int TileEngine::horizontalBlockage(Tile *startTile, Tile *endTile, ItemDamageTyp
 	const Position oneTileWest = Position(-1, 0, 0);
 
 	// safety check
-	if (startTile == 0 || endTile == 0) return 0;
+	if (startTile == 0 || endTile == 0) return 255;
 
 	auto startPos = startTile->getPosition();
 	auto endPos = endTile->getPosition();
@@ -3128,7 +3128,7 @@ int TileEngine::blockage(Tile *tile, const TilePart part, ItemDamageType type, i
 {
 	int blockage = 0;
 
-	if (tile == 0) return 0; // probably outside the map here
+	if (tile == 0) return 255; // probably outside the map here
 
 	MapData *mapData = tile->getMapData(part);
 	if (mapData)
