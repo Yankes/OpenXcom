@@ -249,6 +249,338 @@ MapSubset mapAreaExpand(MapSubset gs, int radius)
 	return { std::make_pair(gs.beg_x - radius, gs.end_x + radius), std::make_pair(gs.beg_y - radius, gs.end_y + radius) };
 }
 
+
+
+enum Axis : char
+{
+	X = 0,
+	Y = 1,
+	Z = 2,
+	AxisMax = 3,
+	AxisInvalid = -1,
+};
+
+enum BoxVertex : char
+{
+	E_000 = 0b000,
+	E_001 = 0b001,
+	E_010 = 0b010,
+	E_011 = 0b011,
+	E_100 = 0b100,
+	E_101 = 0b101,
+	E_110 = 0b110,
+	E_111 = 0b111,
+	BoxEdgeMax = 8,
+};
+
+constexpr std::array vertexIndexToAxis = {
+	AxisInvalid,
+	X, // 0b001
+	Y, // 0b010
+	AxisInvalid,
+	Z, // 0b100
+	AxisInvalid,
+	AxisInvalid,
+	AxisInvalid,
+};
+
+using Pos = std::array<int, AxisMax>;
+using Box = std::array<int, AxisMax * 2>;
+
+constexpr Box fromPos(Pos a, Pos b)
+{
+	return
+	{
+		a[0],
+		a[1],
+		a[2],
+		b[0],
+		b[1],
+		b[2],
+	};
+}
+
+constexpr Pos addPos(Pos a, Pos b)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		a[i] += b[i];
+	}
+	return a;
+}
+
+constexpr void intersectBoxWith(Box& target, const Box& limit)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		if ((target[i] > limit[i + AxisMax]) || (limit[i] > target[i + AxisMax]))
+		{
+			//intersection is empty
+			target[i + AxisMax] = target[i];
+		}
+		else
+		{
+			target[i] = std::max(target[i], limit[i]);
+			target[i + AxisMax] = std::min(target[i + AxisMax], limit[i + 3]);
+		}
+	}
+}
+
+constexpr Pos getBoxVertex(const Box& box, BoxVertex pos)
+{
+	return {
+		box[X + AxisMax * bool(pos & 1)],
+		box[Y + AxisMax * bool(pos & 2)],
+		box[Z + AxisMax * bool(pos & 4)],
+	};
+}
+
+constexpr auto getBoxVertices(const Box& box)
+{
+	return std::array
+	{
+		getBoxVertex(box, (BoxVertex) 0),
+		getBoxVertex(box, (BoxVertex) 1),
+		getBoxVertex(box, (BoxVertex) 2),
+		getBoxVertex(box, (BoxVertex) 3),
+		getBoxVertex(box, (BoxVertex) 4),
+		getBoxVertex(box, (BoxVertex) 5),
+		getBoxVertex(box, (BoxVertex) 6),
+		getBoxVertex(box, (BoxVertex) 7),
+	};
+}
+
+constexpr static Box expandBoxDiff = {-1, -1, -1, 1, 1, 1};
+constexpr void expandBox(Box& box)
+{
+	for (int i = 0; i < AxisMax * 2; ++i)
+	{
+		box[i] += expandBoxDiff[i];
+	}
+}
+
+struct ConfigSide
+{
+	/// Start vertex of side.
+	BoxVertex Start;
+	/// Vertex that define main edge of side.
+	BoxVertex i;
+	/// Vertex that define orthogonal egde of side.
+	BoxVertex j;
+};
+
+constexpr std::array surfacesIterationConfig = []
+{
+	constexpr auto SquareLoopSize = 4;
+	using SquareLoop = std::array<BoxVertex, SquareLoopSize>;
+
+	std::array<ConfigSide, 24> s = {};
+
+	auto up = [](BoxVertex e) -> BoxVertex {
+		return BoxVertex(e + E_100);
+	};
+	auto curr = [](const SquareLoop& a, int x) {
+		return a[x];
+	};
+	auto next = [](const SquareLoop& a, int x) {
+		return a[(x + 1) % SquareLoopSize];
+	};
+	auto prev = [](const SquareLoop& a, int x) {
+		return a[(x - 1 + SquareLoopSize) % SquareLoopSize];
+	};
+
+	int total = 0;
+
+	const SquareLoop floor_loop ={
+		E_000,
+		E_001,
+		E_011,
+		E_010,
+	};
+	for (int j = 0; j < SquareLoopSize; ++j, ++total)
+	{
+		s[total] = ConfigSide{
+			curr(floor_loop, j),
+			next(floor_loop, j),
+			prev(floor_loop, j),
+		};
+	}
+	for (int j = 0; j < SquareLoopSize; ++j, ++total)
+	{
+		s[total] = ConfigSide{
+			up(curr(floor_loop, j)),
+			up(next(floor_loop, j)),
+			up(prev(floor_loop, j)),
+		};
+	}
+	for (int i = 0; i < SquareLoopSize; ++i)
+	{
+		SquareLoop side ={
+			curr(floor_loop, i),
+			next(floor_loop, i),
+			up(next(floor_loop, i)),
+			up(curr(floor_loop, i)),
+		};
+		for (int j = 0; j < SquareLoopSize; ++j, ++total)
+		{
+			s[total] = ConfigSide{
+				curr(side, j),
+				next(side, j),
+				prev(side, j),
+			};
+		}
+	}
+
+	return s;
+}();
+
+template<typename T>
+void iterateEdge(const std::array<Pos, BoxEdgeMax>& edges, BoxVertex b, BoxVertex e, Axis axi, const T& f)
+{
+	auto begin = edges[b][axi];
+	auto end = edges[e][axi];
+	const auto dir = begin < end ? +1 : -1;
+	begin += dir;
+	end += dir;
+	for (int i = begin; i != end; i += dir) //this instead of normal [b,e) do (b,e] iteration!
+	{
+		f(i);
+	}
+}
+
+void iterateSide(const std::array<Pos, BoxEdgeMax>& verticles, const ConfigSide& c, FuncRef<void(Pos)> f)
+{
+	Pos p = verticles[c.Start];
+	const auto axi_j = vertexIndexToAxis[c.Start ^ c.j];
+	const auto axi_i = vertexIndexToAxis[c.Start ^ c.i];
+	iterateEdge(verticles, c.Start, c.j, axi_j,
+		[&](int pj) {
+			p[axi_j] = pj;
+			iterateEdge(verticles, c.Start, c.i, axi_i,
+				[&](int pi) {
+					p[axi_i] = pi;
+					f(p);
+				}
+			);
+		}
+	);
+}
+
+void iterateSurface(Box& box, FuncRef<void(Pos)> f)
+{
+	expandBox(box);
+	auto edges = getBoxVertices(box);
+	for (auto& a : surfacesIterationConfig)
+	{
+		iterateSide(edges, a, f);
+	}
+}
+
+void iterateVolume(Pos start, int range, FuncRef<void(Pos)> f)
+{
+	f(start);
+	Box b = fromPos(start, start);
+	while (range-- > 0)
+	{
+		iterateSurface(b, f);
+	}
+}
+
+constexpr static int dir_max = 9;
+constexpr static int dir_x[dir_max] = {0, 0, +1, +1, +1, 0, -1, -1, -1};
+constexpr static int dir_y[dir_max] = {0, -1, -1, 0, +1, +1, +1, 0, -1};
+
+constexpr static int dirr_leve_max = 3;
+constexpr static int dir_level_z[dirr_leve_max] = {-1, 0, +1};
+
+constexpr auto getPosOffsetByDirections(int dir)
+{
+	return Pos
+	{
+		dir_x[dir + 1],
+		dir_y[dir + 1],
+		0,
+	};
+}
+
+constexpr auto getPosUpDown(int dir)
+{
+	return Pos
+	{
+		0,
+		0,
+		dir_level_z[dir + 1],
+	};
+}
+
+struct getD
+{
+	signed char level;
+	signed char dir;
+	Pos offset;
+	unsigned int mask;
+	unsigned int next;
+};
+
+constexpr bool isSameCubFace(Pos a, Pos b)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		if (a[i] != 0 && a[i] == b[i])
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+constexpr int getChebyshevDistance(Pos a, Pos b)
+{
+	auto dis = 0;
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		dis = std::max(std::abs(a[i] - b[i]), dis);
+	}
+	return dis;
+}
+
+constexpr int dir3dMax = 3*3*3;
+constexpr int dir3dMask = (1 << dir3dMax) - 1;
+
+constexpr auto getDirections()
+{
+	auto array = std::array<getD, dir3dMax>{};
+
+	for (int i = 0; i < dir3dMax; ++i)
+	{
+		auto& a = array[i];
+		a.mask = 1 << i;
+		a.level = (i / 9) - 1;
+		a.dir = (i % 9) - 1;
+		a.offset = addPos(getPosOffsetByDirections(a.dir), getPosUpDown(a.level));
+	}
+
+	for (int i = 0; i < dir3dMax; ++i)
+	{
+		auto& a = array[i];
+		for (int j = 0; j < dir3dMax; ++j)
+		{
+			auto& b = array[j];
+
+			if (isSameCubFace(a.offset, b.offset) && getChebyshevDistance(a.offset, b.offset) <= 1)
+			{
+				a.next |= 1 << j;
+			}
+		}
+	}
+
+	return array;
+}
+constexpr auto directions = getDirections();
+
+
+
+
 } // namespace
 
 constexpr int TileEngine::heightFromCenter[11];
