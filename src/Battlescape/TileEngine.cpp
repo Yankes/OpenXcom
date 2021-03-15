@@ -54,6 +54,10 @@ namespace OpenXcom
 namespace
 {
 
+////////////////////////////////////////////////////////////////
+//					Linear propagation
+////////////////////////////////////////////////////////////////
+
 /**
  * Calculates a line trajectory, using bresenham algorithm in 3D.
  * @param origin Origin.
@@ -250,7 +254,13 @@ MapSubset mapAreaExpand(MapSubset gs, int radius)
 }
 
 
+////////////////////////////////////////////////////////////////
+//					Volume propagation
+////////////////////////////////////////////////////////////////
 
+/**
+ * Axis of propagation
+ */
 enum Axis : char
 {
 	X = 0,
@@ -260,6 +270,9 @@ enum Axis : char
 	AxisInvalid = -1,
 };
 
+/**
+ * Vertices indexes of 3d Box
+ */
 enum BoxVertex : char
 {
 	E_000 = 0b000,
@@ -270,9 +283,12 @@ enum BoxVertex : char
 	E_101 = 0b101,
 	E_110 = 0b110,
 	E_111 = 0b111,
-	BoxEdgeMax = 8,
+	BoxVertexMax = 8,
 };
 
+/**
+ * Conversion table of Vertices indexes to Axis
+ */
 constexpr std::array vertexIndexToAxis = {
 	AxisInvalid,
 	X, // 0b001
@@ -284,10 +300,46 @@ constexpr std::array vertexIndexToAxis = {
 	AxisInvalid,
 };
 
+/**
+ * Position, analog to type OpenXcom::Position, but for processing use full ints values and array indexes
+ */
 using Pos = std::array<int, AxisMax>;
+
+/**
+ * Cube/Box, first 3 values are Vertex E_000, next 3 valies are Vertex E_111
+ */
 using Box = std::array<int, AxisMax * 2>;
 
-constexpr Box fromPos(Pos a, Pos b)
+/**
+ * Create Pos with all values set to given value
+ */
+constexpr Pos posFrom(int i)
+{
+	return
+	{
+		i,
+		i,
+		i,
+	};
+}
+
+/**
+ * Convert OpenXcom::Position to helper Pos type
+ */
+constexpr Pos posFrom(Position p)
+{
+	return
+	{
+		p.x,
+		p.y,
+		p.z,
+	};
+}
+
+/**
+ * Create Box from two positions that make oposite vertex of Box
+ */
+constexpr Box boxFrom(Pos a, Pos b)
 {
 	return
 	{
@@ -300,64 +352,40 @@ constexpr Box fromPos(Pos a, Pos b)
 	};
 }
 
-constexpr Pos addPos(Pos a, Pos b)
+template<std::size_t I>
+constexpr void addArrayTo(std::array<int, I>& a, const std::array<int, I>& b)
+{
+    for (std::size_t i = 0; i < I; ++i)
+    {
+        a[i] += b[i];
+    }
+}
+
+template<std::size_t I>
+constexpr std::array<int, I> addArray(const std::array<int, I>& a, const std::array<int, I>& b)
+{
+    std::array<int, I> r = {};
+    addArrayTo(r, a);
+    addArrayTo(r, b);
+    return r;
+}
+
+/**
+ * Limit box range with another intersecting box.
+ * @param target Box to reduce
+ * @param limit Limit
+ */
+constexpr void boxLimitTo(Box& target, const Box& limit)
 {
 	for (int i = 0; i < AxisMax; ++i)
 	{
-		a[i] += b[i];
-	}
-	return a;
-}
-
-constexpr void intersectBoxWith(Box& target, const Box& limit)
-{
-	for (int i = 0; i < AxisMax; ++i)
-	{
-		if ((target[i] > limit[i + AxisMax]) || (limit[i] > target[i + AxisMax]))
-		{
-			//intersection is empty
-			target[i + AxisMax] = target[i];
-		}
-		else
-		{
-			target[i] = std::max(target[i], limit[i]);
-			target[i + AxisMax] = std::min(target[i + AxisMax], limit[i + 3]);
-		}
+		// only work if both boxes intersecting, other wise you will get "inverted" box
+		target[i] = std::max(target[i], limit[i]);
+		target[i + AxisMax] = std::min(target[i + AxisMax], limit[i + AxisMax]);
 	}
 }
 
-constexpr Pos getBoxVertex(const Box& box, BoxVertex pos)
-{
-	return {
-		box[X + AxisMax * bool(pos & 1)],
-		box[Y + AxisMax * bool(pos & 2)],
-		box[Z + AxisMax * bool(pos & 4)],
-	};
-}
-
-constexpr auto getBoxVertices(const Box& box)
-{
-	return std::array
-	{
-		getBoxVertex(box, (BoxVertex) 0),
-		getBoxVertex(box, (BoxVertex) 1),
-		getBoxVertex(box, (BoxVertex) 2),
-		getBoxVertex(box, (BoxVertex) 3),
-		getBoxVertex(box, (BoxVertex) 4),
-		getBoxVertex(box, (BoxVertex) 5),
-		getBoxVertex(box, (BoxVertex) 6),
-		getBoxVertex(box, (BoxVertex) 7),
-	};
-}
-
-constexpr static Box expandBoxDiff = {-1, -1, -1, 1, 1, 1};
-constexpr void expandBox(Box& box)
-{
-	for (int i = 0; i < AxisMax * 2; ++i)
-	{
-		box[i] += expandBoxDiff[i];
-	}
-}
+constexpr static Box expandBoxDiff = boxFrom(posFrom(-1), posFrom(+1));
 
 struct ConfigSide
 {
@@ -376,17 +404,31 @@ constexpr std::array surfacesIterationConfig = []
 
 	std::array<ConfigSide, 24> s = {};
 
-	auto up = [](BoxVertex e) -> BoxVertex {
+	auto up = [](BoxVertex e) -> BoxVertex
+	{
 		return BoxVertex(e + E_100);
 	};
-	auto curr = [](const SquareLoop& a, int x) {
+	auto curr = [](const SquareLoop& a, int x)
+	{
 		return a[x];
 	};
-	auto next = [](const SquareLoop& a, int x) {
+	auto next = [](const SquareLoop& a, int x)
+	{
 		return a[(x + 1) % SquareLoopSize];
 	};
-	auto prev = [](const SquareLoop& a, int x) {
+	auto prev = [](const SquareLoop& a, int x)
+	{
 		return a[(x - 1 + SquareLoopSize) % SquareLoopSize];
+	};
+
+	auto config = [](BoxVertex start, BoxVertex firstAxis, BoxVertex secondAxis) -> ConfigSide
+	{
+		return
+		{
+			start,
+			firstAxis,
+			secondAxis,
+		};
 	};
 
 	int total = 0;
@@ -399,19 +441,19 @@ constexpr std::array surfacesIterationConfig = []
 	};
 	for (int j = 0; j < SquareLoopSize; ++j, ++total)
 	{
-		s[total] = ConfigSide{
+		s[total] = config(
 			curr(floor_loop, j),
 			next(floor_loop, j),
-			prev(floor_loop, j),
-		};
+			prev(floor_loop, j)
+		);
 	}
 	for (int j = 0; j < SquareLoopSize; ++j, ++total)
 	{
-		s[total] = ConfigSide{
+		s[total] = config(
 			up(curr(floor_loop, j)),
 			up(next(floor_loop, j)),
-			up(prev(floor_loop, j)),
-		};
+			up(prev(floor_loop, j))
+		);
 	}
 	for (int i = 0; i < SquareLoopSize; ++i)
 	{
@@ -423,66 +465,155 @@ constexpr std::array surfacesIterationConfig = []
 		};
 		for (int j = 0; j < SquareLoopSize; ++j, ++total)
 		{
-			s[total] = ConfigSide{
+			s[total] = config(
 				curr(side, j),
 				next(side, j),
-				prev(side, j),
-			};
+				prev(side, j)
+			);
 		}
 	}
 
 	return s;
 }();
 
-template<typename T>
-void iterateEdge(const std::array<Pos, BoxEdgeMax>& edges, BoxVertex b, BoxVertex e, Axis axi, const T& f)
+constexpr int getBoxIndex(BoxVertex pos, Axis ax)
 {
-	auto begin = edges[b][axi];
-	auto end = edges[e][axi];
-	const auto dir = begin < end ? +1 : -1;
-	begin += dir;
-	end += dir;
-	for (int i = begin; i != end; i += dir) //this instead of normal [b,e) do (b,e] iteration!
-	{
-		f(i);
-	}
+    return ax + AxisMax * bool(pos & (1 << ax));
 }
 
-void iterateSide(const std::array<Pos, BoxEdgeMax>& verticles, const ConfigSide& c, FuncRef<void(Pos)> f)
+constexpr auto boxAxisIndexes = []
 {
-	Pos p = verticles[c.Start];
+    std::array<std::array<char, BoxVertexMax>, AxisMax> z = { };
+    for (int i = 0; i < AxisMax; ++i)
+    {
+        for (int j = 0; j < BoxVertexMax; ++j)
+        {
+            z[i][j] =  getBoxIndex((BoxVertex)j, (Axis)i);
+        }
+    }
+    return z;
+}();
+
+constexpr Pos getBoxVertex(const Box& box, BoxVertex pos)
+{
+	return
+	{
+		box[boxAxisIndexes[X][pos]],
+		box[boxAxisIndexes[Y][pos]],
+		box[boxAxisIndexes[Z][pos]],
+	};
+}
+
+template<typename T>
+bool iterateAxis(const Box& b, Axis axi, const T& f)
+{
+	auto stillWorking = false;
+	for (int i = b[axi]; i <= b[AxisMax + axi]; ++i)
+	{
+		stillWorking |= f(i);
+	}
+	return stillWorking;
+}
+
+template<typename T>
+bool iterateEdge(const Box& box, const Box& limit, BoxVertex b, BoxVertex e, Axis axi, const T& f)
+{
+	auto begin = box[boxAxisIndexes[axi][b]];
+	auto beginLimit = limit[boxAxisIndexes[axi][b]];
+	auto end = box[boxAxisIndexes[axi][e]];
+	auto endLimit = limit[boxAxisIndexes[axi][e]];
+	auto dir = 0;
+	if (begin < end)
+	{
+		dir = +1;
+		begin = std::max(begin, beginLimit);
+		end = std::min(end, endLimit);
+	}
+	else
+	{
+		dir = -1;
+		begin = std::min(begin, beginLimit);
+		end = std::max(end, endLimit);
+	}
+	begin += dir;
+	end += dir;
+	auto stillWorking = false;
+	for (int i = begin; i != end; i += dir) //this instead of normal [b,e) do (b,e] iteration!
+	{
+		stillWorking |= f(i);
+	}
+	return stillWorking;
+}
+
+bool iterateSide(const Box& box, const Box& limit, const ConfigSide& c, FuncRef<bool(Pos)> f)
+{
+	Pos p = getBoxVertex(box, c.Start);
 	const auto axi_j = vertexIndexToAxis[c.Start ^ c.j];
 	const auto axi_i = vertexIndexToAxis[c.Start ^ c.i];
-	iterateEdge(verticles, c.Start, c.j, axi_j,
-		[&](int pj) {
+	return iterateEdge(box, limit, c.Start, c.j, axi_j,
+		[&](int pj)
+		{
 			p[axi_j] = pj;
-			iterateEdge(verticles, c.Start, c.i, axi_i,
-				[&](int pi) {
+			return iterateEdge(box, limit, c.Start, c.i, axi_i,
+				[&](int pi)
+				{
 					p[axi_i] = pi;
-					f(p);
+					return f(p);
 				}
 			);
 		}
 	);
 }
 
-void iterateSurface(Box& box, FuncRef<void(Pos)> f)
+bool iterateSurface(Box& box, const Box& limit, FuncRef<bool(Pos)> f)
 {
-	expandBox(box);
-	auto edges = getBoxVertices(box);
+	auto stillWorking = false;
 	for (auto& a : surfacesIterationConfig)
 	{
-		iterateSide(edges, a, f);
+		stillWorking |= iterateSide(box, limit, a, f);
 	}
+	return stillWorking;
 }
 
-void iterateVolume(Pos start, int range, FuncRef<void(Pos)> f)
+bool iterateVolume(const Box& start, const Box& limit, int range, FuncRef<bool(Pos)> f)
 {
-	f(start);
-	Box b = fromPos(start, start);
-	while (range-- > 0)
+	Box b = start;
+	addArrayTo(b, boxFrom(posFrom(-range), posFrom(+range)));
+	boxLimitTo(b, limit);
+
+	Pos p = {};
+	return iterateAxis(b, X,
+		[&](int x)
+		{
+			p[X] = x;
+			return iterateAxis(b, Y,
+				[&](int y)
+				{
+					p[Y] = y;
+					return iterateAxis(b, Z,
+						[&](int z)
+						{
+							p[Z] = z;
+							return f(p);
+						}
+					);
+				}
+			);
+		}
+	);
+}
+
+void iterateExpandingVolume(const Box& start, const Box& limit, int range, FuncRef<bool(Pos)> f)
+{
+	Box b = start;
+	while (range-- >= 0)
 	{
-		iterateSurface(b, f);
+		auto stillWorking = iterateSurface(b, limit, f);
+		if (stillWorking == false)
+		{
+			return;
+		}
+		addArrayTo(b, expandBoxDiff);
 	}
 }
 
@@ -513,15 +644,6 @@ constexpr auto getPosUpDown(int dir)
 	};
 }
 
-struct getD
-{
-	signed char level;
-	signed char dir;
-	Pos offset;
-	unsigned int mask;
-	unsigned int next;
-};
-
 constexpr bool isSameCubFace(Pos a, Pos b)
 {
 	for (int i = 0; i < AxisMax; ++i)
@@ -547,9 +669,18 @@ constexpr int getChebyshevDistance(Pos a, Pos b)
 constexpr int dir3dMax = 3*3*3;
 constexpr int dir3dMask = (1 << dir3dMax) - 1;
 
-constexpr auto getDirections()
+struct ConfigPropagation
 {
-	auto array = std::array<getD, dir3dMax>{};
+	signed char level;
+	signed char dir;
+	Pos offset;
+	unsigned int mask;
+	unsigned int next;
+};
+
+constexpr auto propagationDirections = []
+{
+	auto array = std::array<ConfigPropagation, dir3dMax>{};
 
 	for (int i = 0; i < dir3dMax; ++i)
 	{
@@ -557,7 +688,7 @@ constexpr auto getDirections()
 		a.mask = 1 << i;
 		a.level = (i / 9) - 1;
 		a.dir = (i % 9) - 1;
-		a.offset = addPos(getPosOffsetByDirections(a.dir), getPosUpDown(a.level));
+		a.offset = addArray(getPosOffsetByDirections(a.dir), getPosUpDown(a.level));
 	}
 
 	for (int i = 0; i < dir3dMax; ++i)
@@ -575,8 +706,7 @@ constexpr auto getDirections()
 	}
 
 	return array;
-}
-constexpr auto directions = getDirections();
+}();
 
 
 
