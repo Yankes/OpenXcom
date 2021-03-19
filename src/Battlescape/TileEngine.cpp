@@ -5261,6 +5261,7 @@ int TileEngine::faceWindow(Position position)
  */
 bool TileEngine::validateThrow(BattleAction &action, Position originVoxel, Position targetVoxel, int depth, double *curve, int *voxelType, bool forced)
 {
+	const bool isThrow = (action.type == BA_THROW);
 	bool foundCurve = false;
 	double curvature = 0.5;
 	if (action.type == BA_THROW)
@@ -5277,7 +5278,7 @@ bool TileEngine::validateThrow(BattleAction &action, Position originVoxel, Posit
 	Tile *targetTile = _save->getTile(action.target);
 	Position targetPos = targetVoxel.toTile();
 	// object blocking - can't throw here
-	if (action.type == BA_THROW
+	if (isThrow
 		&& targetTile
 		&& targetTile->getMapData(O_OBJECT)
 		&& targetTile->getMapData(O_OBJECT)->getTUCost(MT_WALK) == 255
@@ -5287,10 +5288,14 @@ bool TileEngine::validateThrow(BattleAction &action, Position originVoxel, Posit
 	{
 		return false;
 	}
-	// out of range - can't throw here
-	if (ProjectileFlyBState::validThrowRange(&action, originVoxel, targetTile, depth) == false)
+
+	if (isThrow)
 	{
-		return false;
+		// out of range - can't throw here
+		if (ProjectileFlyBState::validThrowRange(&action, originVoxel, targetTile, depth) == false)
+		{
+			return false;
+		}
 	}
 
 	std::vector<Position> trajectory;
@@ -5298,8 +5303,49 @@ bool TileEngine::validateThrow(BattleAction &action, Position originVoxel, Posit
 	trajectory.resize(16*20);
 	// we try 8 different curvatures to try and reach our goal.
 	int test = V_OUTOFBOUNDS;
+
+	curvature -= 0.5;
 	while (!foundCurve && curvature < 5.0)
 	{
+		curvature += 0.5;
+
+		if (!isThrow && action.weapon)
+		{
+			auto range = action.weapon->getRules()->getMaxRange() * Position::TileXY;
+			range *= range;
+			auto correct = false;
+			calculateParabolaHelper(originVoxel, targetVoxel, curvature, Position(0,0,0),
+				[&](Position p)
+				{
+					//serch for first voxel in trajectory that is lower than starting voxel,
+					//helper function call this in some steps and we could miss some voxels from trajectory
+					if (p.z < originVoxel.z)
+					{
+						Log(LOG_ERROR) << "Traj p "<< p.x << " " << p.y << " " << p.z;
+						Log(LOG_ERROR) << "Start originVoxel "<< originVoxel.x << " " << originVoxel.y << " "<< originVoxel.z;
+						auto diff = Position::distance2dSq(p, originVoxel);
+						Log(LOG_ERROR) << "Limit "<< diff << " to " << range << "\n";
+
+						if (diff <= range)
+						{
+							correct = true;
+						}
+
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+				}
+			);
+
+			if (!correct)
+			{
+				continue;
+			}
+		}
+
 		trajectory.clear();
 		test = calculateParabolaVoxel(originVoxel, targetVoxel, true, &trajectory, action.actor, curvature, Position(0,0,0));
 		//position that item hit
@@ -5316,7 +5362,6 @@ bool TileEngine::validateThrow(BattleAction &action, Position originVoxel, Posit
 		}
 		else
 		{
-			curvature += 0.5;
 			if (test != V_OUTOFBOUNDS && action.actor->getFaction() == FACTION_PLAYER) //obstacle indicator is only for player
 			{
 				Tile* hitTile = _save->getTile(hitPos);

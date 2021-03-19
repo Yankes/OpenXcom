@@ -140,7 +140,7 @@ void ProjectileFlyBState::init()
 	case BA_AIMEDSHOT:
 	case BA_AUTOSHOT:
 	case BA_LAUNCH:
-		if (weapon->getRules()->isOutOfRange(distanceSq))
+		if (weapon->getRules()->isOutOfRange(distanceSq) && weapon->getRules()->getConfigAimed()->arcing == false)
 		{
 			// out of range
 			_action.result = "STR_OUT_OF_RANGE";

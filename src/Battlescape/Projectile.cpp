@@ -275,15 +275,17 @@ int Projectile::calculateThrow(double accuracy)
 
 	_distance = 0.0f;
 	int test = V_OUTOFBOUNDS;
+	bool isCorrect = false;
 	for (std::vector<Position>::iterator i = targets.begin(); i != targets.end(); ++i)
 	{
 		targetVoxel = *i;
 		if (_save->getTileEngine()->validateThrow(_action, originVoxel, targetVoxel, _save->getDepth(), &curvature, &test, forced))
 		{
+			isCorrect = true;
 			break;
 		}
 	}
-	if (!forced && test == V_OUTOFBOUNDS) return test; //no line of fire
+	if (!isCorrect || (!forced && test == V_OUTOFBOUNDS)) return test; //no line of fire
 
 	test = V_OUTOFBOUNDS;
 	int tries = 0;
@@ -307,7 +309,7 @@ int Projectile::calculateThrow(double accuracy)
 
 
 		test = _save->getTileEngine()->calculateParabolaVoxel(originVoxel, targetVoxel, true, &_trajectory, _action.actor, curvature, deltas);
-		if (forced) return O_OBJECT; //fake hit
+		if (forced) return V_OBJECT; //fake hit
 		Position endPoint = getPositionFromEnd(_trajectory, ItemDropVoxelOffset).toTile();
 		Tile *endTile = _save->getTile(endPoint);
 		// check if the item would land on a tile with a blocking object
