@@ -88,6 +88,7 @@ private:
 	UnitFaction _killedBy;
 	UnitFaction _spawnUnitFaction = FACTION_HOSTILE;
 	int _id;
+
 	Position _pos;
 	Tile *_tile;
 	Position _lastPos;
@@ -95,6 +96,7 @@ private:
 	int _directionTurret, _toDirectionTurret;
 	int _verticalDirection;
 	Position _destination;
+
 	UnitStatus _status;
 	bool _wantsToSurrender, _isSurrendering;
 	int _walkPhase, _fallPhase;
