@@ -20,6 +20,8 @@
 #include <vector>
 #include <string>
 #include <unordered_set>
+#include <variant>
+#include <array>
 #include "../Battlescape/Position.h"
 #include "../Mod/RuleItem.h"
 #include "Soldier.h"
@@ -89,23 +91,43 @@ private:
 	UnitFaction _spawnUnitFaction = FACTION_HOSTILE;
 	int _id;
 
-	Position _pos;
-	Tile *_tile;
-	Position _lastPos;
-	int _direction, _toDirection;
-	int _directionTurret, _toDirectionTurret;
-	int _verticalDirection;
-	Position _destination;
+	struct StatusTimeoutData
+	{
+		//nothing
+	};
+	struct StatusStandingData
+	{
+		Tile *_tile = nullptr;
+		Position _pos = {-1, -1, -1};
+		Position _lastPos = {-1, -1, -1};
+		Position _destination = {-1, -1, -1};
+		int _faceDirection; // used only during strafing moves
+		int _direction, _toDirection;
+		int _directionTurret, _toDirectionTurret;
+		int _verticalDirection;
+		int _walkPhase, _fallPhase;
+		bool _kneeled, _floating;
+		bool _haveNoFloorBelow = false;
+	};
+	struct StatusDeadData
+	{
+		std::array<BattleItem*, 4> _bodyItems;
+	};
+	struct StatusStunnedData : StatusDeadData
+	{
+
+	};
+
+	/// Data that is avaiable only by specific status.
+	std::variant<StatusTimeoutData, StatusStandingData, StatusDeadData, StatusStunnedData> _statusData = StatusTimeoutData{ };
 
 	UnitStatus _status;
 	bool _wantsToSurrender, _isSurrendering;
-	int _walkPhase, _fallPhase;
 	std::vector<BattleUnit *> _visibleUnits, _unitsSpottedThisTurn;
 	std::vector<Tile *> _visibleTiles;
 	std::unordered_set<Tile *> _visibleTilesLookup;
 	int _tu, _energy, _health, _morale, _stunlevel, _mana;
-	bool _kneeled, _floating, _dontReselect;
-	bool _haveNoFloorBelow = false;
+	bool _dontReselect;
 	int _currentArmor[SIDE_MAX], _maxArmor[SIDE_MAX];
 	int _fatalWounds[BODYPART_MAX];
 	int _fire;
@@ -117,7 +139,6 @@ private:
 	int _motionPoints;
 	int _scannedTurn;
 	int _kills;
-	int _faceDirection; // used only during strafing moves
 	std::vector<int> _meleeAttackedBy;
 	bool _hitByFire, _hitByAnything, _alreadyExploded;
 	int _fireMaxHit;
@@ -128,6 +149,7 @@ private:
 	const Unit *_spawnUnit = nullptr;
 	std::string _activeHand;
 	std::string _preferredHandForReactions;
+
 	BattleUnitStatistics* _statistics;
 	int _murdererId;	// used to credit the murderer with the kills that this unit got by blowing up on death
 	int _mindControllerID;	// used to credit the mind controller with the kills of the mind controllee
