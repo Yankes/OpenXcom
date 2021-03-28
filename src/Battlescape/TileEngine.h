@@ -284,6 +284,9 @@ public:
 	/// Move item to other place in inventory or ground.
 	void itemMoveInventory(Tile *t, BattleUnit *unit, BattleItem *item, RuleInventory *slot, int x, int y);
 
+	/// Get inventory slot for ground.
+	RuleInventory *getInvenotrySlotGround() const { return _inventorySlotGround; }
+
 	/// Add moving unit.
 	void addMovingUnit(BattleUnit* unit);
 	/// Add moving unit.
