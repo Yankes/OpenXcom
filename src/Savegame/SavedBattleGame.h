@@ -192,13 +192,13 @@ public:
 	/// Gets a pointer to the list of units.
 	std::vector<BattleUnit*> *getUnits();
 	/// Gets terrain size x.
-	int getMapSizeX() const;
+	int getMapSizeX() const { return _mapsize_x; }
 	/// Gets terrain size y.
-	int getMapSizeY() const;
+	int getMapSizeY() const { return _mapsize_y; }
 	/// Gets terrain size z.
-	int getMapSizeZ() const;
+	int getMapSizeZ() const { return _mapsize_z; }
 	/// Gets terrain x*y*z
-	int getMapSizeXYZ() const;
+	int getMapSizeXYZ() const { return _mapsize_x * _mapsize_y * _mapsize_z; }
 
 	/**
 	 * Converts coordinates into a unique index.
