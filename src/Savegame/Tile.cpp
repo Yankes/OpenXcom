@@ -52,7 +52,7 @@ Tile::SerializationKey Tile::serializationKey =
  * constructor
  * @param pos Position.
  */
-Tile::Tile(Position pos): _pos(pos), _unit(0), _visible(false), _preview(-1), _TUMarker(-1), _overlaps(0)
+Tile::Tile(Position pos, SavedBattleGame* save): _save(save), _pos(pos)
 {
 	for (int i = 0; i < O_MAX; ++i)
 	{

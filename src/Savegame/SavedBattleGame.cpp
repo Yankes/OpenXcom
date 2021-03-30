@@ -672,7 +672,7 @@ void SavedBattleGame::initMap(int mapsize_x, int mapsize_y, int mapsize_z, bool 
 	_tiles.reserve(_mapsize_z * _mapsize_y * _mapsize_x);
 	for (int i = 0; i < _mapsize_z * _mapsize_y * _mapsize_x; ++i)
 	{
-		_tiles.push_back(Tile(getTileCoords(i)));
+		_tiles.push_back(Tile(getTileCoords(i), this));
 	}
 
 }
