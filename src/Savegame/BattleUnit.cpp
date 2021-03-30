@@ -3952,6 +3952,27 @@ bool BattleUnit::isFearable() const
 }
 
 /**
+ * Is this unit capable of shooting beyond max. visual range?
+ * @return True, if unit is capable of shooting beyond max. visual range.
+ */
+bool BattleUnit::isSniper() const
+{
+	if (_unitRules && _unitRules->getSniperPercentage() > 0)
+	{
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Gets true when unit is 2x2 sized unit.
+ */
+bool BattleUnit::isBigUnit() const
+{
+	return _armor->getSize() > 1;
+}
+
+/**
  * Get the number of turns an AI unit remembers a soldier's position.
  * @return intelligence.
  */
@@ -4889,19 +4910,6 @@ int BattleUnit::getSpotterDuration() const
 		return _unitRules->getSpotterDuration();
 	}
 	return 0;
-}
-
-/**
- * Is this unit capable of shooting beyond max. visual range?
- * @return True, if unit is capable of shooting beyond max. visual range.
- */
-bool BattleUnit::isSniper() const
-{
-	if (_unitRules && _unitRules->getSniperPercentage() > 0)
-	{
-		return true;
-	}
-	return false;
 }
 
 /**
