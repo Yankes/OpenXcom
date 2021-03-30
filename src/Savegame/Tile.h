@@ -34,6 +34,7 @@ class BattleUnit;
 class BattleItem;
 class RuleInventory;
 class Particle;
+class SavedBattleGame;
 class ScriptParserBase;
 
 enum LightLayers : Uint8 { LL_AMBIENT, LL_FIRE, LL_ITEMS, LL_UNITS, LL_MAX };
@@ -107,11 +108,15 @@ public:
 	};
 
 protected:
+	SavedBattleGame* _save;
 	MapData *_objects[O_MAX];
+	BattleUnit *_unit = nullptr;
+	std::vector<BattleItem *> _inventory;
 	std::unique_ptr<TileMapDataCache> _mapData = std::make_unique<TileMapDataCache>();
 	SurfaceRaw<const Uint8> _currentSurface[O_MAX] = { };
 	TileObjectCache _objectsCache[O_MAX] = { };
 	TileCache _cache = { };
+	Position _pos;
 	Uint8 _light[LL_MAX];
 	Uint8 _fire = 0;
 	Uint8 _smoke = 0;
@@ -119,19 +124,16 @@ protected:
 	Uint8 _animationOffset = 0;
 	Uint8 _obstacle = 0;
 	Uint8 _explosiveType = 0;
-	int _explosive = 0;
-	Position _pos;
-	BattleUnit *_unit;
-	std::vector<BattleItem *> _inventory;
-	int _visible;
-	int _preview;
-	int _TUMarker;
-	int _overlaps;
+	Sint16 _explosive = 0;
+	Sint16 _visible = 0;
+	Sint16 _TUMarker = -1;
+	Sint8 _preview = -1;
+	Uint8 _overlaps = 0;
 
 
 public:
 	/// Creates a tile.
-	Tile(Position pos);
+	Tile(Position pos, SavedBattleGame* save);
 	/// Copy constructor.
 	Tile(Tile&&) = default;
 	/// Cleans up a tile.
@@ -172,6 +174,12 @@ public:
 	{
 		return _objects[O_OBJECT] ? _objects[O_OBJECT]->getSpecialType() : TILE;
 	}
+
+	/// Get saved battle game that tile belongs.
+	const SavedBattleGame* getSavedGame() const { return _save; }
+	/// Get saved battle game that tile belongs.
+	SavedBattleGame* getSavedGame() { return _save; }
+
 
 	/// Sets the pointer to the mapdata for a specific part of the tile
 	void setMapData(MapData *dat, int mapDataID, int mapDataSetID, TilePart part);
