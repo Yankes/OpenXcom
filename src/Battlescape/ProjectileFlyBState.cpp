@@ -478,7 +478,7 @@ bool ProjectileFlyBState::createNewProjectile()
 			{
 				_action.weapon->setFuseTimer(ruleItem->getFuseTimerDefault());
 			}
-			_action.weapon->moveToOwner(nullptr);
+			_action.weapon->moveToThrow();
 			if (_action.weapon->getGlow())
 			{
 				_parent->getTileEngine()->calculateLighting(LL_UNITS, _unit->getPosition());

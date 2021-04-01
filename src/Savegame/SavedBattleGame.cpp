@@ -253,6 +253,14 @@ void SavedBattleGame::load(const YAML::Node &node, Mod *mod, SavedGame* savedGam
 		unit->load(*i, this->getMod(), this->getMod()->getScriptGlobal());
 		// Handling of special built-in weapons will be done during and after the load of items
 		// unit->setSpecialWeapon(this, true);
+
+		if (unit->getPosition() != TileEngine::invalid)
+		{
+			auto* tile = getTile(unit->getPosition());
+			unit->linkTile(tile);
+			tile->linkUnit(unit);
+		}
+
 		_units.push_back(unit);
 		if (faction == FACTION_PLAYER)
 		{
@@ -312,14 +320,14 @@ void SavedBattleGame::load(const YAML::Node &node, Mod *mod, SavedGame* savedGam
 				{
 					if ((*bu)->getId() == owner)
 					{
-						item->setOwner(*bu);
+						item->linkOwner(*bu);
 						if (item->isSpecialWeapon())
 						{
-							(*bu)->addLoadedSpecialWeapon(item);
+							(*bu)->linkSpecialWeapon(item);
 						}
 						else
 						{
-							(*bu)->getInventory()->push_back(item);
+							(*bu)->linkInventory(item);
 						}
 						break;
 					}
@@ -337,6 +345,7 @@ void SavedBattleGame::load(const YAML::Node &node, Mod *mod, SavedGame* savedGam
 					if ((*bu)->getId() == unit)
 					{
 						item->setUnit(*bu);
+						(*bu)->linkBodyItem(item);
 						break;
 					}
 				}
@@ -346,7 +355,11 @@ void SavedBattleGame::load(const YAML::Node &node, Mod *mod, SavedGame* savedGam
 				{
 					Position pos = (*i)["position"].as<Position>(Position(-1, -1, -1));
 					if (pos.x != -1)
-						getTile(pos)->addItem(item, item->getSlot());
+					{
+						Tile* t = getTile(pos);
+						item->linkTile(t);
+						t->linkInventory(item);
+					}
 				}
 				std::get<ItemVec>(pass).push_back(item);
 			}
@@ -1444,7 +1457,7 @@ void SavedBattleGame::resetUnitTiles()
 	{
 		if (!(*i)->isOut())
 		{
-			(*i)->setTile(getTile((*i)->getPosition()), this);
+			(*i)->moveToMapFromPreBattle();
 		}
 		if ((*i)->getFaction() == FACTION_PLAYER)
 		{
@@ -1471,18 +1484,23 @@ void SavedBattleGame::randomizeItemLocations(Tile *t)
 {
 	if (!_storageSpace.empty())
 	{
-		for (std::vector<BattleItem*>::iterator it = t->getInventory()->begin(); it != t->getInventory()->end();)
-		{
-			if ((*it)->getSlot()->getType() == INV_GROUND)
+		Collections::removeIf(
+			*t->getInventory(),
+			[&](BattleItem* i)
 			{
-				getTile(_storageSpace.at(RNG::generate(0, _storageSpace.size() -1)))->addItem(*it, (*it)->getSlot());
-				it = t->getInventory()->erase(it);
+				if (i->getSlot()->getType() == INV_GROUND)
+				{
+					auto newTile = getTile(_storageSpace.at(RNG::generate(0, _storageSpace.size() - 1)));
+					if (t != newTile)
+					{
+						i->unlinkTile();
+						i->moveToTile(newTile, i->getSlot());
+						return true;
+					}
+				}
+				return false;
 			}
-			else
-			{
-				++it;
-			}
-		}
+		);
 	}
 }
 
@@ -1528,8 +1546,12 @@ void SavedBattleGame::removeItem(BattleItem *item)
 		return;
 	}
 
-	// due to strange design, the item has to be removed from the tile it is on too (if it is on a tile)
-	item->moveToOwner(nullptr);
+	if (auto* u = item->getUnit())
+	{
+		u->unlinkBodyItem(item);
+		item->setUnit(nullptr);
+	}
+	item->moveToNothing();
 
 	deleteList(item);
 
@@ -1671,12 +1693,25 @@ BattleItem *SavedBattleGame::createItemForUnit(const RuleItem *rule, BattleUnit 
 BattleItem *SavedBattleGame::createItemForUnitSpecialBuiltin(const RuleItem *rule, BattleUnit *unit)
 {
 	BattleItem *item = new BattleItem(rule, getCurrentItemId());
-	item->setOwner(unit);
-	item->setSlot(nullptr);
+	item->moveToSpecialWeapon(unit);
 	_items.push_back(item);
 	initItem(item, unit);
 	return item;
 }
+
+/**
+ * Create new corpse item for unit.
+ */
+BattleItem *SavedBattleGame::createItemForUnitCorpse(const RuleItem *rule, BattleUnit *unit)
+{
+	BattleItem *item = new BattleItem(rule, getCurrentItemId());
+	_items.push_back(item);
+	item->setUnit(unit);
+	initItem(item);
+	unit->linkBodyItem(item);
+	return item;
+}
+
 /**
  * Create new item for tile.
  */
@@ -1694,7 +1729,7 @@ BattleItem *SavedBattleGame::createItemForTile(const RuleItem *rule, Tile *tile)
 	if (tile)
 	{
 		RuleInventory *ground = _rule->getInventoryGround();
-		tile->addItem(item, ground);
+		item->moveToTile(tile, ground);
 	}
 	_items.push_back(item);
 	initItem(item);
@@ -2118,22 +2153,11 @@ void SavedBattleGame::reviveUnconsciousUnits(bool noTU)
 	{
 		if ((*i)->getArmor()->getSize() == 1 && !(*i)->isIgnored())
 		{
-			Position originalPosition = (*i)->getPosition();
-			if (originalPosition == Position(-1, -1, -1))
-			{
-				for (std::vector<BattleItem*>::iterator j = _items.begin(); j != _items.end(); ++j)
-				{
-					if ((*j)->getUnit() && (*j)->getUnit() == *i && (*j)->getOwner())
-					{
-						originalPosition = (*j)->getOwner()->getPosition();
-					}
-				}
-			}
+			Tile *targetTile = (*i)->getBodyTile();
 			if ((*i)->getStatus() == STATUS_UNCONSCIOUS && !(*i)->isOutThresholdExceed())
 			{
-				Tile *targetTile = getTile(originalPosition);
 				bool largeUnit =  targetTile && targetTile->getUnit() && targetTile->getUnit() != *i && targetTile->getUnit()->getArmor()->getSize() != 1;
-				if (placeUnitNearPosition((*i), originalPosition, largeUnit))
+				if (placeUnitNearPosition((*i), targetTile->getPosition(), largeUnit))
 				{
 					// recover from unconscious
 					(*i)->turn(false); // makes the unit stand up again
@@ -2152,31 +2176,8 @@ void SavedBattleGame::reviveUnconsciousUnits(bool noTU)
 							(*i)->setTimeUnits(newTU);
 						}
 					}
-					removeUnconsciousBodyItem((*i));
 				}
 			}
-		}
-	}
-}
-
-/**
- * Removes the body item that corresponds to the unit.
- */
-void SavedBattleGame::removeUnconsciousBodyItem(BattleUnit *bu)
-{
-	int size = bu->getArmor()->getSize();
-	size *= size;
-	// remove the unconscious body item corresponding to this unit
-	for (std::vector<BattleItem*>::iterator it = getItems()->begin(); it != getItems()->end(); )
-	{
-		if ((*it)->getUnit() == bu)
-		{
-			removeItem((*it));
-			if (--size == 0) break;
-		}
-		else
-		{
-			++it;
 		}
 	}
 }
@@ -2228,8 +2229,7 @@ bool SavedBattleGame::setUnitPosition(BattleUnit *bu, Position position, bool te
 
 	if (testOnly) return true;
 
-	bu->setTile(getTile(position + zOffset), this);
-	bu->setPosition(position + zOffset);
+	bu->moveToMap(getTile(position + zOffset));
 
 	return true;
 }

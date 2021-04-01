@@ -18,9 +18,11 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <list>
+#include <array>
 #include <vector>
 #include <memory>
 #include "../Engine/Surface.h"
+#include "../Engine/Functions.h"
 #include "../Battlescape/Position.h"
 #include "../Mod/MapData.h"
 
@@ -181,6 +183,12 @@ public:
 	SavedBattleGame* getSavedGame() { return _save; }
 
 
+	/// Return 2x2 box for big unit position.
+	std::array<Tile*, 4> getBoxTiles();
+	/// Return 2x2 box for big unit position.
+	std::array<const Tile*, 4> getBoxTiles() const;
+
+
 	/// Sets the pointer to the mapdata for a specific part of the tile
 	void setMapData(MapData *dat, int mapDataID, int mapDataSetID, TilePart part);
 	/// Gets the IDs to the mapdata for a specific part of the tile
@@ -329,6 +337,10 @@ public:
 	{
 		return _unit;
 	}
+	/// Link unit to tile.
+	void linkUnit(BattleUnit *unit);
+	/// Remove link to unit from tile side.
+	void unlinkUnit();
 
 	/// Get unit from this tile or from tile below.
 	BattleUnit *getOverlappingUnit(const SavedBattleGame *saveBattleGame, TileUnitOverlapping range = TUO_NORMAL) const;
@@ -354,16 +366,20 @@ public:
 	void ignite(int power);
 	/// Get fire and smoke animation offset.
 	int getAnimationOffset() const;
-	/// Add item
-	void addItem(BattleItem *item, RuleInventory *ground);
-	/// Remove item
-	void removeItem(BattleItem *item);
+
 	/// Get top-most item
 	BattleItem* getTopItem();
-	/// New turn preparations.
-	void prepareNewTurn(bool smokeDamage);
 	/// Get inventory on this tile.
 	std::vector<BattleItem *> *getInventory();
+	/// Add link to item on tile side.
+	void linkInventory(BattleItem *item);
+	/// Remove link to item from tile side.
+	void unlinkInventory(BattleItem *item);
+	/// Remove link to item from tile side.
+	void unlinkInventory(FuncRef<bool(BattleItem*)> check);
+
+	/// New turn preparations.
+	void prepareNewTurn(bool smokeDamage);
 	/// Set the tile marker color.
 	void setMarkerColor(int color);
 	/// Get the tile marker color.

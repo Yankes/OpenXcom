@@ -31,6 +31,14 @@ class Exception : public std::runtime_error
 {
 public:
 	Exception(const std::string &msg);
+
+	static void isTrue(bool check, const std::string &msg)
+	{
+		if (!check)
+		{
+			throw Exception("Assertion fail for " + msg);
+		}
+	}
 };
 
 }

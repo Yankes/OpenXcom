@@ -69,7 +69,18 @@ UnitDieBState::UnitDieBState(BattlescapeGame *parent, BattleUnit *unit, const Ru
 		_unit->instaFalling();
 		if (_parent->getSave()->isBeforeGame())
 		{
-			convertUnitToCorpse();
+			if (_unit->getSpawnUnit() && !_overKill)
+			{
+				if (!_unit->getAlreadyRespawned())
+				{
+					// converts the dead zombie to a chryssalid
+					_parent->convertUnit(_unit);
+				}
+			}
+			else
+			{
+				convertUnitToCorpse();
+			}
 			_extraFrame = 3; // shortcut to popState()
 		}
 	}
@@ -215,6 +226,7 @@ void UnitDieBState::think()
 		{
 			_unit->setTurnsLeftSpottedForSnipers(0);
 		}
+
 		if (_unit->getSpawnUnit() && !_overKill)
 		{
 			if (!_unit->getAlreadyRespawned())
@@ -257,11 +269,6 @@ void UnitDieBState::convertUnitToCorpse()
 	{
 		_parent->getSave()->getBattleState()->resetUiButton();
 	}
-	// remove the unconscious body item corresponding to this unit, and if it was being carried, keep track of what slot it was in
-	if (lastPosition != TileEngine::invalid)
-	{
-		_parent->getSave()->removeUnconsciousBodyItem(_unit);
-	}
 
 	// move inventory from unit to the ground
 	if (dropItems && _unit->getTile())
@@ -269,46 +276,15 @@ void UnitDieBState::convertUnitToCorpse()
 		_parent->getTileEngine()->itemDropInventory(_unit->getTile(), _unit);
 	}
 
-	// remove unit-tile link
-	_unit->setTile(nullptr, _parent->getSave());
-
-	if (lastPosition == TileEngine::invalid) // we're being carried
+	if (_overKill)
 	{
-		if (_overKill)
-		{
-			_parent->getSave()->removeUnconsciousBodyItem(_unit);
-		}
-		else
-		{
-			// replace the unconscious body item with a corpse in the carrying unit's inventory
-			for (std::vector<BattleItem*>::iterator it = _parent->getSave()->getItems()->begin(); it != _parent->getSave()->getItems()->end(); )
-			{
-				if ((*it)->getUnit() == _unit)
-				{
-					auto corpseRules = _unit->getArmor()->getCorpseBattlescape()[0]; // we're in an inventory, so we must be a 1x1 unit
-					(*it)->convertToCorpse(corpseRules);
-					break;
-				}
-				++it;
-			}
-		}
+		// remove corpse and unit from map
+		_unit->moveToNothing(_parent->getSave());
 	}
 	else
 	{
-		if (!_overKill)
-		{
-			int i = size * size - 1;
-			for (int y = size - 1; y >= 0; --y)
-			{
-				for (int x = size - 1; x >= 0; --x)
-				{
-					BattleItem *corpse = _parent->getSave()->createItemForTile(_unit->getArmor()->getCorpseBattlescape()[i], nullptr);
-					corpse->setUnit(_unit);
-					_parent->dropItem(lastPosition + Position(x,y,0), corpse, false);
-					--i;
-				}
-			}
-		}
+		// remove unit-tile link and create corspes
+		_unit->moveToBodyItem(_parent->getSave());
 	}
 }
 

@@ -60,9 +60,8 @@ namespace OpenXcom
  * @param depth the depth of the battlefield (used to determine movement type in case of MT_FLOAT).
  */
 BattleUnit::BattleUnit(const Mod *mod, Soldier *soldier, int depth) :
-	_faction(FACTION_PLAYER), _originalFaction(FACTION_PLAYER), _killedBy(FACTION_PLAYER), _id(0), _tile(0),
-	_lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0), _toDirectionTurret(0),
-	_verticalDirection(0), _status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
+	_faction(FACTION_PLAYER), _originalFaction(FACTION_PLAYER), _killedBy(FACTION_PLAYER), _id(0),
+	_status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false),
 	_dontReselect(false), _fire(0), _currentAIState(0), _visible(false),
 	_exp{ }, _expTmp{ },
 	_motionPoints(0), _scannedTurn(-1), _kills(0), _hitByFire(false), _hitByAnything(false), _alreadyExploded(false), _fireMaxHit(0), _smokeMaxHit(0), _moraleRestored(0), _charging(0), _turnsSinceSpotted(255), _turnsLeftSpottedForSnipers(0),
@@ -393,9 +392,8 @@ void BattleUnit::prepareUnitResponseSounds(const Mod *mod)
  */
 BattleUnit::BattleUnit(const Mod *mod, Unit *unit, UnitFaction faction, int id, const RuleEnviroEffects* enviro, Armor *armor, StatAdjustment *adjustment, int depth) :
 	_faction(faction), _originalFaction(faction), _killedBy(faction), _id(id),
-	_tile(0), _lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0),
-	_toDirectionTurret(0), _verticalDirection(0), _status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0),
-	_fallPhase(0), _kneeled(false), _floating(false), _dontReselect(false), _fire(0), _currentAIState(0),
+	_status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false),
+	_dontReselect(false), _fire(0), _currentAIState(0),
 	_visible(false), _exp{ }, _expTmp{ },
 	_motionPoints(0), _scannedTurn(-1), _kills(0), _hitByFire(false), _hitByAnything(false), _alreadyExploded(false), _fireMaxHit(0), _smokeMaxHit(0),
 	_moraleRestored(0), _charging(0), _turnsSinceSpotted(255), _turnsLeftSpottedForSnipers(0),
@@ -576,7 +574,23 @@ void BattleUnit::load(const YAML::Node &node, const Mod *mod, const ScriptGlobal
 	_status = (UnitStatus)node["status"].as<int>(_status);
 	_wantsToSurrender = node["wantsToSurrender"].as<bool>(_wantsToSurrender);
 	_isSurrendering = node["isSurrendering"].as<bool>(_isSurrendering);
-	_pos = node["position"].as<Position>(_pos);
+
+	// check what state is unit in
+	if (node["position"] && _status == STATUS_STANDING)
+	{
+		auto s = StatusDataStanding{ };
+		s._pos = node["position"].as<Position>();
+		_statusData = s;
+	}
+	else if (node["corpseItems"] || _status == STATUS_UNCONSCIOUS || _status == STATUS_DEAD)
+	{
+		_statusData = StatusDataBody{ };
+	}
+	else //every thing else
+	{
+		_statusData = StatusDataTimeout{ };
+	}
+
 	_direction = _toDirection = node["direction"].as<int>(_direction);
 	_directionTurret = _toDirectionTurret = node["directionTurret"].as<int>(_directionTurret);
 	_tu = node["tu"].as<int>(_tu);
@@ -671,7 +685,44 @@ YAML::Node BattleUnit::save(const ScriptGlobal *shared) const
 	node["status"] = (int)_status;
 	node["wantsToSurrender"] = _wantsToSurrender;
 	node["isSurrendering"] = _isSurrendering;
-	node["position"] = _pos;
+
+	// save specific state of unit
+	std::visit(
+		Overloaded
+		{
+			[&](const StatusDataTimeout&)
+			{
+				//nothing
+			},
+			[&](const StatusDataPreBattle&)
+			{
+				throw Exception("save of invalid unit in preBattle state");
+			},
+			[&](const StatusDataStanding& s)
+			{
+				node["position"] = s._pos;
+			},
+			[&](const StatusDataBody& s)
+			{
+				YAML::Node p;
+				if (isBigUnit())
+				{
+					for (auto i : s._bodyItems)
+					{
+						p.push_back(i ? i->getId() : -1);
+					}
+				}
+				else
+				{
+					auto i = s._bodyItems[0];
+					p.push_back(i ? i->getId() : -1);
+				}
+				node["corpseItems"] = p;
+			},
+		},
+		_statusData
+	);
+
 	node["direction"] = _direction;
 	node["directionTurret"] = _directionTurret;
 	node["tu"] = _tu;
@@ -802,14 +853,17 @@ int BattleUnit::getId() const
  */
 int BattleUnit::distance3dToPositionSq(const Position& pos) const
 {
-	int x = _pos.x - pos.x;
-	int y = _pos.y - pos.y;
-	int z = _pos.z - pos.z;
+	auto* s = tryGetState<StatusDataStanding>();
+	Exception::isTrue(s, __func__);
+
+	int x = s->_pos.x - pos.x;
+	int y = s->_pos.y - pos.y;
+	int z = s->_pos.z - pos.z;
 	if (_armor->getSize() > 1)
 	{
-		if (_pos.x < pos.x)
+		if (s->_pos.x < pos.x)
 			x++;
-		if (_pos.y < pos.y)
+		if (s->_pos.y < pos.y)
 			y++;
 	}
 	return x*x + y*y + z*z;
@@ -831,7 +885,7 @@ int BattleUnit::distance3dToUnitSq(BattleUnit* otherUnit) const
 	// and that is NOT trivial and currently not worth the effort
 	// PS: targeting involving a player-controlled 2x2 unit/actor was fixed recently, OXC PR #1307 commit dd7f938
 
-	return Position::distanceSq(_pos, otherUnit->getPosition());
+	return Position::distanceSq(getPosition(), otherUnit->getPosition());
 }
 
 /**
@@ -841,8 +895,11 @@ int BattleUnit::distance3dToUnitSq(BattleUnit* otherUnit) const
  */
 void BattleUnit::setPosition(Position pos, bool updateLastPos)
 {
-	if (updateLastPos) { _lastPos = _pos; }
-	_pos = pos;
+	if (auto* s = tryGetState<StatusDataStanding>())
+	{
+		if (updateLastPos) { s->_lastPos = s->_pos; }
+		s->_pos = pos;
+	}
 }
 
 /**
@@ -851,7 +908,7 @@ void BattleUnit::setPosition(Position pos, bool updateLastPos)
  */
 Position BattleUnit::getPosition() const
 {
-	return _pos;
+	return getStateValue(TileEngine::invalid, &StatusDataStanding::_pos);
 }
 
 /**
@@ -860,7 +917,7 @@ Position BattleUnit::getPosition() const
  */
 Position BattleUnit::getLastPosition() const
 {
-	return _lastPos;
+	return getStateValue(TileEngine::invalid, &StatusDataStanding::_lastPos);
 }
 
 /**
@@ -869,7 +926,7 @@ Position BattleUnit::getLastPosition() const
  */
 Position BattleUnit::getPositionVexels() const
 {
-	Position center = _pos.toVoxel();
+	Position center = getPosition().toVoxel();
 	center += Position(8, 8, 0) * _armor->getSize();
 	return center;
 }
@@ -880,7 +937,7 @@ Position BattleUnit::getPositionVexels() const
  */
 Position BattleUnit::getDestination() const
 {
-	return _destination;
+	return getStateValue(TileEngine::invalid, &StatusDataStanding::_destination);
 }
 
 /**
@@ -996,6 +1053,9 @@ void BattleUnit::setSurrendering(bool isSurrendering)
  */
 void BattleUnit::startWalking(int direction, Position destination, SavedBattleGame *savedBattleGame)
 {
+	auto* s = tryGetState<StatusDataStanding>();
+	Exception::isTrue(s, __func__);
+
 	if (direction >= Pathfinding::DIR_UP)
 	{
 		_verticalDirection = direction;
@@ -1017,8 +1077,8 @@ void BattleUnit::startWalking(int direction, Position destination, SavedBattleGa
 	}
 
 	_walkPhase = 0;
-	_destination = destination;
-	_lastPos = _pos;
+	s->_destination = destination;
+	s->_lastPos = s->_pos;
 	_kneeled = false;
 	if (_breathFrame >= 0)
 	{
@@ -1034,6 +1094,9 @@ void BattleUnit::startWalking(int direction, Position destination, SavedBattleGa
  */
 void BattleUnit::keepWalking(SavedBattleGame *savedBattleGame, bool fullWalkCycle)
 {
+	auto* s = tryGetState<StatusDataStanding>();
+	Exception::isTrue(s, __func__);
+
 	int middle, end;
 	if (_verticalDirection)
 	{
@@ -1060,7 +1123,7 @@ void BattleUnit::keepWalking(SavedBattleGame *savedBattleGame, bool fullWalkCycl
 
 	if (!fullWalkCycle)
 	{
-		_pos = _destination;
+		s->_pos = s->_destination;
 		end = 2;
 	}
 
@@ -1070,12 +1133,12 @@ void BattleUnit::keepWalking(SavedBattleGame *savedBattleGame, bool fullWalkCycl
 	{
 		// we assume we reached our destination tile
 		// this is actually a drawing hack, so soldiers are not overlapped by floor tiles
-		_pos = _destination;
+		s->_pos = s->_destination;
 	}
 
 	if (!fullWalkCycle || (_walkPhase == middle))
 	{
-		setTile(savedBattleGame->getTile(_destination), savedBattleGame);
+		setTile(savedBattleGame->getTile(s->_destination));
 	}
 
 	if (_walkPhase >= end)
@@ -1347,8 +1410,9 @@ void BattleUnit::aim(bool aiming)
  */
 int BattleUnit::directionTo(Position point) const
 {
-	double ox = point.x - _pos.x;
-	double oy = point.y - _pos.y;
+	auto pos = getPosition();
+	double ox = point.x - pos.x;
+	double oy = point.y - pos.y;
 	double angle = atan2(ox, -oy);
 	// divide the pie in 4 angles each at 1/8th before each quarter
 	double pie[4] = {(M_PI_4 * 4.0) - M_PI_4 / 2.0, (M_PI_4 * 3.0) - M_PI_4 / 2.0, (M_PI_4 * 2.0) - M_PI_4 / 2.0, (M_PI_4 * 1.0) - M_PI_4 / 2.0};
@@ -2641,6 +2705,40 @@ std::vector<BattleItem*> *BattleUnit::getInventory()
 }
 
 /**
+ * Add link to item on unit side.
+ */
+void BattleUnit::linkInventory(BattleItem *item)
+{
+	_inventory.push_back(item);
+}
+
+/**
+ * Remove link to item from unit side.
+ */
+void BattleUnit::unlinkInventory(BattleItem *item)
+{
+	Collections::removeIf(
+		_inventory,
+		1,
+		[&](BattleItem* i)
+		{
+			return i == item;
+		}
+	);
+}
+
+/**
+ * Remove link to item from unit side.
+ */
+void BattleUnit::unlinkInventory(FuncRef<bool(BattleItem*)> check)
+{
+	Collections::removeIf(
+		_inventory,
+		check
+	);
+}
+
+/**
  * Fit item into inventory slot.
  * @param slot Slot to fit.
  * @param item Item to fit.
@@ -2657,8 +2755,7 @@ bool BattleUnit::fitItemToInventory(RuleInventory *slot, BattleItem *item)
 	{
 		if (!Inventory::overlapItems(this, item, slot))
 		{
-			item->moveToOwner(this);
-			item->setSlot(slot);
+			item->moveToOwner(this, slot);
 			return true;
 		}
 	}
@@ -2668,8 +2765,7 @@ bool BattleUnit::fitItemToInventory(RuleInventory *slot, BattleItem *item)
 		{
 			if (!Inventory::overlapItems(this, item, slot, rs.x, rs.y) && slot->fitItemInSlot(rule, rs.x, rs.y))
 			{
-				item->moveToOwner(this);
-				item->setSlot(slot);
+				item->moveToOwner(this, slot);
 				item->setSlotX(rs.x);
 				item->setSlotY(rs.y);
 				return true;
@@ -2740,8 +2836,7 @@ bool BattleUnit::addItem(BattleItem *item, const Mod *mod, bool allowSecondClip,
 			BattleItem *defaultSlotWeapon = getItem(defaultSlot);
 			if (!defaultSlotWeapon)
 			{
-				item->moveToOwner(this);
-				item->setSlot(defaultSlot);
+				item->moveToOwner(this, defaultSlot);
 				item->setSlotX(rule->getDefaultInventorySlotX());
 				item->setSlotY(rule->getDefaultInventorySlotY());
 				placed = true;
@@ -2940,27 +3035,27 @@ bool BattleUnit::getVisible() const
  * Check if unit can fall down.
  * @param saveBattleGame
  */
-void BattleUnit::updateTileFloorState(SavedBattleGame *saveBattleGame)
+void BattleUnit::updateTileFloorState()
 {
-	if (_tile)
+	auto* s = tryGetState<StatusDataStanding>();
+
+	if (s && s->_tile)
 	{
-		auto armorSize = _armor->getSize() - 1;
-		auto newPos = _tile->getPosition();
-		_haveNoFloorBelow = true;
-		for (int x = armorSize; x >= 0; --x)
+		if (isBigUnit())
 		{
-			for (int y = armorSize; y >= 0; --y)
+			_haveNoFloorBelow = true;
+			for (auto* t : s->_tile->getBoxTiles())
 			{
-				auto t = saveBattleGame->getTile(newPos + Position(x, y, 0));
-				if (t)
+				if (t && !t->hasNoFloor())
 				{
-					if (!t->hasNoFloor(saveBattleGame))
-					{
-						_haveNoFloorBelow = false;
-						return;
-					}
+					_haveNoFloorBelow = false;
+					return;
 				}
 			}
+		}
+		else
+		{
+			_haveNoFloorBelow = s->_tile->hasNoFloor();
 		}
 	}
 	else
@@ -2971,56 +3066,68 @@ void BattleUnit::updateTileFloorState(SavedBattleGame *saveBattleGame)
 /**
  * Sets the unit's tile it's standing on
  * @param tile Pointer to tile.
- * @param saveBattleGame Pointer to save to get tile below.
  */
-void BattleUnit::setTile(Tile *tile, SavedBattleGame *saveBattleGame)
+void BattleUnit::setTile(Tile *tile)
 {
-	if (_tile == tile)
+	auto* s = tryGetState<StatusDataStanding>();
+	Exception::isTrue(s && tile, __func__);
+
+	if (s->_tile == tile)
 	{
 		return;
 	}
 
-	auto armorSize = _armor->getSize() - 1;
-	// Reset tiles moved from.
-	if (_tile)
+	s->_tile->unlinkUnit();
+	linkTile(tile);
+	tile->linkUnit(this);
+}
+
+/**
+ * Gets the unit's tile.
+ * @return Tile
+ */
+Tile *BattleUnit::getTile() const
+{
+	return getStateValue(nullptr, &StatusDataStanding::_tile, &StatusDataPreBattle::_inventoryTile);
+}
+
+/**
+ * Gets the tile where unit body rest.
+ */
+Tile *BattleUnit::getBodyTile() const
+{
+	if (auto* s = tryGetState<StatusDataBody>())
 	{
-		auto prevPos = _tile->getPosition();
-		for (int x = armorSize; x >= 0; --x)
+		if (!isBigUnit())
 		{
-			for (int y = armorSize; y >= 0; --y)
+			auto* corpse = s->_bodyItems[0];
+			if (corpse)
 			{
-				auto t = saveBattleGame->getTile(prevPos + Position(x,y, 0));
-				if (t && t->getUnit() == this)
-				{
-					t->setUnit(nullptr);
-				}
+				return corpse->getTile();
 			}
 		}
 	}
+	return nullptr;
+}
 
-	_tile = tile;
-	if (!_tile)
+/**
+ * Link unit with tile.
+ */
+void BattleUnit::linkTile(Tile *tile)
+{
+	Exception::isTrue(tile, __func__);
+
+	auto* s = tryGetState<StatusDataStanding>();
+	if (!s)
 	{
-		_floating = false;
-		_haveNoFloorBelow = false;
 		return;
 	}
+
+	s->_tile = tile;
+	s->_pos = tile->getPosition();
 
 	// Update tiles moved to.
-	auto newPos = _tile->getPosition();
-	_haveNoFloorBelow = true;
-	for (int x = armorSize; x >= 0; --x)
-	{
-		for (int y = armorSize; y >= 0; --y)
-		{
-			auto t = saveBattleGame->getTile(newPos + Position(x, y, 0));
-			if (t)
-			{
-				_haveNoFloorBelow &= t->hasNoFloor(saveBattleGame);
-				t->setUnit(this);
-			}
-		}
-	}
+	updateTileFloorState();
 
 	// unit could have changed from flying to walking or vice versa
 	if (_status == STATUS_WALKING && _haveNoFloorBelow && _movementType == MT_FLY)
@@ -3040,24 +3147,133 @@ void BattleUnit::setTile(Tile *tile, SavedBattleGame *saveBattleGame)
 }
 
 /**
- * Set only unit tile without any additional logic.
- * Used only in before battle, other wise will break game.
- * Need call setTile after to fix links
- * @param tile
+ * Unlink unit from tile.
  */
-void BattleUnit::setInventoryTile(Tile *tile)
+void BattleUnit::unlinkTile()
 {
-	_tile = tile;
+	if (auto* s = tryGetState<StatusDataStanding>())
+	{
+		_floating = false;
+		_haveNoFloorBelow = false;
+
+		_statusData = StatusDataTimeout{ };
+	}
 }
 
 /**
- * Gets the unit's tile.
- * @return Tile
+ * Temporary move unit to inventory tile for prebattle equipping stage.
+ * @param tile
  */
-Tile *BattleUnit::getTile() const
+void BattleUnit::moveToPreBattle(Tile *tile)
 {
-	return _tile;
+	if (auto* s = tryGetState<StatusDataStanding>())
+	{
+		//we cant unlink on tile side becasue calls to this function is intermingled with placing other units on map
+		auto prev = s->_tile;
+		StatusDataPreBattle sp = { };
+		sp._inventoryTile = tile;
+		sp._finalTile = prev;
+		_statusData = sp;
+	}
 }
+
+/**
+ * Restore unit position to one before equipping stage
+ */
+void BattleUnit::moveToMapFromPreBattle()
+{
+	if (auto* s = tryGetState<StatusDataPreBattle>())
+	{
+		auto tile = s->_finalTile;
+		moveToMap(tile);
+	}
+}
+
+/**
+ * Put unit on map.
+ */
+void BattleUnit::moveToMap(Tile *tile)
+{
+	Exception::isTrue(tile, __func__);
+
+	moveToNothing(tile->getSavedGame());
+
+
+	_statusData = StatusDataStanding{ };
+
+	linkTile(tile);
+	tile->linkUnit(this);
+}
+
+/**
+ * Convert unit to corpse
+ * @param save
+ */
+void BattleUnit::moveToBodyItem(SavedBattleGame *save)
+{
+	if (auto* s = tryGetState<StatusDataStanding>())
+	{
+		auto* tile = s->_tile;
+		unlinkTile();
+		tile->unlinkUnit();
+
+		_statusData = StatusDataBody {};
+		if (isBigUnit())
+		{
+			int i = 0;
+			for (auto* other : tile->getBoxTiles())
+			{
+				if (other)
+				{
+					BattleItem *corpse = save->createItemForUnitCorpse(_armor->getCorpseBattlescape()[i++], this);
+					save->getTileEngine()->itemDrop(other, corpse, false);
+				}
+			}
+		}
+		else
+		{
+			BattleItem *corpse = save->createItemForUnitCorpse(_armor->getCorpseBattlescape()[0], this);
+			save->getTileEngine()->itemDrop(tile, corpse, false);
+		}
+	}
+	else if (auto* s = tryGetState<StatusDataBody>())
+	{
+		//nothing
+	}
+	else
+	{
+		//TODO: add handling timeout
+	}
+}
+
+/**
+ * Remove unit from game.
+ */
+void BattleUnit::moveToNothing(SavedBattleGame *save)
+{
+	if (auto* s = tryGetState<StatusDataStanding>())
+	{
+		s->_tile->unlinkUnit();
+		unlinkTile();
+	}
+	else if (auto* s = tryGetState<StatusDataBody>())
+	{
+		for (auto* p : s->_bodyItems)
+		{
+			if (p)
+			{
+				save->removeItem(p);
+			}
+		}
+		_statusData = StatusDataTimeout{ };
+	}
+	else
+	{
+		_statusData = StatusDataTimeout{ };
+	}
+}
+
+
 
 /**
  * Checks if there's an inventory item in
@@ -3081,9 +3297,9 @@ BattleItem *BattleUnit::getItem(RuleInventory *slot, int x, int y) const
 		}
 	}
 	// Ground items
-	else if (_tile != 0)
+	else if (auto* tile = getTile())
 	{
-		for (std::vector<BattleItem*>::const_iterator i = _tile->getInventory()->begin(); i != _tile->getInventory()->end(); ++i)
+		for (std::vector<BattleItem*>::const_iterator i = tile->getInventory()->begin(); i != tile->getInventory()->end(); ++i)
 		{
 			if ((*i)->occupiesSlot(x, y))
 			{
@@ -3406,7 +3622,24 @@ BattleItem *BattleUnit::getWeaponForReactions(bool meleeOnly) const
  */
 bool BattleUnit::isInExitArea(SpecialTileType stt) const
 {
-	return liesInExitArea(_tile, stt);
+	auto tile = getTile();
+	if (tile == nullptr)
+	{
+		auto s = tryGetState<StatusDataBody>();
+		if (s)
+		{
+			auto body = s->_bodyItems[0];
+			if (body->getTile())
+			{
+				tile = body->getTile();
+			}
+			else if (body->getOwner())
+			{
+				tile = body->getOwner()->getTile();
+			}
+		}
+	}
+	return liesInExitArea(tile, stt);
 }
 
 /**
@@ -4348,14 +4581,17 @@ void BattleUnit::deriveRank()
 */
 bool BattleUnit::checkViewSector (Position pos, bool useTurretDirection /* = false */) const
 {
+	auto* s = tryGetState<StatusDataStanding>();
+	Exception::isTrue(s, __func__);
+
 	int unitSize = getArmor()->getSize();
 	//Check view cone from each of the unit's tiles
 	for (int x = 0; x < unitSize; ++x)
 	{
 		for (int y = 0; y < unitSize; ++y)
 		{
-			int deltaX = pos.x + x - _pos.x;
-			int deltaY = _pos.y - pos.y - y;
+			int deltaX = pos.x + x - s->_pos.x;
+			int deltaY = s->_pos.y - pos.y - y;
 			switch (useTurretDirection ? _directionTurret : _direction)
 			{
 			case 0:
@@ -4666,7 +4902,8 @@ void BattleUnit::setSpecialWeapon(SavedBattleGame *save, bool updateFromSave)
 				}
 			}
 
-			_specWeapon[i++] = save->createItemForUnitSpecialBuiltin(item, this);
+			++i;
+			save->createItemForUnitSpecialBuiltin(item, this);
 		}
 	};
 
@@ -4690,7 +4927,7 @@ void BattleUnit::setSpecialWeapon(SavedBattleGame *save, bool updateFromSave)
 /**
  * Add/assign a special weapon loaded from a save.
  */
-void BattleUnit::addLoadedSpecialWeapon(BattleItem* item)
+void BattleUnit::linkSpecialWeapon(BattleItem* item)
 {
 	for (auto*& s : _specWeapon)
 	{
@@ -4712,7 +4949,7 @@ void BattleUnit::removeSpecialWeapons(SavedBattleGame *save)
 	{
 		if (s)
 		{
-			s->setOwner(nullptr); // stops being a special weapon, so that `removeItem` can remove it
+			s->unlinkOwner(); // stops being a special weapon, so that `removeItem` can remove it
 			save->removeItem(s);
 			s = nullptr;
 		}
@@ -4780,6 +5017,60 @@ BattleItem *BattleUnit::getSpecialIconWeapon(BattleType &type) const
 	}
 	return 0;
 }
+
+
+/**
+ * Get array of body items linked to unit.
+ */
+std::array<BattleItem*, 4> BattleUnit::getBodyItems() const
+{
+	if (auto* s = tryGetState<StatusDataBody>())
+	{
+		return s->_bodyItems;
+	}
+	else
+	{
+		return { };
+	}
+}
+
+/**
+ * Link body item on side of unit.
+ */
+void BattleUnit::linkBodyItem(BattleItem* item)
+{
+	auto* s = tryGetState<StatusDataBody>();
+	Exception::isTrue(s, __func__);
+
+	for (auto*& i : s->_bodyItems)
+	{
+		if (!i)
+		{
+			i = item;
+			return;
+		}
+	}
+}
+
+/**
+ * Unlink body item from side of unit.
+ */
+void BattleUnit::unlinkBodyItem(BattleItem* item)
+{
+	auto* s = tryGetState<StatusDataBody>();
+	Exception::isTrue(s, __func__);
+
+	for (auto*& i : s->_bodyItems)
+	{
+		if (i == item)
+		{
+			i = nullptr;
+			return;
+		}
+	}
+}
+
+
 
 /**
  * Recovers a unit's TUs and energy, taking a number of factors into consideration.

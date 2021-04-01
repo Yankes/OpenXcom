@@ -91,37 +91,87 @@ private:
 	UnitFaction _spawnUnitFaction = FACTION_HOSTILE;
 	int _id;
 
-	struct StatusTimeoutData
+	/// Initial status, outside of curret stage.
+	struct StatusDataTimeout
 	{
 		//nothing
 	};
-	struct StatusStandingData
+	/// Unit is preparing for battle.
+	struct StatusDataPreBattle
+	{
+		Tile *_inventoryTile = nullptr;
+		Tile *_finalTile = nullptr;
+	};
+	/// Unit is standing on tile.
+	struct StatusDataStanding
 	{
 		Tile *_tile = nullptr;
 		Position _pos = {-1, -1, -1};
 		Position _lastPos = {-1, -1, -1};
 		Position _destination = {-1, -1, -1};
-		int _faceDirection; // used only during strafing moves
-		int _direction, _toDirection;
-		int _directionTurret, _toDirectionTurret;
-		int _verticalDirection;
-		int _walkPhase, _fallPhase;
-		bool _kneeled, _floating;
-		bool _haveNoFloorBelow = false;
 	};
-	struct StatusDeadData
+	/// Unit is stunned or dead.
+	struct StatusDataBody
 	{
 		std::array<BattleItem*, 4> _bodyItems;
 	};
-	struct StatusStunnedData : StatusDeadData
+
+	/// Unit data that is avaiable only for specific status.
+	std::variant<StatusDataTimeout, StatusDataPreBattle, StatusDataStanding, StatusDataBody> _statusData = StatusDataTimeout{ };
+
+	/// Helper getter for state data
+	template<typename T, typename S, typename V = T, typename... Rest>
+	T getStateValue(V fallback, T S::* member, Rest... rest) const
 	{
+		if (auto p = std::get_if<S>(&_statusData))
+		{
+			return std::invoke(member, p);
+		}
+		else if constexpr(sizeof...(rest) > 0)
+		{
+			return getStateValue(fallback, rest...);
+		}
+		else
+		{
+			return fallback;
+		}
+	}
+	template<typename T, typename S, typename V = T, typename... Rest>
+	void setStateValue(V v, T S::* member, Rest... rest)
+	{
+		if (auto p = std::get_if<S>(&_statusData))
+		{
+			std::invoke(member, p) = v;
+		}
+		else if constexpr(sizeof...(rest) > 0)
+		{
+			setStateValue(v, rest...);
+		}
+		else
+		{
+			//should we throw error there, or ignore this value set?
+		}
+	}
+	template<typename S>
+	S* tryGetState()
+	{
+		return std::get_if<S>(&_statusData);
+	}
+	template<typename S>
+	const S* tryGetState() const
+	{
+		return std::get_if<S>(&_statusData);
+	}
 
-	};
-
-	/// Data that is avaiable only by specific status.
-	std::variant<StatusTimeoutData, StatusStandingData, StatusDeadData, StatusStunnedData> _statusData = StatusTimeoutData{ };
 
 	UnitStatus _status;
+	int _faceDirection = -1; // used only during strafing moves
+	int _direction = 0, _toDirection = 0;
+	int _directionTurret = 0, _toDirectionTurret = 0;
+	int _verticalDirection = 0;
+	int _walkPhase = 0, _fallPhase = 0;
+	bool _kneeled = false, _floating = false;
+	bool _haveNoFloorBelow = false;
 	bool _wantsToSurrender, _isSurrendering;
 	std::vector<BattleUnit *> _visibleUnits, _unitsSpottedThisTurn;
 	std::vector<Tile *> _visibleTiles;
@@ -411,13 +461,6 @@ public:
 	/// Get fire.
 	int getFire() const;
 
-	/// Get the list of items in the inventory.
-	std::vector<BattleItem*> *getInventory();
-	/// Fit item into inventory slot.
-	bool fitItemToInventory(RuleInventory *slot, BattleItem *item);
-	/// Add item to unit.
-	bool addItem(BattleItem *item, const Mod *mod, bool allowSecondClip = false, bool allowAutoLoadout = false, bool allowUnloadedWeapons = false);
-
 	/// Let AI do their thing.
 	void think(BattleAction *action);
 	/// Get AI Module.
@@ -429,14 +472,44 @@ public:
 	/// Get whether this unit is visible
 	bool getVisible() const;
 
+
 	/// Check if unit can fall down.
-	void updateTileFloorState(SavedBattleGame *saveBattleGame);
+	void updateTileFloorState();
 	/// Sets the unit's tile it's standing on
-	void setTile(Tile *tile, SavedBattleGame *saveBattleGame = 0);
-	/// Set only unit tile without any additional logic.
-	void setInventoryTile(Tile *tile);
+	void setTile(Tile *tile);
 	/// Gets the unit's tile.
 	Tile *getTile() const;
+	/// Gets the tile where unit body rest.
+	Tile *getBodyTile() const;
+	/// Link unit with tile.
+	void linkTile(Tile *tile);
+	/// Link unit with tile.
+	void unlinkTile();
+
+	/// Set unit to prebatle state.
+	void moveToPreBattle(Tile *tile);
+	/// Put unit on map.
+	void moveToMapFromPreBattle();
+	/// Put unit on map.
+	void moveToMap(Tile *tile);
+	/// Replace unit by corpse items.
+	void moveToBodyItem(SavedBattleGame *save);
+	/// Remove unit from map.
+	void moveToNothing(SavedBattleGame *save);
+
+
+	/// Get the list of items in the inventory.
+	std::vector<BattleItem*> *getInventory();
+	/// Add link to item on unit side.
+	void linkInventory(BattleItem *item);
+	/// Remove link to item from unit side.
+	void unlinkInventory(BattleItem *item);
+	/// Remove link to item from unit side.
+	void unlinkInventory(FuncRef<bool(BattleItem*)> check);
+	/// Fit item into inventory slot.
+	bool fitItemToInventory(RuleInventory *slot, BattleItem *item);
+	/// Add item to unit.
+	bool addItem(BattleItem *item, const Mod *mod, bool allowSecondClip = false, bool allowAutoLoadout = false, bool allowUnloadedWeapons = false);
 
 	/// Gets the item in the specified slot.
 	BattleItem *getItem(RuleInventory *slot, int x = 0, int y = 0) const;
@@ -456,6 +529,30 @@ public:
 	BattleItem *getActiveHand(BattleItem *left, BattleItem *right) const;
 	/// Reloads a weapon if needed.
 	bool reloadAmmo();
+
+
+	/// Create special weapon for unit.
+	void setSpecialWeapon(SavedBattleGame *save, bool updateFromSave);
+	/// Add/assign a special weapon loaded from a save.
+	void linkSpecialWeapon(BattleItem* item);
+	/// Remove all special weapons.
+	void removeSpecialWeapons(SavedBattleGame *save);
+	/// Get special weapon by battle type.
+	BattleItem *getSpecialWeapon(BattleType type) const;
+	/// Get special weapon by name.
+	BattleItem *getSpecialWeapon(const RuleItem *weaponRule) const;
+	/// Gets special weapon that uses an icon, if any.
+	BattleItem *getSpecialIconWeapon(BattleType &type) const;
+
+
+	/// Get array of body items linked to unit.
+	std::array<BattleItem*, 4> getBodyItems() const;
+	/// Link body item on side of unit.
+	void linkBodyItem(BattleItem* item);
+	/// Unlink body item  from side of unit.
+	void unlinkBodyItem(BattleItem* item);
+
+
 
 	/// Toggle the right hand as main hand for reactions.
 	void toggleRightHandForReactions();
@@ -695,19 +792,6 @@ public:
 	MovementType getMovementType() const;
 	/// Gets the turn cost.
 	int getTurnCost() const;
-
-	/// Create special weapon for unit.
-	void setSpecialWeapon(SavedBattleGame *save, bool updateFromSave);
-	/// Add/assign a special weapon loaded from a save.
-	void addLoadedSpecialWeapon(BattleItem* item);
-	/// Remove all special weapons.
-	void removeSpecialWeapons(SavedBattleGame *save);
-	/// Get special weapon by battle type.
-	BattleItem *getSpecialWeapon(BattleType type) const;
-	/// Get special weapon by name.
-	BattleItem *getSpecialWeapon(const RuleItem *weaponRule) const;
-	/// Gets special weapon that uses an icon, if any.
-	BattleItem *getSpecialIconWeapon(BattleType &type) const;
 
 	/// Checks if this unit is in hiding for a turn.
 	bool isHiding() const {return _hidingForTurn; };

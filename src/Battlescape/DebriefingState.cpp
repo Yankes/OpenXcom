@@ -1433,29 +1433,6 @@ void DebriefingState::prepareDebriefing()
 		int value = (*j)->getValue();
 		Soldier *soldier = save->getSoldier((*j)->getId());
 
-		if (!(*j)->getTile())
-		{
-			Position pos = (*j)->getPosition();
-			if (pos == TileEngine::invalid)
-			{
-				for (std::vector<BattleItem*>::iterator k = battle->getItems()->begin(); k != battle->getItems()->end(); ++k)
-				{
-					if ((*k)->getUnit() && (*k)->getUnit() == *j)
-					{
-						if ((*k)->getOwner())
-						{
-							pos = (*k)->getOwner()->getPosition();
-						}
-						else if ((*k)->getTile())
-						{
-							pos = (*k)->getTile()->getPosition();
-						}
-					}
-				}
-			}
-			(*j)->setInventoryTile(battle->getTile(pos));
-		}
-
 		if (status == STATUS_DEAD)
 		{ // so this is a dead unit
 			if (oldFaction == FACTION_HOSTILE && (*j)->killedBy() == FACTION_PLAYER)

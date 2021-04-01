@@ -112,4 +112,19 @@ private:
 };
 
 
+/**
+ * Overload helper for creating one functor from multiple ones.
+ */
+template<class... Ts>
+struct Overloaded : Ts...
+{
+	using Ts::operator()...;
+};
+
+/**
+ * C++17 deduction guide for Overloaded
+ */
+template<class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
+
 } //namespace OpenXcom

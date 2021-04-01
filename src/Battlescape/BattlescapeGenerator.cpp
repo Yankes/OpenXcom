@@ -256,18 +256,21 @@ void BattlescapeGenerator::nextStage()
 	{
 		if ((*unit)->getOriginalFaction() == FACTION_PLAYER && !(*unit)->isOut())
 		{
-			std::vector<BattleItem*> unitsToDrop;
-			for (std::vector<BattleItem*>::iterator item = (*unit)->getInventory()->begin(); item != (*unit)->getInventory()->end(); ++item)
-			{
-				if ((*item)->getUnit())
+			(*unit)->unlinkInventory(
+				[&](BattleItem* i)
 				{
-					unitsToDrop.push_back(*item);
+					if (i->getUnit())
+					{
+						i->unlinkOwner();
+						i->moveToTile((*unit)->getTile(), _inventorySlotGround);
+						return true;
+					}
+					else
+					{
+						return false;
+					}
 				}
-			}
-			for (std::vector<BattleItem*>::iterator corpseItem = unitsToDrop.begin(); corpseItem != unitsToDrop.end(); ++corpseItem)
-			{
-				_save->getTileEngine()->itemDrop((*unit)->getTile(), (*corpseItem), false);
-			}
+			);
 		}
 
 		// scripts (or some bugs in the game) could make aliens or soldiers that have "unresolved" stun or death state.
@@ -280,12 +283,7 @@ void BattlescapeGenerator::nextStage()
 			}
 
 			//spawn corpse/body for unit to recover
-			for (int i = (*unit)->getArmor()->getTotalSize() - 1; i >= 0; --i)
-			{
-				auto corpse = _save->createItemForTile((*unit)->getArmor()->getCorpseBattlescape()[i], nullptr);
-				corpse->setUnit((*unit));
-				_save->getTileEngine()->itemDrop((*unit)->getTile(), corpse, false);
-			}
+			(*unit)->moveToBodyItem(_save);
 		}
 	}
 
@@ -320,8 +318,7 @@ void BattlescapeGenerator::nextStage()
 			}
 		}
 		(*i)->setFire(0);
-		(*i)->setTile(nullptr, _save);
-		(*i)->setPosition(TileEngine::invalid, false);
+		(*i)->unlinkTile();
 	}
 
 	// remove all items not belonging to our soldiers from the map.
@@ -447,13 +444,12 @@ void BattlescapeGenerator::nextStage()
 				BattleItem *ammo = (*i)->getAmmoForSlot(slot);
 				if (ammo && ammo != *i)
 				{
-					// break any tile links, because all the tiles are about to disappear.
-					ammo->setTile(0);
 					toContainer->push_back(ammo);
 				}
 			}
 			// and now the actual item itself.
-			(*i)->setTile(0);
+			// break any tile links, because all the tiles are about to disappear.
+			(*i)->unlinkTile();
 			toContainer->push_back(*i);
 		}
 	}
@@ -472,7 +468,7 @@ void BattlescapeGenerator::nextStage()
 	{
 		// fixed weapons, or anything that's otherwise "equipped" will need to be de-equipped
 		// from their owners to make sure we don't have any null pointers to worry about later
-		(*i)->moveToOwner(nullptr);
+		(*i)->moveToNothing();
 		delete *i;
 	}
 
@@ -594,7 +590,7 @@ void BattlescapeGenerator::nextStage()
 						_craftInventoryTile = (*j)->getTile();
 					}
 
-					(*j)->setInventoryTile(_craftInventoryTile);
+					(*j)->moveToPreBattle(_craftInventoryTile);
 					(*j)->setVisible(false);
 					if ((*j)->getId() > highestSoldierID)
 					{
@@ -621,18 +617,14 @@ void BattlescapeGenerator::nextStage()
 	{
 		_save->selectNextPlayerUnit();
 	}
-	RuleInventory *ground = _inventorySlotGround;
 
 	for (std::vector<BattleItem*>::iterator i = takeToNextStage.begin(); i != takeToNextStage.end(); ++i)
 	{
 		_save->getItems()->push_back(*i);
-		if ((*i)->getSlot() == ground)
+		(*i)->moveToTile(_craftInventoryTile, _inventorySlotGround);
+		if ((*i)->getUnit())
 		{
-			_craftInventoryTile->addItem(*i, ground);
-			if ((*i)->getUnit())
-			{
-				(*i)->getUnit()->setPosition(_craftInventoryTile->getPosition());
-			}
+			(*i)->getUnit()->setPosition(_craftInventoryTile->getPosition());
 		}
 	}
 
@@ -1029,7 +1021,7 @@ void BattlescapeGenerator::deployXCOM(const RuleStartingCondition* startingCondi
 	{
 		if ((*i)->getFaction() == FACTION_PLAYER)
 		{
-			(*i)->setInventoryTile(_craftInventoryTile);
+			(*i)->moveToPreBattle(_craftInventoryTile);
 			(*i)->setVisible(false);
 		}
 	}
@@ -1670,8 +1662,7 @@ bool BattlescapeGenerator::placeItemByLayout(BattleItem *item, const std::vector
 				// only place the weapon onto the soldier when it's loaded with its layout-ammo (if any)
 				if (!toLoad || item->haveAnyAmmo())
 				{
-					item->moveToOwner(unit);
-					item->setSlot(inventorySlot);
+					item->moveToOwner(unit, inventorySlot);
 					item->setSlotX(layoutItem->getSlotX());
 					item->setSlotY(layoutItem->getSlotY());
 					if (Options::includePrimeStateInSavedLayout && item->getRules()->getFuseTimerType() != BFT_NONE)

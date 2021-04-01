@@ -1409,8 +1409,7 @@ void InventoryState::_applyInventoryTemplate(std::vector<EquipmentLayoutItem*> &
 			(*templateIt)->getSlotY()))
 		{
 			// move matched item from ground to the appropriate inventory slot
-			matchedWeapon->moveToOwner(unit);
-			matchedWeapon->setSlot(_game->getMod()->getInventory((*templateIt)->getSlot()));
+			matchedWeapon->moveToOwner(unit, _game->getMod()->getInventory((*templateIt)->getSlot()));
 			matchedWeapon->setSlotX((*templateIt)->getSlotX());
 			matchedWeapon->setSlotY((*templateIt)->getSlotY());
 			matchedWeapon->setFuseTimer((*templateIt)->getFuseTimer());
@@ -1892,11 +1891,10 @@ void InventoryState::onMoveGroundInventoryToBase(Action *)
 	// step 2: clear ground
 	for (std::vector<BattleItem*>::iterator i = groundInv->begin(); i != groundInv->end(); )
 	{
-		(*i)->setOwner(NULL);
-		BattleItem *item = *i;
-		i = groundInv->erase(i);
-		_game->getSavedGame()->getSavedBattle()->removeItem(item);
+		(*i)->unlinkTile();
+		_game->getSavedGame()->getSavedBattle()->removeItem((*i));
 	}
+	groundInv->clear();
 
 	// refresh ui
 	_inv->arrangeGround();

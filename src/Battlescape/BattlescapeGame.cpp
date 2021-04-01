@@ -2087,8 +2087,6 @@ BattleUnit *BattlescapeGame::convertUnit(BattleUnit *unit)
 		getSave()->setSelectedUnit(nullptr);
 	}
 	getSave()->getBattleState()->resetUiButton();
-	// in case the unit was unconscious
-	getSave()->removeUnconsciousBodyItem(unit);
 
 	unit->instaKill();
 
@@ -2111,14 +2109,14 @@ BattleUnit *BattlescapeGame::convertUnit(BattleUnit *unit)
 	getSave()->getTileEngine()->itemDropInventory(tile, unit, false, true);
 
 	// remove unit-tile link
-	unit->setTile(nullptr, _save);
+	unit->moveToNothing(_save);
 
 	const Unit* type = unit->getSpawnUnit();
 
 	BattleUnit *newUnit = _save->createTempUnit(type, unit->getSpawnUnitFaction());
 
 	getSave()->initUnit(newUnit);
-	newUnit->setTile(tile, _save);
+	newUnit->moveToMap(tile);
 	newUnit->setPosition(unit->getPosition());
 	newUnit->setDirection(unit->getDirection());
 	newUnit->clearTimeUnits();
@@ -2225,7 +2223,7 @@ void BattlescapeGame::spawnNewUnit(BattleActionAttack attack, Position position)
 
 		// Initialize the unit and its position
 		getSave()->initUnit(newUnit, itemLevel);
-		newUnit->setTile(_save->getTile(position), _save);
+		newUnit->moveToMap(_save->getTile(position));
 		newUnit->setPosition(position);
 		newUnit->setDirection(unitDirection);
 		newUnit->clearTimeUnits();
@@ -2295,18 +2293,18 @@ void BattlescapeGame::removeSummonedPlayerUnits()
 				}
 			}
 
-			if ((*unit)->getStatus() == STATUS_UNCONSCIOUS || (*unit)->getStatus() == STATUS_DEAD)
-				_save->removeUnconsciousBodyItem((*unit));
-
 			//remove all items form unit
 			(*unit)->removeSpecialWeapons(_save);
-			auto inv = *(*unit)->getInventory();
-			for (auto* bi : inv)
-			{
-				_save->removeItem(bi);
-			}
+			(*unit)->unlinkInventory(
+				[&](BattleItem* i)
+				{
+					i->unlinkOwner();
+					_save->removeItem(i);
+					return true;
+				}
+			);
 
-			(*unit)->setTile(nullptr, _save);
+			(*unit)->moveToNothing(_save);
 			delete (*unit);
 			unit = _save->getUnits()->erase(unit);
 		}
@@ -2324,8 +2322,7 @@ void BattlescapeGame::removeSummonedPlayerUnits()
 			getDepth());
 
 		// just bare minimum, this unit will never be used for anything except recovery (not even for scoring)
-		newUnit->setTile(nullptr, _save);
-		newUnit->setPosition(TileEngine::invalid);
+		newUnit->moveToNothing(_save);
 		newUnit->markAsResummonedFakeCivilian();
 		_save->getUnits()->push_back(newUnit);
 	}

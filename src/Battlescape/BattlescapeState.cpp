@@ -1280,7 +1280,7 @@ void BattlescapeState::selectNextPlayerUnit(bool checkReselect, bool setReselect
 	if (allowButtons())
 	{
 		BattleUnit *unit = _save->selectNextPlayerUnit(checkReselect, setReselect, checkInventory);
-		updateSoldierInfo(checkFOV);
+		if (!_save->isBeforeGame()) updateSoldierInfo(checkFOV);
 		if (unit) _map->getCamera()->centerOnPosition(unit->getPosition());
 		_battleGame->cancelAllActions();
 		_battleGame->getCurrentAction()->actor = unit;
@@ -2726,7 +2726,7 @@ inline void BattlescapeState::handle(Action *action)
 								debug("Beam me up Scotty");
 								_save->getPathfinding()->removePreview();
 
-								unit->setTile(_save->getTile(newPos), _save);
+								unit->setTile(_save->getTile(newPos));
 								unit->setPosition(newPos);
 
 								//free refresh as bonus
@@ -3126,24 +3126,26 @@ void BattlescapeState::finishBattle(bool abort, int inExitArea)
 	// dear civilians and summoned player units,
 	// please drop all borrowed xcom equipment now, so that we can recover it
 	// thank you!
-	std::vector<BattleItem*> itemsToDrop;
 	for (auto* unit : *_save->getUnits())
 	{
 		bool relevantUnitType = unit->getOriginalFaction() == FACTION_NEUTRAL || unit->isSummonedPlayerUnit();
 		if (relevantUnitType && !unit->isOut())
 		{
-			itemsToDrop.clear();
-			for (auto* item : *unit->getInventory())
-			{
-				if (item->getXCOMProperty() || item->getUnit())
+			unit->unlinkInventory(
+				[&](BattleItem* i)
 				{
-					itemsToDrop.push_back(item);
+					if (i->getXCOMProperty() || i->getUnit())
+					{
+						i->unlinkOwner();
+						i->moveToTile(unit->getTile(), _save->getTileEngine()->getInvenotrySlotGround());
+						return true;
+					}
+					else
+					{
+						return false;
+					}
 				}
-			}
-			for (auto* xcomItem : itemsToDrop)
-			{
-				_save->getTileEngine()->itemDrop(unit->getTile(), xcomItem, false);
-			}
+			);
 		}
 	}
 

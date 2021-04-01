@@ -381,6 +381,8 @@ public:
 	BattleItem *createItemForUnit(const std::string& type, BattleUnit *unit, bool fixedWeapon = false);
 	/// Create new special built-in item for unit.
 	BattleItem *createItemForUnitSpecialBuiltin(const RuleItem *rule, BattleUnit *unit);
+	/// Create new corpse item for unit.
+	BattleItem *createItemForUnitCorpse(const RuleItem *rule, BattleUnit *unit);
 	/// Create new item for tile.
 	BattleItem *createItemForTile(const RuleItem *rule, Tile *tile);
 	/// Create new item for tile.
@@ -408,8 +410,6 @@ public:
 	void prepareNewTurn();
 	/// Revives unconscious units (health check).
 	void reviveUnconsciousUnits(bool noTU = false);
-	/// Removes the body item that corresponds to the unit.
-	void removeUnconsciousBodyItem(BattleUnit *bu);
 	/// Sets or tries to set a unit of a certain size on a certain position of the map.
 	bool setUnitPosition(BattleUnit *bu, Position position, bool testOnly = false);
 	/// Adds this unit to the vector of falling units.

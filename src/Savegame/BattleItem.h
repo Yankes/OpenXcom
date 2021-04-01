@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <variant>
 #include <yaml-cpp/yaml.h>
 #include "../Mod/RuleItem.h"
 #include "../Engine/Script.h"
@@ -49,11 +50,87 @@ class BattleItem
 private:
 	int _id;
 	const RuleItem *_rules;
-	BattleUnit *_owner, *_previousOwner;
-	BattleUnit *_unit;
-	Tile *_tile;
-	RuleInventory *_inventorySlot;
-	int _inventoryX, _inventoryY;
+
+	/// Initial status, outside of curret stage.
+	struct StatusDataTimeout
+	{
+		//nothing
+	};
+	/// Item is lay on tile.
+	struct StatusDataTile
+	{
+		Tile *_tile = nullptr;
+		BattleUnit *_previousOwner = nullptr;
+		RuleInventory *_inventorySlot = nullptr;
+		int _inventoryX = 0, _inventoryY = 0;
+	};
+	/// Item is special weapon of unit outisde in inventory.
+	struct StatusDataSpecialWeapon
+	{
+		BattleUnit *_owner = nullptr;
+	};
+	/// Item is item in unit inventory.
+	struct StatusDataInventory
+	{
+		BattleUnit *_owner = nullptr;
+		RuleInventory *_inventorySlot = nullptr;
+		int _inventoryX = 0, _inventoryY = 0;
+	};
+	/// Item is throw by unit.
+	struct StatusDataThrow
+	{
+		BattleUnit *_previousOwner = nullptr;
+	};
+
+	/// Item data that is avaiable only for specific status.
+	std::variant<StatusDataTimeout, StatusDataTile, StatusDataSpecialWeapon, StatusDataInventory, StatusDataThrow> _statusData = StatusDataTimeout{ };
+
+	/// Helper getter for state data
+	template<typename T, typename S, typename V = T, typename... Rest>
+	T getStateValue(V fallback, T S::* member, Rest... rest) const
+	{
+		if (auto p = std::get_if<S>(&_statusData))
+		{
+			return std::invoke(member, p);
+		}
+		else if constexpr(sizeof...(rest) > 0)
+		{
+			return getStateValue(fallback, rest...);
+		}
+		else
+		{
+			return fallback;
+		}
+	}
+	template<typename T, typename S, typename V = T, typename... Rest>
+	void setStateValue(V v, T S::* member, Rest... rest)
+	{
+		if (auto p = std::get_if<S>(&_statusData))
+		{
+			std::invoke(member, p) = v;
+		}
+		else if constexpr(sizeof...(rest) > 0)
+		{
+			setStateValue(v, rest...);
+		}
+		else
+		{
+			//should we throw error there, or ignore this value set?
+		}
+	}
+	template<typename S>
+	S* tryGetState()
+	{
+		return std::get_if<S>(&_statusData);
+	}
+	template<typename S>
+	S* tryGetState() const
+	{
+		return std::get_if<S>(&_statusData);
+	}
+
+
+	BattleUnit *_unit = nullptr;
 	BattleItem *_ammoItem[RuleItem::AmmoSlotMax] = { };
 	bool _ammoVisibility[RuleItem::AmmoSlotMax] = { };
 	int _fuseTimer, _ammoQuantity;
@@ -109,22 +186,48 @@ public:
 	/// Spend one bullet. (Or spend a given amount of energy from a battery.)
 	bool spendBullet(int spendPerShot);
 
+	/// Gets the item's tile.
+	Tile *getTile() const;
+	/// Sets the tile.
+	void linkTile(Tile *tile);
+	/// Remove data that link item with current stage map.
+	void unlinkTile();
+
 	/// Check if owner is removed from game.
 	bool isOwnerIgnored() const;
 	/// Gets the item's owner.
 	BattleUnit *getOwner();
 	/// Gets the item's owner.
 	const BattleUnit *getOwner() const;
+	/// Sets the owner.
+	void linkOwner(BattleUnit *owner);
+	/// Remove data that link item with unit.
+	void unlinkOwner();
+
+	/// Gets the corpse's unit.
+	BattleUnit *getUnit();
+	/// Gets the corpse's unit.
+	const BattleUnit *getUnit() const;
+	/// Sets the corpse's unit.
+	void setUnit(BattleUnit *unit);
+
 	/// Gets the item's previous owner.
 	BattleUnit *getPreviousOwner();
 	/// Gets the item's previous owner.
 	const BattleUnit *getPreviousOwner() const;
-	/// Sets the owner.
-	void setOwner(BattleUnit *owner);
 	/// Sets the item's previous owner.
 	void setPreviousOwner(BattleUnit *owner);
+
 	/// Removes the item from previous owner and moves to new owner.
-	void moveToOwner(BattleUnit *owner);
+	void moveToSpecialWeapon(BattleUnit *owner);
+	/// Removes the item from previous owner and moves to new owner.
+	void moveToOwner(BattleUnit *owner, RuleInventory* inv);
+	/// Removes the item from previous owner and moves to tile.
+	void moveToTile(Tile *tile, RuleInventory* inv);
+	/// Remove ther item from previous owner and remeber him.
+	void moveToThrow();
+	/// Remove ther item from previous owner.
+	void moveToNothing();
 
 	/// Checks if the item is a special built-in weapon (outside of the inventory).
 	bool isSpecialWeapon() const { return getOwner() && !getSlot(); }
@@ -186,18 +289,8 @@ public:
 	/// Get waypoints count.
 	int getCurrentWaypoints() const;
 
-	/// Gets the item's tile.
-	Tile *getTile() const;
-	/// Sets the tile.
-	void setTile(Tile *tile);
 	/// Gets it's unique id.
 	int getId() const;
-	/// Gets the corpse's unit.
-	BattleUnit *getUnit();
-	/// Gets the corpse's unit.
-	const BattleUnit *getUnit() const;
-	/// Sets the corpse's unit.
-	void setUnit(BattleUnit *unit);
 	/// Set medikit Heal quantity
 	void setHealQuantity (int heal);
 	/// Get medikit heal quantity

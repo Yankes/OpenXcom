@@ -24,6 +24,7 @@
 #include "../Engine/Surface.h"
 #include "../Engine/RNG.h"
 #include "../Engine/ScriptBind.h"
+#include "../Engine/Collections.h"
 #include "BattleUnit.h"
 #include "BattleItem.h"
 #include "../Mod/RuleItem.h"
@@ -208,6 +209,46 @@ void Tile::saveBinary(Uint8** buffer) const
 	serializeInt(buffer, serializationKey.boolFields, boolFields);
 }
 
+
+/**
+ * Return 2x2 box for big unit position.
+ * Can return nullptrs if you are try get it on edge of map.
+ */
+std::array<Tile*, 4> Tile::getBoxTiles()
+{
+	const auto x = _save->getMapSizeX();
+	const auto y = _save->getMapSizeY();
+	const auto last_x = (_pos.x == x - 1);
+	const auto last_y = (_pos.y == y - 1);
+
+	return {
+		this,
+		last_x ? nullptr : this + 1,
+		last_y ? nullptr : this + x,
+		last_x || last_y ? nullptr : this + x + 1,
+	};
+}
+
+/**
+ * Return 2x2 box for big unit position.
+ * Can return nullptrs if you are try get it on edge of map.
+ */
+std::array<const Tile*, 4> Tile::getBoxTiles() const
+{
+	const auto x = _save->getMapSizeX();
+	const auto y = _save->getMapSizeY();
+	const auto last_x = (_pos.x == x - 1);
+	const auto last_y = (_pos.y == y - 1);
+
+	return {
+		this,
+		last_x ? nullptr : this + 1,
+		last_y ? nullptr : this + x,
+		last_x || last_y ? nullptr : this + x + 1,
+	};
+}
+
+
 /**
  * Set the MapData references of part 0 to 3.
  * @param dat pointer to the data object
@@ -296,17 +337,17 @@ int Tile::getTUCost(int part, MovementType movementType) const
 
 /**
  * Whether this tile has a floor or not. If no object defined as floor, it has no floor.
- * @param savedBattleGame Save to get tile below to check if it can work as floor.
+ * @param savedBattleGame Ignored for now.
  * @return bool
  */
-bool Tile::hasNoFloor(const SavedBattleGame *savedBattleGame) const
+bool Tile::hasNoFloor(const SavedBattleGame *) const
 {
 	//There's no point in checking for "floor" below if we have floor in this tile already.
 	if (_cache.isNoFloor)
 	{
-		if (_pos.z > 0 && savedBattleGame)
+		if (_pos.z > 0)
 		{
-			const Tile* tileBelow = savedBattleGame->getBelowTile(this);
+			const Tile* tileBelow = _save->getBelowTile(this);
 			if (tileBelow != 0 && tileBelow->getTerrainLevel() == -24)
 				return false;
 		}
@@ -717,6 +758,52 @@ void Tile::updateSprite(TilePart part)
 }
 
 /**
+ * Link unit to tile side.
+ */
+void Tile::linkUnit(BattleUnit *unit)
+{
+	if (unit->isBigUnit())
+	{
+		for (auto t : getBoxTiles())
+		{
+			if (t)
+			{
+				t->_unit = unit;
+			}
+		}
+	}
+	else
+	{
+		_unit = unit;
+	}
+}
+
+/**
+ * Remove link to unit from tile side.
+ */
+void Tile::unlinkUnit()
+{
+	auto u = _unit;
+	if (u)
+	{
+		if (u->isBigUnit())
+		{
+			for (auto t : getBoxTiles())
+			{
+				if (t && t->_unit == u)
+				{
+					t->_unit = nullptr;
+				}
+			}
+		}
+		else
+		{
+			_unit = nullptr;
+		}
+	}
+}
+
+/**
  * Get unit from this tile or from tile below if unit poke out.
  * @param saveBattleGame
  * @return BattleUnit.
@@ -804,41 +891,6 @@ int Tile::getSmoke() const
 int Tile::getAnimationOffset() const
 {
 	return _animationOffset;
-}
-
-/**
- * Add an item on the tile.
- * @param item
- * @param ground
- */
-void Tile::addItem(BattleItem *item, RuleInventory *ground)
-{
-	item->setSlot(ground);
-	_inventory.push_back(item);
-	item->setTile(this);
-
-	// Note: floorOb drawing optimisation
-	if (item->getUnit() && _inventory.size() > 1)
-	{
-		std::swap(_inventory.front(), _inventory.back());
-	}
-}
-
-/**
- * Remove an item from the tile.
- * @param item
- */
-void Tile::removeItem(BattleItem *item)
-{
-	for (std::vector<BattleItem*>::iterator i = _inventory.begin(); i != _inventory.end(); ++i)
-	{
-		if ((*i) == item)
-		{
-			_inventory.erase(i);
-			break;
-		}
-	}
-	item->setTile(0);
 }
 
 /**
@@ -933,6 +985,46 @@ void Tile::prepareNewTurn(bool smokeDamage)
 std::vector<BattleItem *> *Tile::getInventory()
 {
 	return &_inventory;
+}
+
+/**
+ * Add link to item on tile side.
+ */
+void Tile::linkInventory(BattleItem *item)
+{
+	_inventory.push_back(item);
+
+	// Note: floorOb drawing optimisation
+	if (item->getUnit() && _inventory.size() > 1)
+	{
+		std::swap(_inventory.front(), _inventory.back());
+	}
+}
+
+/**
+ * Remove link to item from tile side.
+ */
+void Tile::unlinkInventory(BattleItem *item)
+{
+	Collections::removeIf(
+		_inventory,
+		1,
+		[&](BattleItem* i)
+		{
+			return i == item;
+		}
+	);
+}
+
+/**
+ * Remove link to item from tile side.
+ */
+void Tile::unlinkInventory(FuncRef<bool(BattleItem*)> check)
+{
+	Collections::removeIf(
+		_inventory,
+		check
+	);
 }
 
 

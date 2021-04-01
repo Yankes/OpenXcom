@@ -867,7 +867,7 @@ void TileEngine::calculateUnitLighting(MapSubset gs)
 
 	for (BattleUnit *unit : *_save->getUnits())
 	{
-		if (unit->isOut())
+		if (unit->getTile() == nullptr)
 		{
 			continue;
 		}
@@ -897,7 +897,7 @@ void TileEngine::calculateUnitLighting(MapSubset gs)
 			currLight = getMaxDynamicLightDistance() - 1;
 		}
 		const auto size = unit->getArmor()->getSize();
-		const auto pos = unit->getPosition();
+		const auto pos = unit->getTile()->getPosition();
 		for (int x = 0; x < size; ++x)
 		{
 			for (int y = 0; y < size; ++y)
@@ -2179,6 +2179,11 @@ void TileEngine::calculateFOV(Position position, int eventRadius, const bool upd
 	}
 	for (std::vector<BattleUnit*>::iterator i = _save->getUnits()->begin(); i != _save->getUnits()->end(); ++i)
 	{
+		if ((*i)->getPosition() == TileEngine::invalid)
+		{
+			continue;
+		}
+
 		if (Position::distance2dSq(position, (*i)->getPosition()) <= updateRadius) //could this unit have observed the event?
 		{
 			if (updateTiles)
@@ -3016,7 +3021,6 @@ void TileEngine::explode(BattleActionAttack attack, Position center, int power, 
 	int diagonalWall = 0;
 	int power_;
 	std::map<Tile*, int> tilesAffected;
-	std::vector<BattleItem*> toRemove;
 	std::pair<std::map<Tile*, int>::iterator, bool> ret;
 
 	if (type->FireBlastCalc)
@@ -3081,7 +3085,6 @@ void TileEngine::explode(BattleActionAttack attack, Position center, int power, 
 						const int damage = type->getRandomDamage(power_);
 						BattleUnit *bu = dest->getOverlappingUnit(_save);
 
-						toRemove.clear();
 						if (bu)
 						{
 							if (Position::distance2d(dest->getPosition(), centetTile) < 2)
@@ -3100,27 +3103,41 @@ void TileEngine::explode(BattleActionAttack attack, Position center, int power, 
 							const int itemDamage = bu->getOverKillDamage();
 							if (itemDamage > 0)
 							{
-								for (std::vector<BattleItem*>::iterator it = bu->getInventory()->begin(); it != bu->getInventory()->end(); ++it)
-								{
-									if (!hitUnit(attack, (*it)->getUnit(), Position(0, 0, 0), itemDamage, type, rangeAtack) && type->getItemFinalDamage(itemDamage) > (*it)->getRules()->getArmor())
+								Collections::removeIf(
+									*bu->getInventory(),
+									[&](BattleItem* i)
 									{
-										toRemove.push_back(*it);
+										if (!hitUnit(attack, i->getUnit(), Position(0, 0, 0), itemDamage, type, rangeAtack) && type->getItemFinalDamage(itemDamage) > i->getRules()->getArmor())
+										{
+											i->unlinkOwner();
+											_save->removeItem(i);
+											return true;
+										}
+										else
+										{
+											return false;
+										}
 									}
-								}
+								);
 							}
 						}
 						// Affect all items and units on ground
-						for (std::vector<BattleItem*>::iterator it = dest->getInventory()->begin(); it != dest->getInventory()->end(); ++it)
-						{
-							if (!hitUnit(attack, (*it)->getUnit(), Position(0, 0, 0), damage, type) && type->getItemFinalDamage(damage) > (*it)->getRules()->getArmor())
+						Collections::removeIf(
+							*dest->getInventory(),
+							[&](BattleItem* i)
 							{
-								toRemove.push_back(*it);
+								if (!hitUnit(attack, i->getUnit(), Position(0, 0, 0), damage, type) && type->getItemFinalDamage(damage) > i->getRules()->getArmor())
+								{
+									i->unlinkTile();
+									_save->removeItem(i);
+									return true;
+								}
+								else
+								{
+									return false;
+								}
 							}
-						}
-						for (std::vector<BattleItem*>::iterator it = toRemove.begin(); it != toRemove.end(); ++it)
-						{
-							_save->removeItem((*it));
-						}
+						);
 
 						hitTile(dest, damage, type);
 					}
@@ -4731,7 +4748,7 @@ Tile *TileEngine::applyGravity(Tile *t)
 
 	if (occupant)
 	{
-		occupant->updateTileFloorState(_save);
+		occupant->updateTileFloorState();
 		if (occupant->haveNoFloorBelow())
 		{
 			if (!occupant->isOutThresholdExceed())
@@ -4766,7 +4783,8 @@ Tile *TileEngine::applyGravity(Tile *t)
 		}
 		if (t != rt)
 		{
-			rt->addItem(*it, (*it)->getSlot());
+			(*it)->unlinkTile();
+			(*it)->moveToTile(rt, (*it)->getSlot());
 		}
 	}
 
@@ -4799,7 +4817,7 @@ void TileEngine::itemDrop(Tile *t, BattleItem *item, bool updateLight)
 		item->setTurnFlag(true);
 	}
 
-	itemMoveInventory(t, nullptr, item, _inventorySlotGround, 0, 0);
+	item->moveToTile(t, _inventorySlotGround);
 
 	applyGravity(t);
 
@@ -4815,18 +4833,21 @@ void TileEngine::itemDrop(Tile *t, BattleItem *item, bool updateLight)
  */
 void TileEngine::itemDropInventory(Tile *t, BattleUnit *unit, bool unprimeItems, bool deleteFixedItems)
 {
-	Collections::removeIf(*unit->getInventory(),
+	Collections::removeIf(
+		*unit->getInventory(),
 		[&](BattleItem* i)
 		{
 			if (!i->getRules()->isFixed())
 			{
-				i->setOwner(nullptr);
 				if (unprimeItems && i->getRules()->getFuseTimerType() != BFT_NONE)
 				{
 					i->setFuseTimer(-1); // unprime explosives before dropping them
 				}
-				t->addItem(i, _inventorySlotGround);
-				if (i->getUnit() && i->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
+
+				i->unlinkOwner();
+				i->moveToTile(t, _inventorySlotGround);
+
+				if (i->getUnit() && i->getUnit()->getStatus() == STATUS_UNCONSCIOUS) //TODO: remove
 				{
 					i->getUnit()->setPosition(t->getPosition());
 				}
@@ -4851,7 +4872,7 @@ void TileEngine::itemDropInventory(Tile *t, BattleUnit *unit, bool unprimeItems,
 					}
 
 					// delete fixed items completely (e.g. when changing armor)
-					i->setOwner(nullptr);
+					i->unlinkOwner();
 					_save->removeItem(i);
 					return true;
 				}
@@ -4881,24 +4902,24 @@ void TileEngine::itemMoveInventory(Tile *t, BattleUnit *unit, BattleItem *item, 
 	{
 		if (slot == _inventorySlotGround)
 		{
-			item->moveToOwner(nullptr);
-			t->addItem(item, slot);
-			if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
+			item->moveToTile(t, slot);
+
+			if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS) //TODO: remove
 			{
 				item->getUnit()->setPosition(t->getPosition());
 			}
 		}
 		else if (item->getSlot() == 0 || item->getSlot() == _inventorySlotGround)
 		{
-			item->moveToOwner(unit);
+			item->moveToOwner(unit, slot);
 			item->setTurnFlag(false);
-			if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
+
+			if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS) //TODO: remove
 			{
 				item->getUnit()->setPosition(invalid);
 			}
 		}
 	}
-	item->setSlot(slot);
 	item->setSlotX(x);
 	item->setSlotY(y);
 }

@@ -42,7 +42,7 @@ namespace OpenXcom
  * @param rules Pointer to ruleset.
  * @param id The id of the item.
  */
-BattleItem::BattleItem(const RuleItem *rules, int *id) : _id(*id), _rules(rules), _owner(0), _previousOwner(0), _unit(0), _tile(0), _inventorySlot(0), _inventoryX(0), _inventoryY(0), _ammoItem{ }, _fuseTimer(-1), _ammoQuantity(0), _painKiller(0), _heal(0), _stimulant(0), _XCOMProperty(false), _droppedOnAlienTurn(false), _isAmmo(false), _isWeaponWithAmmo(false), _fuseEnabled(false)
+BattleItem::BattleItem(const RuleItem *rules, int *id) : _id(*id), _rules(rules), _ammoItem{ }, _fuseTimer(-1), _ammoQuantity(0), _painKiller(0), _heal(0), _stimulant(0), _XCOMProperty(false), _droppedOnAlienTurn(false), _isAmmo(false), _isWeaponWithAmmo(false), _fuseEnabled(false)
 {
 	(*id)++;
 	if (_rules)
@@ -103,20 +103,53 @@ BattleItem::~BattleItem()
 void BattleItem::load(const YAML::Node &node, Mod *mod, const ScriptGlobal *shared)
 {
 	std::string slot = node["inventoryslot"].as<std::string>("NULL");
+	RuleInventory* invSlot = nullptr;
 	if (slot != "NULL")
 	{
 		if (mod->getInventory(slot))
 		{
-			_inventorySlot = mod->getInventory(slot);
+			invSlot = mod->getInventory(slot);
 
 		}
 		else
 		{
-			_inventorySlot = mod->getInventoryGround();
+			invSlot = mod->getInventoryGround();
 		}
 	}
-	_inventoryX = node["inventoryX"].as<int>(_inventoryX);
-	_inventoryY = node["inventoryY"].as<int>(_inventoryY);
+
+
+	if (node["position"])
+	{
+		StatusDataTile d;
+		//d._tile
+		//d._previousOwner
+		d._inventorySlot = invSlot;
+		d._inventoryX = node["inventoryX"].as<int>(d._inventoryX);
+		d._inventoryY = node["inventoryY"].as<int>(d._inventoryY);
+		_statusData = d;
+	}
+	else if (node["owner"] && invSlot)
+	{
+		StatusDataInventory d;
+		//d._owner
+		d._inventorySlot = invSlot;
+		d._inventoryX = node["inventoryX"].as<int>(d._inventoryX);
+		d._inventoryY = node["inventoryY"].as<int>(d._inventoryY);
+		_statusData = d;
+	}
+	else if (node["owner"] && !invSlot)
+	{
+		StatusDataSpecialWeapon d;
+		//d._owner
+		_statusData = d;
+	}
+	else
+	{
+		StatusDataTimeout d;
+
+		_statusData = d;
+	}
+
 	_ammoQuantity = node["ammoqty"].as<int>(_ammoQuantity);
 	_painKiller = node["painKiller"].as<int>(_painKiller);
 	_heal = node["heal"].as<int>(_heal);
@@ -142,20 +175,24 @@ YAML::Node BattleItem::save(const ScriptGlobal *shared) const
 	YAML::Node node;
 	node["id"] = _id;
 	node["type"] = _rules->getType();
-	if (_owner)
-		node["owner"] = _owner->getId();
-	if (_previousOwner)
-		node["previousOwner"] = _previousOwner->getId();
-	if (_unit)
-		node["unit"] = _unit->getId();
 
-	if (_inventorySlot)
-		node["inventoryslot"] = _inventorySlot->getId();
-	node["inventoryX"] = _inventoryX;
-	node["inventoryY"] = _inventoryY;
+	if (getOwner())
+		node["owner"] = getOwner()->getId();
+	if (getPreviousOwner())
+		node["previousOwner"] = getPreviousOwner()->getId();
+	if (getUnit())
+		node["unit"] = getUnit()->getId();
 
-	if (_tile)
-		node["position"] = _tile->getPosition();
+	if (getSlot())
+	{
+		node["inventoryslot"] = getSlot()->getId();
+		node["inventoryX"] = getSlotX();
+		node["inventoryY"] = getSlotY();
+	}
+
+	if (getTile())
+		node["position"] = getTile()->getPosition();
+
 	node["ammoqty"] = _ammoQuantity;
 	if (_ammoItem[0])
 	{
@@ -461,7 +498,8 @@ void BattleItem::spendHealingItemUse(BattleMediKitAction mediKitAction)
  */
 bool BattleItem::isOwnerIgnored() const
 {
-	return _owner && _owner->isIgnored();
+	auto owner = getOwner();
+	return owner && owner->isIgnored();
 }
 
 /**
@@ -470,7 +508,7 @@ bool BattleItem::isOwnerIgnored() const
  */
 BattleUnit *BattleItem::getOwner()
 {
-	return _owner;
+	return getStateValue(nullptr, &StatusDataInventory::_owner, &StatusDataSpecialWeapon::_owner);
 }
 
 /**
@@ -479,35 +517,58 @@ BattleUnit *BattleItem::getOwner()
  */
 const BattleUnit *BattleItem::getOwner() const
 {
-	return _owner;
-}
-
-/**
- * Gets the item's previous owner.
- * @return Pointer to Battleunit.
- */
-BattleUnit *BattleItem::getPreviousOwner()
-{
-	return _previousOwner;
-}
-
-/**
- * Gets the item's previous owner.
- * @return Pointer to Battleunit.
- */
-const BattleUnit *BattleItem::getPreviousOwner() const
-{
-	return _previousOwner;
+	return getStateValue(nullptr, &StatusDataInventory::_owner, &StatusDataSpecialWeapon::_owner);
 }
 
 /**
  * Sets the item's owner.
  * @param owner Pointer to Battleunit.
  */
-void BattleItem::setOwner(BattleUnit *owner)
+void BattleItem::linkOwner(BattleUnit *owner)
 {
-	_previousOwner = _owner;
-	_owner = owner;
+	setStateValue(owner, &StatusDataInventory::_owner, &StatusDataSpecialWeapon::_owner);
+}
+
+/**
+ * Remove data that link item with unit.
+ */
+void BattleItem::unlinkOwner()
+{
+	if (std::holds_alternative<StatusDataInventory>(_statusData))
+	{
+		_statusData = StatusDataTimeout{ };
+	}
+	if (std::holds_alternative<StatusDataSpecialWeapon>(_statusData))
+	{
+		_statusData = StatusDataTimeout{ };
+	}
+}
+
+/**
+ * Gets the corpse's unit.
+ * @return Pointer to BattleUnit.
+ */
+BattleUnit *BattleItem::getUnit()
+{
+	return _unit;
+}
+
+/**
+ * Gets the corpse's unit.
+ * @return Pointer to BattleUnit.
+ */
+const BattleUnit *BattleItem::getUnit() const
+{
+	return _unit;
+}
+
+/**
+ * Sets the corpse's unit.
+ * @param unit Pointer to BattleUnit.
+ */
+void BattleItem::setUnit(BattleUnit *unit)
+{
+	_unit = unit;
 }
 
 /**
@@ -516,41 +577,131 @@ void BattleItem::setOwner(BattleUnit *owner)
  */
 void BattleItem::setPreviousOwner(BattleUnit *owner)
 {
-	_previousOwner = owner;
+	setStateValue(owner, &StatusDataTile::_previousOwner);
+}
+
+/**
+ * Gets the item's previous owner.
+ * @return Pointer to Battleunit.
+ */
+BattleUnit *BattleItem::getPreviousOwner()
+{
+	return getStateValue(nullptr, &StatusDataTile::_previousOwner, &StatusDataThrow::_previousOwner);
+}
+
+/**
+ * Gets the item's previous owner.
+ * @return Pointer to Battleunit.
+ */
+const BattleUnit *BattleItem::getPreviousOwner() const
+{
+	return getStateValue(nullptr, &StatusDataTile::_previousOwner, &StatusDataThrow::_previousOwner);
+}
+
+
+/**
+ * Set item as special weapon of owner.
+ * @param owner
+ */
+void BattleItem::moveToSpecialWeapon(BattleUnit *owner)
+{
+	Exception::isTrue(owner, __func__);
+
+	auto s = StatusDataSpecialWeapon{  };
+	_statusData = s;
+
+	linkOwner(owner);
+	owner->linkSpecialWeapon(this);
 }
 
 /**
  * Removes the item from the previous owner and moves it to the new owner.
  * @param owner Pointer to Battleunit.
  */
-void BattleItem::moveToOwner(BattleUnit *owner)
+void BattleItem::moveToOwner(BattleUnit *owner, RuleInventory* inv)
 {
-	if (_tile)
-	{
-		_tile->removeItem(this);
-		_tile = nullptr;
-	}
-	if (owner != _owner)
-	{
-		setOwner(owner);
+	Exception::isTrue(owner && inv, __func__);
 
-		if (_previousOwner)
-		{
-			for (std::vector<BattleItem*>::iterator i = _previousOwner->getInventory()->begin(); i != _previousOwner->getInventory()->end(); ++i)
-			{
-				if ((*i) == this)
-				{
-					_previousOwner->getInventory()->erase(i);
-					break;
-				}
-			}
-		}
-		if (_owner)
-		{
-			_owner->getInventory()->push_back(this);
-		}
+	auto previousOwner = getOwner();
+
+	if (owner == previousOwner)
+	{
+		setSlot(inv);
+		return;
+	}
+
+	moveToNothing();
+
+	auto s = StatusDataInventory{  };
+	s._inventorySlot = inv;
+	_statusData = s;
+
+	linkOwner(owner);
+	owner->linkInventory(this);
+}
+
+/**
+ * Removes the item from previous owner and moves to tile.
+ */
+void BattleItem::moveToTile(Tile *tile, RuleInventory* inv)
+{
+	Exception::isTrue(tile && inv, __func__);
+
+	auto owner = getOwner();
+	auto previousOwner = getPreviousOwner();
+	auto previousTile = getTile();
+
+	if (tile == previousTile)
+	{
+		return;
+	}
+
+	moveToNothing();
+
+	auto s = StatusDataTile{};
+	s._previousOwner = owner ? owner : previousOwner;
+	s._inventorySlot = inv;
+	_statusData = s;
+
+	linkTile(tile);
+	tile->linkInventory(this);
+}
+
+/**
+ * Remove ther item from previous owner.
+ */
+void BattleItem::moveToNothing()
+{
+	if (auto previousTile = getTile())
+	{
+		previousTile->unlinkInventory(this);
+		unlinkTile();
+	}
+	else if (auto owner = getOwner())
+	{
+		owner->unlinkInventory(this);
+		unlinkOwner();
+	}
+	else
+	{
+		_statusData = StatusDataTimeout{ };
 	}
 }
+
+/**
+ * Remove ther item from previous owner.
+ */
+void BattleItem::moveToThrow()
+{
+	auto previousOwner = getOwner();
+
+	moveToNothing();
+
+	auto s = StatusDataThrow{};
+	s._previousOwner = previousOwner;
+	_statusData = s;
+}
+
 
 /**
  * Gets the item's inventory slot.
@@ -558,7 +709,7 @@ void BattleItem::moveToOwner(BattleUnit *owner)
  */
 RuleInventory *BattleItem::getSlot() const
 {
-	return _inventorySlot;
+	return getStateValue(nullptr, &StatusDataInventory::_inventorySlot, &StatusDataTile::_inventorySlot);
 }
 
 /**
@@ -567,7 +718,7 @@ RuleInventory *BattleItem::getSlot() const
  */
 void BattleItem::setSlot(RuleInventory *slot)
 {
-	_inventorySlot = slot;
+	setStateValue(slot, &StatusDataInventory::_inventorySlot, &StatusDataTile::_inventorySlot);
 }
 
 /**
@@ -576,7 +727,7 @@ void BattleItem::setSlot(RuleInventory *slot)
  */
 int BattleItem::getSlotX() const
 {
-	return _inventoryX;
+	return getStateValue(0, &StatusDataInventory::_inventoryX, &StatusDataTile::_inventoryX);
 }
 
 /**
@@ -585,7 +736,7 @@ int BattleItem::getSlotX() const
  */
 void BattleItem::setSlotX(int x)
 {
-	_inventoryX = x;
+	setStateValue(x, &StatusDataInventory::_inventoryX, &StatusDataTile::_inventoryX);
 }
 
 /**
@@ -594,7 +745,7 @@ void BattleItem::setSlotX(int x)
  */
 int BattleItem::getSlotY() const
 {
-	return _inventoryY;
+	return getStateValue(0, &StatusDataInventory::_inventoryY, &StatusDataTile::_inventoryY);
 }
 
 /**
@@ -603,7 +754,7 @@ int BattleItem::getSlotY() const
  */
 void BattleItem::setSlotY(int y)
 {
-	_inventoryY = y;
+	setStateValue(y, &StatusDataInventory::_inventoryY, &StatusDataTile::_inventoryY);
 }
 
 /**
@@ -615,21 +766,25 @@ void BattleItem::setSlotY(int y)
  */
 bool BattleItem::occupiesSlot(int x, int y, BattleItem *item) const
 {
-	if (item == this || !_inventorySlot)
+	if (item == this || !getSlot())
 		return false;
-	if (_inventorySlot->getType() == INV_HAND)
+	if (getSlot()->getType() == INV_HAND)
 		return true;
+
+	auto invX = getSlotX();
+	auto invY = getSlotY();
+
 	if (item == 0)
 	{
-		return (x >= _inventoryX && x < _inventoryX + _rules->getInventoryWidth() &&
-				y >= _inventoryY && y < _inventoryY + _rules->getInventoryHeight());
+		return (x >= invX && x < invX + _rules->getInventoryWidth() &&
+				y >= invY && y < invY + _rules->getInventoryHeight());
 	}
 	else
 	{
-		return !(x >= _inventoryX + _rules->getInventoryWidth() ||
-				x + item->getRules()->getInventoryWidth() <= _inventoryX ||
-				y >= _inventoryY + _rules->getInventoryHeight() ||
-				y + item->getRules()->getInventoryHeight() <= _inventoryY);
+		return !(x >= invX + _rules->getInventoryWidth() ||
+				x + item->getRules()->getInventoryWidth() <= invX ||
+				y >= invY + _rules->getInventoryHeight() ||
+				y + item->getRules()->getInventoryHeight() <= invY);
 	}
 }
 
@@ -963,8 +1118,7 @@ BattleItem *BattleItem::setAmmoForSlot(int slot, BattleItem* item)
 	_ammoItem[slot] = item;
 	if (item)
 	{
-		item->moveToOwner(nullptr);
-		item->setSlot(nullptr);
+		item->moveToNothing();
 		item->setIsAmmo(true);
 	}
 	return oldItem;
@@ -1034,16 +1188,28 @@ int BattleItem::getCurrentWaypoints() const
  */
 Tile *BattleItem::getTile() const
 {
-	return _tile;
+	return getStateValue(nullptr, &StatusDataTile::_tile);
 }
 
 /**
  * Sets the item's tile.
  * @param tile The tile.
  */
-void BattleItem::setTile(Tile *tile)
+void BattleItem::linkTile(Tile *tile)
 {
-	_tile = tile;
+	setStateValue(tile, &StatusDataTile::_tile);
+}
+
+/**
+ * Remove data that link item with current stage map.
+ * Do not unlink everyting.
+ */
+void BattleItem::unlinkTile()
+{
+	if (tryGetState<StatusDataTile>())
+	{
+		_statusData = StatusDataTimeout{ };
+	}
 }
 
 /**
@@ -1053,33 +1219,6 @@ void BattleItem::setTile(Tile *tile)
 int BattleItem::getId() const
 {
 	return _id;
-}
-
-/**
- * Gets the corpse's unit.
- * @return Pointer to BattleUnit.
- */
-BattleUnit *BattleItem::getUnit()
-{
-	return _unit;
-}
-
-/**
- * Gets the corpse's unit.
- * @return Pointer to BattleUnit.
- */
-const BattleUnit *BattleItem::getUnit() const
-{
-	return _unit;
-}
-
-/**
- * Sets the corpse's unit.
- * @param unit Pointer to BattleUnit.
- */
-void BattleItem::setUnit(BattleUnit *unit)
-{
-	_unit = unit;
 }
 
 /**
@@ -1208,7 +1347,7 @@ bool BattleItem::getGlow() const
  */
 int BattleItem::getGlowRange() const
 {
-	auto owner = _unit ? _unit : _previousOwner;
+	auto owner = _unit ? _unit : getPreviousOwner();
 	return _rules->getPowerBonus({ BA_NONE, owner, this, this });
 }
 
