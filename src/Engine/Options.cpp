@@ -241,6 +241,7 @@ void create()
 
 	_info.push_back(OptionInfo("oxceEmbeddedOnly", &oxceEmbeddedOnly, true));
 	_info.push_back(OptionInfo("oxceListVFSContents", &oxceListVFSContents, false));
+	_info.push_back(OptionInfo("oxceLoadBuggedMods", &oxceLoadBuggedMods, false));
 	_info.push_back(OptionInfo("oxceRawScreenShots", &oxceRawScreenShots, false));
 	_info.push_back(OptionInfo("oxceThumbButtons", &oxceThumbButtons, true));
 

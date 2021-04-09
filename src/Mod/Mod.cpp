@@ -1563,11 +1563,22 @@ static void afterLoadHelper(const char* name, Mod* mod, std::map<std::string, T*
 	std::ostringstream errorStream;
 	int errorLimit = 30;
 	int errorCount = 0;
+
+	errorStream << "During linking rulesets of " << name << ":\n";
 	for (auto& rule : list)
 	{
 		try
 		{
 			(rule.second->* func)(mod);
+		}
+		catch (LoadRuleException &e)
+		{
+			++errorCount;
+			errorStream << e.what() << "\n";
+			if (errorCount == errorLimit)
+			{
+				break;
+			}
 		}
 		catch (Exception &e)
 		{

@@ -87,6 +87,7 @@ OPT bool oxceManufactureFilterSuppliesOK;
 
 OPT bool oxceEmbeddedOnly;
 OPT bool oxceListVFSContents;
+OPT bool oxceLoadBuggedMods;
 OPT bool oxceRawScreenShots;
 OPT bool oxceThumbButtons;
 

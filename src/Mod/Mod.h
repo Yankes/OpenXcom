@@ -129,6 +129,11 @@ struct LoadRuleException : Exception
 	{
 
 	}
+
+	LoadRuleException(const std::string& parent, const std::string& message) : Exception{ "Error for '" + parent + "': " + message}
+	{
+
+	}
 };
 
 /**
@@ -419,6 +424,44 @@ public:
 	Sound *getSoundByDepth(unsigned int depth, unsigned int sound, bool error = true) const;
 	/// Gets list of LUT data.
 	const std::vector<std::vector<Uint8> > *getLUTs() const;
+
+	/// Check for error that we can ignore by user request.
+	bool checkForSoftError(bool check, const std::string &parent, const YAML::Node &node, const std::string &error) const
+	{
+		if (check)
+		{
+			auto ex = LoadRuleException(parent, node, error);
+			if (Options::oxceLoadBuggedMods)
+			{
+				Log(LOG_ERROR) << "Supressed " << ex.what();
+				return true;
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		return false;
+	}
+
+	/// Check for error that we can ignore by user request.
+	bool checkForSoftError(bool check, const std::string &parent, const std::string &error) const
+	{
+		if (check)
+		{
+			auto ex = LoadRuleException(parent, error);
+			if (Options::oxceLoadBuggedMods)
+			{
+				Log(LOG_ERROR) << "Supressed " << ex.what();
+				return true;
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		return false;
+	}
 
 	/// Gets the mod offset.
 	int getModOffset() const;
