@@ -414,6 +414,7 @@ private:
 	int _value, _moraleLossWhenKilled, _aggroSound, _moveSound;
 	int _intelligence, _aggression, _spotter, _sniper, _energyRecovery;
 	SpecialAbility _specab;
+	const RuleItem* _liveAlien = nullptr;
 	const Unit *_spawnUnit = nullptr;
 	std::string _spawnUnitName;
 	bool _livingWeapon;
@@ -492,6 +493,8 @@ public:
 	int getSniperPercentage() const;
 	/// Gets the alien's special ability.
 	int getSpecialAbility() const;
+	/// Gets the Geoscape live alien item.
+	const RuleItem* getLiveAlienGeoscape() const { return _liveAlien; }
 	/// Gets the unit's spawn unit.
 	const Unit *getSpawnUnit() const;
 	/// Gets the unit's war cry.

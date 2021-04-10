@@ -2562,10 +2562,10 @@ void DebriefingState::recoverCivilian(BattleUnit *from, Base *base)
 void DebriefingState::recoverAlien(BattleUnit *from, Base *base)
 {
 	// Transform a live alien into one or more recovered items?
-	RuleItem* liveAlienItemRule = _game->getMod()->getItem(from->getType());
-	if (liveAlienItemRule && !liveAlienItemRule->getRecoveryTransformations().empty())
+	auto* ruleLiveAlienItem = from->getUnitRules()->getLiveAlienGeoscape();
+	if (ruleLiveAlienItem && !ruleLiveAlienItem->getRecoveryTransformations().empty())
 	{
-		addItemsToBaseStores(liveAlienItemRule, base, 1, true);
+		addItemsToBaseStores(ruleLiveAlienItem, base, 1, true);
 
 		// Ignore everything else, e.g. no points for live/dead aliens (since you did NOT recover them)
 		// Also no points or anything else for the recovered items
@@ -2573,7 +2573,7 @@ void DebriefingState::recoverAlien(BattleUnit *from, Base *base)
 	}
 
 	// This ain't good! Let's display at least some useful info before we crash...
-	if (!liveAlienItemRule)
+	if (!ruleLiveAlienItem)
 	{
 		std::ostringstream ss;
 		ss << "Live alien item definition is missing. Unit ID = " << from->getId();
@@ -2589,8 +2589,6 @@ void DebriefingState::recoverAlien(BattleUnit *from, Base *base)
 		throw Exception(ss.str());
 	}
 
-	std::string type = from->getType();
-	RuleItem *ruleLiveAlienItem = _game->getMod()->getItem(type);
 	bool killPrisonersAutomatically = base->getAvailableContainment(ruleLiveAlienItem->getPrisonType()) == 0;
 	if (killPrisonersAutomatically)
 	{
@@ -2624,7 +2622,7 @@ void DebriefingState::recoverAlien(BattleUnit *from, Base *base)
 	}
 	else
 	{
-		RuleResearch *research = _game->getMod()->getResearch(type);
+		RuleResearch *research = _game->getMod()->getResearch(from->getUnitRules()->getType());
 		bool surrendered = (!from->isOut() || from->isIgnored())
 			&& (from->isSurrendering() || _game->getSavedGame()->getSavedBattle()->getChronoTrigger() == FORCE_WIN_SURRENDER);
 		if (research != 0 && !_game->getSavedGame()->isResearched(research))

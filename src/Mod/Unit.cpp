@@ -129,6 +129,7 @@ void Unit::afterLoad(const Mod* mod)
 	mod->linkRule(_armor, _armorName);
 	mod->linkRule(_spawnUnit, _spawnUnitName);
 	mod->linkRule(_builtInWeapons, _builtInWeaponsNames);
+	_liveAlien = mod->getItem(_type, false); // this is optional
 }
 
 /**
