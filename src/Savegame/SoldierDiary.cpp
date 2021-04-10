@@ -519,7 +519,7 @@ bool SoldierDiary::manageCommendations(Mod *mod, std::vector<MissionStatistics*>
 								enoughForNextCommendation = true;
 								break;
 							}
-							
+
 							// "killsWithCriteriaTurn" and "killsWithCriteriaMission" are "peak achivements", they are counted once per their respective time span if criteria are fulfilled
 							// so if we got them, we're skipping the rest of this time span to avoid counting more than once
 							// e.g. 20 kills in a mission will not be counted as "10 kills in a mission" criteria twice

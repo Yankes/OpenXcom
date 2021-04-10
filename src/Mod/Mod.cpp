@@ -988,6 +988,8 @@ const std::vector<std::vector<Uint8> > *Mod::getLUTs() const
 	return &_transparencyLUTs;
 }
 
+
+
 /**
  * Returns the current mod-based offset for resources.
  * @return Mod offset.
