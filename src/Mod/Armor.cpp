@@ -273,11 +273,23 @@ void Armor::afterLoad(const Mod* mod)
 			throw Exception("Missing battle corpse item(s).");
 		}
 	}
+
+	int numCorpse = 0;
 	for (auto& c : _corpseBattle)
 	{
 		if (!c)
 		{
 			throw Exception("Battle corpse item(s) cannot be empty.");
+		}
+
+		if (!numCorpse++)
+		{
+			// only first item need be corpse
+			mod->checkForSoftError(c->getBattleType() != BT_CORPSE, _type, "First Battle corpse item need have corpse item type");
+		}
+		else
+		{
+			mod->checkForSoftError(c->isRecoverable(), _type, "Multiple recoverable battle corpse item(s)");
 		}
 	}
 	if (!_corpseGeo)

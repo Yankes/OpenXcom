@@ -1359,6 +1359,10 @@ void Mod::loadSpriteOffset(const std::string &parent, std::vector<int>& sprites,
 			{
 				sprites.push_back(-1);
 				loadOffsetNode(parent, sprites.back(), *i, maxShared, set, 1);
+				if (checkForSoftError(sprites.back() == -1, parent, *i, "incorrect value in sprite list"))
+				{
+					sprites.pop_back();
+				}
 			}
 		}
 		else
@@ -1404,6 +1408,10 @@ void Mod::loadSoundOffset(const std::string &parent, std::vector<int>& sounds, c
 			{
 				sounds.push_back(Mod::NO_SOUND);
 				loadOffsetNode(parent, sounds.back(), *i, maxShared, set, 1);
+				if (checkForSoftError(sounds.back() == Mod::NO_SOUND, parent, *i, "incorrect value in sound list"))
+				{
+					sounds.pop_back();
+				}
 			}
 		}
 		else
@@ -1767,8 +1775,8 @@ void Mod::loadAll()
 	afterLoadHelper("research", this, _research, &RuleResearch::afterLoad);
 	afterLoadHelper("items", this, _items, &RuleItem::afterLoad);
 	afterLoadHelper("manufacture", this, _manufacture, &RuleManufacture::afterLoad);
-	afterLoadHelper("units", this, _units, &Unit::afterLoad);
 	afterLoadHelper("armors", this, _armors, &Armor::afterLoad);
+	afterLoadHelper("units", this, _units, &Unit::afterLoad);
 	afterLoadHelper("soldiers", this, _soldiers, &RuleSoldier::afterLoad);
 	afterLoadHelper("facilities", this, _facilities, &RuleBaseFacility::afterLoad);
 	afterLoadHelper("enviroEffects", this, _enviroEffects, &RuleEnviroEffects::afterLoad);
