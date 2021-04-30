@@ -400,7 +400,7 @@ class Unit
 {
 private:
 	std::string _type;
-	std::string _civilianRecoveryType, _spawnedPersonName;
+	std::string _civilianRecoveryType, _spawnedPersonName, _liveAlienName;
 	YAML::Node _spawnedSoldier;
 	std::string _race;
 	int _showFullNameInAlienInventory;

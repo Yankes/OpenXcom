@@ -30,7 +30,7 @@ namespace OpenXcom
  * @param type String defining the type.
  */
 Unit::Unit(const std::string &type) :
-	_type(type), _showFullNameInAlienInventory(-1), _armor(nullptr), _standHeight(0), _kneelHeight(0), _floatHeight(0), _value(0),
+	_type(type), _liveAlienName(Mod::STR_NULL), _showFullNameInAlienInventory(-1), _armor(nullptr), _standHeight(0), _kneelHeight(0), _floatHeight(0), _value(0),
 	_moraleLossWhenKilled(100), _aggroSound(-1), _moveSound(-1), _intelligence(0), _aggression(0),
 	_spotter(0), _sniper(0), _energyRecovery(30), _specab(SPECAB_NONE), _livingWeapon(false),
 	_psiWeapon("ALIEN_PSI_WEAPON"), _capturable(true), _canSurrender(false), _autoSurrender(false),
@@ -61,6 +61,7 @@ void Unit::load(const YAML::Node &node, Mod *mod)
 	_type = node["type"].as<std::string>(_type);
 	mod->loadName(_type, _civilianRecoveryType, node["civilianRecoveryType"]);
 	mod->loadName(_type, _spawnedPersonName, node["spawnedPersonName"]);
+	mod->loadNameNull(_type, _liveAlienName, node["liveAlien"]);
 	if (node["spawnedSoldier"])
 	{
 		_spawnedSoldier = node["spawnedSoldier"];
@@ -130,7 +131,14 @@ void Unit::afterLoad(const Mod* mod)
 	mod->linkRule(_armor, _armorName);
 	mod->linkRule(_spawnUnit, _spawnUnitName);
 	mod->linkRule(_builtInWeapons, _builtInWeaponsNames);
-	_liveAlien = mod->getItem(_type, false); // this is optional
+	if (_liveAlienName == Mod::STR_NULL)
+	{
+		_liveAlien = mod->getItem(_type, false); // this is optional default behavior
+	}
+	else
+	{
+		mod->linkRule(_liveAlien, _liveAlienName);
+	}
 
 	mod->checkForSoftError(_armor == nullptr, _type, "Unit is missing armor"); //TODO: this should be hard error in long run
 	if (_armor)
