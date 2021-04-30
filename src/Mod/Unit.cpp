@@ -59,8 +59,8 @@ void Unit::load(const YAML::Node &node, Mod *mod)
 		load(parent, mod);
 	}
 	_type = node["type"].as<std::string>(_type);
-	_civilianRecoveryType = node["civilianRecoveryType"].as<std::string>(_civilianRecoveryType);
-	_spawnedPersonName = node["spawnedPersonName"].as<std::string>(_spawnedPersonName);
+	mod->loadName(_type, _civilianRecoveryType, node["civilianRecoveryType"]);
+	mod->loadName(_type, _spawnedPersonName, node["spawnedPersonName"]);
 	if (node["spawnedSoldier"])
 	{
 		_spawnedSoldier = node["spawnedSoldier"];
@@ -69,7 +69,7 @@ void Unit::load(const YAML::Node &node, Mod *mod)
 	_showFullNameInAlienInventory = node["showFullNameInAlienInventory"].as<int>(_showFullNameInAlienInventory);
 	_rank = node["rank"].as<std::string>(_rank);
 	_stats.merge(node["stats"].as<UnitStats>(_stats));
-	_armorName = node["armor"].as<std::string>(_armorName);
+	mod->loadName(_type, _armorName, node["armor"]);
 	_standHeight = node["standHeight"].as<int>(_standHeight);
 	_kneelHeight = node["kneelHeight"].as<int>(_kneelHeight);
 	_floatHeight = node["floatHeight"].as<int>(_floatHeight);

@@ -597,7 +597,7 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 	_waypoints = node["waypoints"].as<int>(_waypoints);
 	_fixedWeapon = node["fixedWeapon"].as<bool>(_fixedWeapon);
 	_fixedWeaponShow = node["fixedWeaponShow"].as<bool>(_fixedWeaponShow);
-	_defaultInventorySlotName = node["defaultInventorySlot"].as<std::string>(_defaultInventorySlotName);
+	mod->loadName(_type, _defaultInventorySlotName, node["defaultInventorySlot"]);
 	_defaultInvSlotX = node["defaultInvSlotX"].as<int>(_defaultInvSlotX);
 	_defaultInvSlotY = node["defaultInvSlotY"].as<int>(_defaultInvSlotY);
 	mod->loadUnorderedNames(_type, _supportedInventorySectionsNames, node["supportedInventorySections"]);
@@ -659,8 +659,8 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 	mod->loadUnorderedNamesToNames(_type, _zombieUnitByArmorMale, node["zombieUnitByArmorMale"]);
 	mod->loadUnorderedNamesToNames(_type, _zombieUnitByArmorFemale, node["zombieUnitByArmorFemale"]);
 	mod->loadUnorderedNamesToNames(_type, _zombieUnitByType, node["zombieUnitByType"]);
-	_zombieUnit = node["zombieUnit"].as<std::string>(_zombieUnit);
-	_spawnUnit = node["spawnUnit"].as<std::string>(_spawnUnit);
+	mod->loadName(_type, _zombieUnit, node["zombieUnit"]);
+	mod->loadName(_type, _spawnUnit, node["spawnUnit"]);
 	_spawnUnitFaction = node["spawnUnitFaction"].as<int>(_spawnUnitFaction);
 	if (node["psiTargetMatrix"])
 	{

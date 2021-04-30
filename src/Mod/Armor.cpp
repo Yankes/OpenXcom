@@ -120,10 +120,10 @@ void Armor::load(const YAML::Node &node, const ModScript &parsers, Mod *mod)
 		_corpseGeoName = _corpseBattleNames.at(0);
 	}
 	mod->loadNames(_type, _builtInWeaponsNames, node["builtInWeapons"]);
-	_corpseGeoName = node["corpseGeo"].as<std::string>(_corpseGeoName);
-	_storeItemName = node["storeItem"].as<std::string>(_storeItemName);
-	_specWeaponName = node["specialWeapon"].as<std::string>(_specWeaponName);
-	_requiresName = node["requires"].as<std::string>(_requiresName);
+	mod->loadName(_type, _corpseGeoName, node["corpseGeo"]);
+	mod->loadName(_type, _storeItemName, node["storeItem"]);
+	mod->loadName(_type, _specWeaponName, node["specialWeapon"]);
+	mod->loadName(_type, _requiresName, node["requires"]);
 
 	_layersDefaultPrefix = node["layersDefaultPrefix"].as<std::string>(_layersDefaultPrefix);
 	_layersSpecificPrefix = node["layersSpecificPrefix"].as< std::map<int, std::string> >(_layersSpecificPrefix);
