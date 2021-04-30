@@ -137,7 +137,7 @@ void Unit::afterLoad(const Mod* mod)
 	{
 		if (_capturable && _armor->getCorpseBattlescape().front()->isRecoverable() && _spawnUnit == nullptr)
 		{
-			mod->checkForSoftError(_liveAlien == nullptr && _civilianRecoveryType.empty(), _type, "Unit is capturable but there is no live alien item with same name or civilianRecoveryType");
+			mod->checkForSoftError(_liveAlien == nullptr && Mod::isEmptyRuleName(_civilianRecoveryType), _type, "Unit is capturable but there is no live alien item with same name or civilianRecoveryType");
 		}
 		else
 		{
@@ -148,7 +148,7 @@ void Unit::afterLoad(const Mod* mod)
 				"???";
 
 			mod->checkForSoftError(_liveAlien && _liveAlien->getVehicleUnit() == nullptr, _type, "There is live alien item but unit is not recoverable ("+ s +")");
-			mod->checkForSoftError(!_civilianRecoveryType.empty(), _type, "There is civilianRecoveryType but unit is not recoverable ("+ s +")");
+			mod->checkForSoftError(!Mod::isEmptyRuleName(_civilianRecoveryType), _type, "There is civilianRecoveryType but unit is not recoverable ("+ s +")");
 		}
 	}
 }

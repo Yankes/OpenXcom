@@ -1601,7 +1601,7 @@ void Soldier::transform(const Mod *mod, RuleSoldierTransformation *transformatio
 		RuleSoldier* sourceSoldierType = _rules;
 
 		// change soldier type if needed
-		if (!transformationRule->getProducedSoldierType().empty() && _rules->getType() != transformationRule->getProducedSoldierType())
+		if (!Mod::isEmptyRuleName(transformationRule->getProducedSoldierType()) && _rules->getType() != transformationRule->getProducedSoldierType())
 		{
 			_rules = mod->getSoldier(transformationRule->getProducedSoldierType());
 
@@ -1666,7 +1666,7 @@ void Soldier::transform(const Mod *mod, RuleSoldierTransformation *transformatio
 
 	if (!transformationRule->isKeepingSoldierArmor())
 	{
-		if (transformationRule->getProducedSoldierArmor().empty())
+		if (Mod::isEmptyRuleName(transformationRule->getProducedSoldierArmor()))
 		{
 			// default armor of the soldier's type
 			_armor = mod->getArmor(_rules->getArmor());
@@ -1703,7 +1703,7 @@ void Soldier::transform(const Mod *mod, RuleSoldierTransformation *transformatio
 	}
 
 	// Award a soldier bonus, if defined
-	if (!transformationRule->getSoldierBonusType().empty())
+	if (!Mod::isEmptyRuleName(transformationRule->getSoldierBonusType()))
 	{
 		auto it2 = _transformationBonuses.find(transformationRule->getSoldierBonusType());
 		if (it2 != _transformationBonuses.end())
@@ -1769,7 +1769,7 @@ UnitStats Soldier::calculateStatChanges(const Mod *mod, RuleSoldierTransformatio
 	statChange.bravery = ((statChange.bravery + (sign * 5)) / 10) * 10;
 
 	RuleSoldier *transformationSoldierType = _rules;
-	if (!transformationRule->getProducedSoldierType().empty())
+	if (!Mod::isEmptyRuleName(transformationRule->getProducedSoldierType()))
 	{
 		transformationSoldierType = mod->getSoldier(transformationRule->getProducedSoldierType());
 	}

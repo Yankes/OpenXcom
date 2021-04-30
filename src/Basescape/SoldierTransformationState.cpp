@@ -201,7 +201,7 @@ void SoldierTransformationState::initTransformationData()
 	_txtCost->setText(tr("STR_COST_").arg(Unicode::formatFunding(_transformationRule->getCost())));
 
 	int transferTime = 0;
-	if (!_transformationRule->getProducedItem().empty())
+	if (!Mod::isEmptyRuleName(_transformationRule->getProducedItem()))
 	{
 		transferTime = _transformationRule->getTransferTime() > 0 ? _transformationRule->getTransferTime() : 1;
 	}
@@ -233,7 +233,7 @@ void SoldierTransformationState::initTransformationData()
 
 	_btnStart->setVisible(transformationPossible);
 
-	if (!_transformationRule->getProducedItem().empty())
+	if (!Mod::isEmptyRuleName(_transformationRule->getProducedItem()))
 	{
 		_txtRecoveryTime->setVisible(false);
 
@@ -449,7 +449,7 @@ void SoldierTransformationState::btnStartClick(Action *action)
 	}
 
 	// Here we go
-	if (!_transformationRule->getProducedItem().empty())
+	if (!Mod::isEmptyRuleName(_transformationRule->getProducedItem()))
 	{
 		retire();
 	}
@@ -469,7 +469,7 @@ void SoldierTransformationState::performTransformation()
 	{
 		int newId = _game->getSavedGame()->getId("STR_SOLDIER");
 		RuleSoldier *newSoldierType = _game->getMod()->getSoldier(_sourceSoldier->getRules()->getType());
-		if (!_transformationRule->getProducedSoldierType().empty())
+		if (!Mod::isEmptyRuleName(_transformationRule->getProducedSoldierType()))
 		{
 			newSoldierType = _game->getMod()->getSoldier(_transformationRule->getProducedSoldierType());
 		}

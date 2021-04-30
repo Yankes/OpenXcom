@@ -456,7 +456,7 @@ void TechTreeViewerState::initLists()
 					}
 				}
 			}
-			if (!temp->getLookup().empty())
+			if (!Mod::isEmptyRuleName(temp->getLookup()))
 			{
 				if (temp->getLookup() == rule->getName())
 				{
@@ -673,7 +673,7 @@ void TechTreeViewerState::initLists()
 		row = 0;
 
 		// lookup link
-		if (!rule->getLookup().empty())
+		if (!Mod::isEmptyRuleName(rule->getLookup()))
 		{
 			_lstRight->addRow(1, tr("STR_LOOKUP").c_str());
 			_lstRight->setRowColor(row, _blue);
@@ -691,7 +691,7 @@ void TechTreeViewerState::initLists()
 		}
 
 		// spawned item
-		if (!rule->getSpawnedItem().empty())
+		if (!Mod::isEmptyRuleName(rule->getSpawnedItem()))
 		{
 			_lstRight->addRow(1, tr("STR_SPAWNED_ITEM").c_str());
 			_lstRight->setRowColor(row, _blue);
@@ -709,7 +709,7 @@ void TechTreeViewerState::initLists()
 		}
 
 		// spawned event
-		if (!rule->getSpawnedEvent().empty())
+		if (!Mod::isEmptyRuleName(rule->getSpawnedEvent()))
 		{
 			_lstRight->addRow(1, tr("STR_SPAWNED_EVENT").c_str());
 			_lstRight->setRowColor(row, _blue);

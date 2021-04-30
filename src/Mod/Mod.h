@@ -349,6 +349,9 @@ public:
 
 	/// Empty sound.
 	constexpr static int NO_SOUND = -1;
+	/// Special value for defualt string diffrent to empty one.
+	static const std::string STR_NULL;
+
 	static int ITEM_DROP;
 	static int ITEM_THROW;
 	static int ITEM_RELOAD;
@@ -384,6 +387,12 @@ public:
 	static int EXTENDED_TERRAIN_MELEE;
 	static int EXTENDED_UNDERWATER_THROW_FACTOR;
 
+
+	/// Return `true` when given string is empty or pseudo null value.
+	static bool isEmptyRuleName(const std::string& s)
+	{
+		return s.empty() || s == Mod::STR_NULL;
+	}
 	// reset all the statics in all classes to default values
 	static void resetGlobalStatics();
 
@@ -488,6 +497,10 @@ public:
 	/// Loads a list of ints where order of items does not matter.
 	void loadUnorderedInts(const std::string &parent, std::vector<int>& ints, const YAML::Node &node) const;
 
+	/// Loads a name.
+	void loadName(const std::string &parent, std::string& names, const YAML::Node &node) const;
+	/// Loads a name.
+	void loadNameNull(const std::string &parent, std::string& names, const YAML::Node &node) const;
 	/// Loads a list of names.
 	void loadNames(const std::string &parent, std::vector<std::string>& names, const YAML::Node &node) const;
 	/// Loads a list of names where order of items does not matter.

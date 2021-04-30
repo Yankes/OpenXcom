@@ -156,6 +156,9 @@ int Mod::EXTENDED_UNDERWATER_THROW_FACTOR;
 
 constexpr size_t MaxDifficultyLevels = 5;
 
+
+/// Special value for defualt string diffrent to empty one.
+const std::string Mod::STR_NULL = { '\0' };
 /// Predefined name for first loaded mod that have all original data
 const std::string ModNameMaster = "master";
 /// Predefined name for current mod that is loading rulesets.
@@ -737,7 +740,7 @@ Mod::~Mod()
 template <typename T>
 T *Mod::getRule(const std::string &id, const std::string &name, const std::map<std::string, T*> &map, bool error) const
 {
-	if (id.empty())
+	if (isEmptyRuleName(id))
 	{
 		return 0;
 	}
@@ -1097,6 +1100,14 @@ struct LoadFuncEditable
 };
 
 /**
+ * Tag dispatch struct representing can have null value.
+ */
+struct LoadFuncNullable
+{
+	auto funcTagForNew() -> LoadFuncNullable { return { }; }
+};
+
+/**
  * Terminal function loading integer
  */
 void loadHelper(const std::string &parent, int& v, const YAML::Node &node)
@@ -1109,6 +1120,39 @@ void loadHelper(const std::string &parent, int& v, const YAML::Node &node)
 void loadHelper(const std::string &parent, std::string& v, const YAML::Node &node)
 {
 	v = node.as<std::string>();
+	if (v == Mod::STR_NULL)
+	{
+		throw LoadRuleException(parent, node, "Invalid value for name");
+	}
+}
+
+/**
+ * Function loading string with option for pseudo null value
+ */
+void loadHelper(const std::string &parent, std::string& v, const YAML::Node &node, LoadFuncStandard)
+{
+	if (node)
+	{
+		loadHelper(parent, v, node);
+	}
+}
+
+/**
+ * Function loading string with option for pseudo null value
+ */
+void loadHelper(const std::string &parent, std::string& v, const YAML::Node &node, LoadFuncNullable)
+{
+	if (node)
+	{
+		if (node.IsNull())
+		{
+			v = Mod::STR_NULL;
+		}
+		else
+		{
+			loadHelper(parent, v, node);
+		}
+	}
 }
 
 template<typename T, typename... LoadFuncTag>
@@ -1520,6 +1564,23 @@ void Mod::loadInts(const std::string &parent, std::vector<int>& ints, const YAML
 void Mod::loadUnorderedInts(const std::string &parent, std::vector<int>& ints, const YAML::Node &node) const
 {
 	loadHelper(parent, ints, node, LoadFuncEditable{});
+}
+
+
+/**
+ * Loads a name.
+ */
+void Mod::loadName(const std::string &parent, std::string& name, const YAML::Node &node) const
+{
+	loadHelper(parent, name, node, LoadFuncStandard{});
+}
+
+/**
+ * Loads a name. Have option of loading null `~` as special string value.
+ */
+void Mod::loadNameNull(const std::string &parent, std::string& name, const YAML::Node &node) const
+{
+	loadHelper(parent, name, node, LoadFuncNullable{});
 }
 
 /**
@@ -2876,6 +2937,12 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 	if (node[key])
 	{
 		std::string type = node[key].as<std::string>();
+
+		if (isEmptyRuleName(type))
+		{
+			throw Exception("Invalid value for '" + key + "' at line " + std::to_string(node[key].Mark().line));
+		}
+
 		typename std::map<std::string, T*>::const_iterator i = map->find(type);
 		if (i != map->end())
 		{
@@ -2897,6 +2964,12 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 	else if (node["delete"])
 	{
 		std::string type = node["delete"].as<std::string>();
+
+		if (isEmptyRuleName(type))
+		{
+			throw Exception("Invalid value for 'delete' at line " +  std::to_string(node["delete"].Mark().line));
+		}
+
 		typename std::map<std::string, T*>::iterator i = map->find(type);
 		if (i != map->end())
 		{
@@ -4100,7 +4173,7 @@ Soldier *Mod::genSoldier(SavedGame *save, std::string type) const
 {
 	Soldier *soldier = 0;
 	int newId = save->getId("STR_SOLDIER");
-	if (type.empty())
+	if (isEmptyRuleName(type))
 	{
 		type = _soldiersIndex.front();
 	}
@@ -4321,7 +4394,7 @@ RuleResearch *Mod::getFinalResearch() const
 
 RuleBaseFacility *Mod::getDestroyedFacility() const
 {
-	if (_destroyedFacility.empty())
+	if (isEmptyRuleName(_destroyedFacility))
 		return 0;
 
 	auto temp = getBaseFacility(_destroyedFacility, true);
