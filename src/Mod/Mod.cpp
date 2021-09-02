@@ -389,6 +389,7 @@ Mod::Mod() :
 
 	dmg = new RuleDamageType();
 	dmg->ResistType = DT_NONE;
+	dmg->RandomType = DRT_NONE;
 	_damageTypes[dmg->ResistType] = dmg;
 
 	dmg = new RuleDamageType();
@@ -436,6 +437,7 @@ Mod::Mod() :
 
 	dmg = new RuleDamageType();
 	dmg->ResistType = DT_HE;
+	dmg->RandomType = DRT_EXPLOSION;
 	dmg->FixRadius = -1;
 	dmg->IgnoreOverKill = true;
 	dmg->IgnoreSelfDestruct = true;
@@ -446,6 +448,7 @@ Mod::Mod() :
 
 	dmg = new RuleDamageType();
 	dmg->ResistType = DT_SMOKE;
+	dmg->RandomType = DRT_NONE;
 	dmg->FixRadius = -1;
 	dmg->IgnoreOverKill = true;
 	dmg->IgnoreDirection = true;
@@ -463,6 +466,7 @@ Mod::Mod() :
 
 	dmg = new RuleDamageType();
 	dmg->ResistType = DT_IN;
+	dmg->RandomType = DRT_FIRE;
 	dmg->FixRadius = -1;
 	dmg->FireBlastCalc = true;
 	dmg->IgnoreOverKill = true;

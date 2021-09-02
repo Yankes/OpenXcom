@@ -34,6 +34,8 @@ enum ItemDamageRandomType
 	DRT_NONE = 5,
 	DRT_UFO_WITH_TWO_DICE = 6,
 	DRT_EASY = 7,
+	DRT_STANDARD = 8,
+	DRT_EXPLOSION = 9,
 };
 
 /**
