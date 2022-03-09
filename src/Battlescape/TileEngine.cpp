@@ -64,12 +64,9 @@ namespace
 template<typename FuncNewPosition, typename FuncDrift>
 bool calculateLineHelper(const Position& origin, const Position& target, FuncNewPosition posFunc, FuncDrift driftFunc)
 {
-	int x, x0, x1, delta_x, step_x;
-	int y, y0, y1, delta_y, step_y;
-	int z, z0, z1, delta_z, step_z;
-	int swap_xy, swap_xz;
-	int drift_xy, drift_xz;
-	int cx, cy, cz;
+	int x0, x1;
+	int y0, y1;
+	int z0, z1;
 
 	//start and end points
 	x0 = origin.x;	 x1 = target.x;
@@ -77,7 +74,7 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	z0 = origin.z;	 z1 = target.z;
 
 	//'steep' xy Line, make longest delta x plane
-	swap_xy = abs(y1 - y0) > abs(x1 - x0);
+	const auto swap_xy = std::abs(y1 - y0) > std::abs(x1 - x0);
 	if (swap_xy)
 	{
 		std::swap(x0, y0);
@@ -85,7 +82,7 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	}
 
 	//do same for xz
-	swap_xz = abs(z1 - z0) > abs(x1 - x0);
+	const auto swap_xz = std::abs(z1 - z0) > std::abs(x1 - x0);
 	if (swap_xz)
 	{
 		std::swap(x0, z0);
@@ -93,71 +90,152 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	}
 
 	//delta is Length in each plane
-	delta_x = abs(x1 - x0);
-	delta_y = abs(y1 - y0);
-	delta_z = abs(z1 - z0);
+	const auto delta_x = std::abs(x1 - x0);
+	const auto delta_y = std::abs(y1 - y0);
+	const auto delta_z = std::abs(z1 - z0);
 
 	//drift controls when to step in 'shallow' planes
 	//starting value keeps Line centred
-	drift_xy  = (delta_x / 2);
-	drift_xz  = (delta_x / 2);
+	auto drift_xy  = (delta_x / 2);
+	auto drift_xz  = (delta_x / 2);
 
 	//direction of line
-	step_x = 1;  if (x0 > x1) {  step_x = -1; }
-	step_y = 1;  if (y0 > y1) {  step_y = -1; }
-	step_z = 1;  if (z0 > z1) {  step_z = -1; }
+	const int step_x = (x0 > x1) ? -1 : 1;
+	const int step_y = (y0 > y1) ? -1 : 1;
+	const int step_z = (z0 > z1) ? -1 : 1;
+
+
+	const auto [ix, iy, iz] = ([&]
+	{
+		int tix = 0;
+		int tiy = 1;
+		int tiz = 2;
+		//unswap (in reverse)
+		if (swap_xz) std::swap(tix, tiz);
+		if (swap_xy) std::swap(tix, tiy);
+
+		return std::make_tuple(tix, tiy, tiz);
+	})();
 
 	//starting point
-	y = y0;
-	z = z0;
+	std::array<int, 3> cc = {{ x0, y0, z0 }};
+
 
 	//step through longest delta (which we have swapped to x)
-	for (x = x0; ; x += step_x)
+	for (; ; cc[0] += step_x)
 	{
-		//copy position
-		cx = x;	cy = y;	cz = z;
-
-		//unswap (in reverse)
-		if (swap_xz) std::swap(cx, cz);
-		if (swap_xy) std::swap(cx, cy);
-		if (posFunc(Position(cx, cy, cz)))
+		if (posFunc(Position{ cc[ix], cc[iy], cc[iz]}))
 		{
 			return true;
 		}
 
-		if (x == x1) break;
+		if (cc[0] == x1) break;
 
 		//update progress in other planes
-		drift_xy = drift_xy - delta_y;
-		drift_xz = drift_xz - delta_z;
+		drift_xy -= delta_y;
+		drift_xz -= delta_z;
 
 		//step in y plane
-		if (drift_xy < 0)
-		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
-
-			cx = x;	cz = z; cy = y;
-			if (swap_xz) std::swap(cx, cz);
-			if (swap_xy) std::swap(cx, cy);
-			if (driftFunc(Position(cx, cy, cz)))
-			{
-				return true;
-			}
-		}
+		const auto move_xy = drift_xy < 0;
 
 		//same in z
-		if (drift_xz < 0)
-		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
+		const auto move_xz = drift_xz < 0;
 
-			cx = x;	cz = z; cy = y;
-			if (swap_xz) std::swap(cx, cz);
-			if (swap_xy) std::swap(cx, cy);
-			if (driftFunc(Position(cx, cy, cz)))
+
+		if (move_xy || move_xz)
+		{
+			auto t = cc;
+			if (move_xy)
 			{
-				return true;
+				cc[1] += step_y;
+				drift_xy += delta_x;
+			}
+			if (move_xz)
+			{
+				cc[2] += step_z;
+				drift_xz += delta_x;
+			}
+
+			if (move_xy && move_xz)
+			{
+				t[0] += step_x;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+				t[0] -= step_x;
+
+				t[1] += step_y;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+				t[1] -= step_y;
+
+				t[2] += step_z;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+				t[2] -= step_z;
+
+				t[1] += step_y;
+				t[2] += step_z;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+				t[2] -= step_z;
+				t[1] -= step_y;
+
+
+				t[0] += step_x;
+
+
+				t[1] += step_y;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+				t[1] -= step_y;
+
+				t[2] += step_z;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+				t[2] -= step_z;
+
+				if (driftFunc(Position{ cc[ix], cc[iy], cc[iz]}))
+				{
+					return true;
+				}
+			}
+			else if (move_xy)
+			{
+				t[0] += step_x;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+
+				if (driftFunc(Position{ cc[ix], cc[iy], cc[iz]}))
+				{
+					return true;
+				}
+			}
+			else if (move_xz)
+			{
+				t[0] += step_x;
+				if (driftFunc(Position{ t[ix], t[iy], t[iz]}))
+				{
+					return true;
+				}
+
+				if (driftFunc(Position{ cc[ix], cc[iy], cc[iz]}))
+				{
+					return true;
+				}
 			}
 		}
 	}
