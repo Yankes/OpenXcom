@@ -647,6 +647,34 @@ void Map::drawUnit(UnitSprite &unitSprite, Tile *unitTile, Tile *currTile, Posit
 	{
 		shade = std::min(+NIGHT_VISION_SHADE, shade);
 	}
+
+	if (bu->getArmor()->getSize() == 2 && part != 3)
+	{
+		if (part == 0)
+		{
+			return;
+		}
+
+
+		auto backShade = getMixedTileShade(bu->getTile(), offsets.TerrainLevelOffset, unitFromBelow);
+		auto backMask = mask;
+		auto x = tileScreenPosition.x + offsets.ScreenOffset.x;
+		auto y = tileScreenPosition.y + offsets.ScreenOffset.y;
+		if (part == 1)
+		{
+			backMask = GraphSubset::intersection(backMask, GraphSubset{ { x, x + 100 }, { y - 100, y + 100 } });
+			x = x - tileFoorWidth / 2;
+			y = y - tileFoorHeight / 2;
+		}
+		else
+		{
+			backMask = GraphSubset::intersection(backMask,  GraphSubset{ { x - 100, x + tileFoorWidth }, { y - 100, y + 100 } });
+			x = x + tileFoorWidth / 2;
+			y = y - tileFoorHeight / 2;
+		}
+		unitSprite.draw(bu, 0, x, y, backShade, backMask, _isAltPressed);
+	}
+
 	unitSprite.draw(bu, part, tileScreenPosition.x + offsets.ScreenOffset.x, tileScreenPosition.y + offsets.ScreenOffset.y, shade, mask, _isAltPressed);
 }
 
