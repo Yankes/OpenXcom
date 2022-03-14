@@ -957,18 +957,23 @@ void Map::drawTerrain(Surface *surface)
 							else
 								Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_NORTHWALL), wallShade, bool(tile->getSprite(O_WESTWALL)), _nvColor);
 						}
-						// Draw object
-						tmpSurface = tile->getSprite(O_OBJECT);
-						if (tmpSurface)
+
+						if (unit == nullptr)
 						{
-							if (tile->isBackTileObject(O_OBJECT))
+							// Draw object
+							tmpSurface = tile->getSprite(O_OBJECT);
+							if (tmpSurface)
 							{
-								if (tile->getObstacle(O_OBJECT))
-									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), obstacleShade, false, _nvColor);
-								else
-									Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), tileShade, false, _nvColor);
+								if (tile->isBackTileObject(O_OBJECT))
+								{
+									if (tile->getObstacle(O_OBJECT))
+										Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), obstacleShade, false, _nvColor);
+									else
+										Surface::blitRaw(surface, tmpSurface, screenPosition.x, screenPosition.y - tile->getYOffset(O_OBJECT), tileShade, false, _nvColor);
+								}
 							}
 						}
+
 						// draw an item on top of the floor (if any)
 						BattleItem* item = tile->getTopItem();
 						if (item)
