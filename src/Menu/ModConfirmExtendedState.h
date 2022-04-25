@@ -26,6 +26,7 @@ namespace OpenXcom
 	class TextButton;
 	class Window;
 	class Text;
+	class ModInfo;
 
 	/**
 	 * Confirmation window when enabling

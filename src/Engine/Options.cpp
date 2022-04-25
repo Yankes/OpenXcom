@@ -838,16 +838,23 @@ void updateMods()
 
 	refreshMods();
 
-	// check active mods that don't meet the OXCE requirements
+	// check active mods that don't meet the enforced OXCE requirements
 	auto activeModsList = getActiveMods();
 	bool forceQuit = false;
-	for (auto* modInf : activeModsList)
+	for (auto modInf : activeModsList)
 	{
-		if (!modInf->isVersionOk())
+		if (!modInf->isEngineOk())
 		{
 			forceQuit = true;
 			Log(LOG_ERROR) << "- " << modInf->getId() << " v" << modInf->getVersion();
-			Log(LOG_ERROR) << "Mod '" << modInf->getName() << "' requires at least OXCE v" << modInf->getRequiredExtendedVersion();
+			if (modInf->getRequiredExtendedEngine() != OPENXCOM_VERSION_ENGINE)
+			{
+				Log(LOG_ERROR) << "Mod '" << modInf->getName() << "' require OXC " << modInf->getRequiredExtendedEngine() << " engine to run";
+			}
+			else
+			{
+				Log(LOG_ERROR) << "Mod '" << modInf->getName() << "' enforces at least OXC " << OPENXCOM_VERSION_ENGINE << " v" << modInf->getRequiredExtendedVersion();
+			}
 		}
 	}
 	if (forceQuit)
