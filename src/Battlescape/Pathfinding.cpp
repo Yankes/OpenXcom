@@ -633,7 +633,7 @@ PathfindingStep Pathfinding::getTUCost(Position startPosition, int direction, co
 	}
 
 	const auto timeCost = (cost.TimePercent - 1 + (costDiv / 2)) / costDiv;
-	const auto energyCost = cost.EnergyPercent / costDiv;
+	const auto energyCost = (cost.EnergyPercent - 1 + (costDiv / 2)) / costDiv;
 
 	return { { Clamp(timeCost, 1, INVALID_MOVE_COST - 1), Clamp(energyCost, 0, INVALID_MOVE_COST) }, { firePenaltyCost, 0 }, pos };
 }
