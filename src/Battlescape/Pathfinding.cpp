@@ -348,6 +348,9 @@ PathfindingStep Pathfinding::getTUCost(Position startPosition, int direction, co
 	const bool fallingDown = (maskOfPartsFalling == maskArmor);
 	const bool flying =  (maskOfPartsFlying == maskArmor);
 
+	// diagonal walking (uneven directions) costs 50% more tu's
+	const auto diagonal = direction < DIR_UP && direction & 1;
+
 	if (movementType != MT_FLY && fallingDown)
 	{
 		if (direction != DIR_DOWN)
@@ -486,11 +489,9 @@ PathfindingStep Pathfinding::getTUCost(Position startPosition, int direction, co
 			}
 		}
 
-		// diagonal walking (uneven directions) costs 50% more tu's
-		if (direction < DIR_UP && direction & 1)
+		if (diagonal)
 		{
 			wallcost /= 2;
-			cost = (int)((double)cost * 1.5);
 		}
 
 		cost += wallcost;
@@ -558,10 +559,19 @@ PathfindingStep Pathfinding::getTUCost(Position startPosition, int direction, co
 		return { { }, { firePenaltyCost, 0 }, pos };
 	}
 
-	const auto costDiv = 100 * 100 * 100;
+	const auto costDiv = 10 * 100 * 100 * 100;
 	ArmorMoveCost cost = { totalCost, totalCost };
 
 	cost *= unit->getMoveCostBase();
+
+	if (diagonal)
+	{
+		cost *= { 15, 15 } ; //50% for diagonal move
+	}
+	else
+	{
+		cost *= { 10, 10 };
+	}
 
 	if (flying)
 	{
