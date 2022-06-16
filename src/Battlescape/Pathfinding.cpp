@@ -343,10 +343,10 @@ PathfindingStep Pathfinding::getTUCost(Position startPosition, int direction, co
 		}
 	}
 
-	bool triedStairs = (maskOfPartsGoingUp != 0 && ((maskOfPartsGoingUp | maskOfPartsHoleUp) == maskArmor));
-	bool triedStairsDown = (maskOfPartsGround == 0 && ((maskOfPartsGoingDown | maskOfPartsFalling) == maskArmor));
-	bool fallingDown = (maskOfPartsFalling == maskArmor);
-	bool flying =  (maskOfPartsFlying == maskArmor);
+	const bool triedStairs = (maskOfPartsGoingUp != 0 && ((maskOfPartsGoingUp | maskOfPartsHoleUp) == maskArmor));
+	const bool triedStairsDown = (maskOfPartsGround == 0 && ((maskOfPartsGoingDown | maskOfPartsFalling) == maskArmor));
+	const bool fallingDown = (maskOfPartsFalling == maskArmor);
+	const bool flying =  (maskOfPartsFlying == maskArmor);
 
 	if (movementType != MT_FLY && fallingDown)
 	{
@@ -399,8 +399,10 @@ PathfindingStep Pathfinding::getTUCost(Position startPosition, int direction, co
 		}
 	}
 
+
 	// calculate cost and some final checks
 	auto totalCost = 0;
+
 	for (int i = 0; i < numberOfParts; ++i)
 	{
 		auto cost = 0;
