@@ -220,13 +220,28 @@ void iterateTiles(SavedBattleGame* save, MapSubset gs, TileFunc func)
 	{
 		for (int z = 0; z < totalSizeZ; ++z)
 		{
-			auto rowStart = save->getTile(Position{ gs.beg_x, gs.beg_y, z });
-			for (auto stepsY = gs.size_y(); stepsY != 0; --stepsY, rowStart += totalSizeX)
+			auto posStart = Position{ gs.beg_x, gs.beg_y, z };
+			auto rowStart = save->getTile(posStart);
+			auto indexStart = save->getTileIndex(posStart);
+			for (auto stepsY = gs.size_y(); stepsY != 0; --stepsY, rowStart += totalSizeX, indexStart += totalSizeX)
 			{
 				auto curr = rowStart;
-				for (auto stepX = gs.size_x(); stepX != 0; --stepX, curr += 1)
+				auto index = indexStart;
+				for (auto stepX = gs.size_x(); stepX != 0; --stepX, curr += 1, index += 1)
 				{
-					func(curr);
+					if constexpr (std::is_invocable_v<TileFunc, Tile*, int>)
+					{
+						func(curr, index);
+					}
+					else if constexpr (std::is_invocable_v<TileFunc, int>)
+					{
+						func(index);
+					}
+					else
+					{
+						static_assert(std::is_invocable_v<TileFunc, Tile*>, "unsupported callback for iterateTiles");
+						func(curr);
+					}
 				}
 			}
 		}
@@ -273,6 +288,11 @@ constexpr static Uint32 MaskSmoke =  selectBit(+7, +1) << 2;
 
 
 
+template<typename T>
+Uint32 getBlockDir(const T& td)
+{
+	return td.blockDir;
+}
 template<typename T>
 bool getBlockDir(const T& td, int dir, int z)
 {
@@ -339,6 +359,516 @@ void addBigWallDir(T& td, int dir, bool p)
 	td.bigWall |= p * (1u << dir);
 }
 
+////////////////////////////////////////////////////////////
+//					light propagation
+////////////////////////////////////////////////////////////
+
+/**
+ * Index to component of Pos
+ */
+enum Axis : char
+{
+	X = 0,
+	Y = 1,
+	Z = 2,
+
+	AxisMax = 3,
+	AxisInvalid = -1,
+};
+
+/**
+ * Index to component of Box
+ */
+enum BoxAxis : char
+{
+	B_X = X,
+	B_Y = Y,
+	B_Z = Z,
+
+	E_X = AxisMax + X,
+	E_Y = AxisMax + Y,
+	E_Z = AxisMax + Z,
+
+	BoxAxisMax = AxisMax + AxisMax,
+	BoxAxisInvalid = AxisInvalid,
+};
+
+/**
+ * Index to vertex of box
+ */
+enum BoxVertex : char
+{
+	V_000 = 0b000,
+	V_001 = 0b001,
+	V_010 = 0b010,
+	V_011 = 0b011,
+	V_100 = 0b100,
+	V_101 = 0b101,
+	V_110 = 0b110,
+	V_111 = 0b111,
+	BoxVertexMax = 8,
+};
+
+/**
+ * 3d position, similar to `Position` but optimized for uniformed processing
+ */
+using Pos = std::array<int, AxisMax>;
+
+/**
+ * 3d Box, effective contains two `Pos`.
+ * Both ends will be visited iterated if is end point.
+ * But algorithm will skip first step in iteration.
+ */
+using Box = std::array<int, BoxAxisMax>;
+
+constexpr Box fromPos(Pos a, Pos b)
+{
+	return {
+		a[X],
+		a[Y],
+		a[Z],
+		b[X],
+		b[Y],
+		b[Z],
+	};
+}
+constexpr Pos add(Pos a, Pos b)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		a[i] += b[i];
+	}
+	return a;
+}
+
+bool isIntersectingWith(const Box& target, const Box& limit)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		if ((target[i] > limit[i + AxisMax]) || (limit[i] > target[i + AxisMax]))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Crop first argument to second, both need not empty intersection others wise it will return wrong answer.
+ * @param target
+ * @param limit
+ */
+void intersectWithUnchecked(Box& target, const Box& limit)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		target[i] = std::max(target[i], limit[i]);
+		target[i + AxisMax] = std::min(target[i + AxisMax], limit[i + AxisMax]);
+	}
+}
+
+void expand(Box& box)
+{
+	constexpr static Box diff = { -1, -1, -1, 1, 1, 1 };
+	for (int i = 0; i < BoxAxisMax; ++i)
+	{
+		box[i] += diff[i];
+	}
+}
+
+constexpr std::array diffToAxis =
+{
+	AxisInvalid,
+	X,  // 0b001
+	Y,  // 0b010
+	AxisInvalid,
+	Z,  // 0b100
+	AxisInvalid,
+	AxisInvalid,
+	AxisInvalid,
+};
+
+struct ConfigSide
+{
+	constexpr ConfigSide() = default;
+
+	constexpr ConfigSide(BoxVertex start, BoxVertex ii, BoxVertex jj)
+	{
+		// `kk` is determined as vertex that lie on orthogonal line to surface defined by vertexes `start`, `ii` and `jj`.
+		const auto kk = BoxVertex(start ^ (V_111 - (start ^ jj) - (start ^ ii)));
+
+		i.fill(start, ii);
+		j.fill(start, jj);
+		k.fill(start, kk);
+	}
+
+	struct Direction
+	{
+		Axis axis = {};
+		Sint8 dir = {};
+		BoxAxis first = {};
+		BoxAxis last = {};
+
+		constexpr Direction() = default;
+
+		constexpr void fill(BoxVertex from, BoxVertex to)
+		{
+			const auto asc = from < to;
+			axis = diffToAxis[from ^ to];
+			dir = asc ? +1 : -1;
+			first = BoxAxis(axis + (asc ? 0 : AxisMax));
+			last = BoxAxis(axis + (asc ? AxisMax : 0));
+		}
+	};
+
+	Direction i, j, k;
+};
+
+constexpr auto SquareLoopSize = 4;
+using SquareLoop = std::array<BoxVertex, SquareLoopSize>;
+
+/**
+ * Object with definition of operation order
+ */
+constexpr std::array propagationSequence = ([]
+{
+	std::array<ConfigSide, 24> s = {};
+
+	auto up = [](BoxVertex e) -> BoxVertex
+	{
+		return BoxVertex(e + V_100);
+	};
+	auto curr = [](const SquareLoop& a, int x)
+	{
+		return a[x];
+	};
+	auto next = [](const SquareLoop& a, int x)
+	{
+		return a[(x + 1) % SquareLoopSize];
+	};
+	auto prev = [](const SquareLoop& a, int x)
+	{
+		return a[(x - 1 + SquareLoopSize) % SquareLoopSize];
+	};
+
+	int total = 0;
+
+	const SquareLoop floor_loop =
+	{
+		V_000,
+		V_001,
+		V_011,
+		V_010,
+	};
+	for (int j = 0; j < SquareLoopSize; ++j, ++total)
+	{
+		s[total] = ConfigSide
+		{
+			curr(floor_loop, j),
+			next(floor_loop, j),
+			prev(floor_loop, j),
+		};
+	}
+	for (int j = 0; j < SquareLoopSize; ++j, ++total)
+	{
+		s[total] = ConfigSide
+		{
+			up(curr(floor_loop, j)),
+			up(next(floor_loop, j)),
+			up(prev(floor_loop, j)),
+		};
+	}
+	for (int i = 0; i < SquareLoopSize; ++i)
+	{
+		SquareLoop side =
+		{
+			curr(floor_loop, i),
+			next(floor_loop, i),
+			up(next(floor_loop, i)),
+			up(curr(floor_loop, i)),
+		};
+		for (int j = 0; j < SquareLoopSize; ++j, ++total)
+		{
+			s[total] = ConfigSide
+			{
+				curr(side, j),
+				next(side, j),
+				prev(side, j),
+			};
+		}
+	}
+
+	return s;
+}());
+
+
+template<typename F>
+void iterateEdge(const Box& b, const Box& e, const ConfigSide::Direction d, F&& f)
+{
+	auto begin = b[d.first];
+	auto end = e[d.last];
+	for (int i = begin; i != end; i += d.dir)
+	{
+		f(i);
+	}
+}
+
+template<typename F>
+void iterateSide(int k, const Box& b, const Box& e, const ConfigSide c, F&& f)
+{
+	Pos p = {};
+
+	p[c.k.axis] = k;
+	iterateEdge(b, e, c.j,
+		[&](int pj)
+		{
+			p[c.j.axis] = pj;
+			iterateEdge(b, e, c.i,
+				[&](int pi)
+				{
+					p[c.i.axis] = pi;
+					f(p);
+				}
+			);
+		}
+	);
+}
+
+template<typename F>
+void iterateSurface(Box& box, const Box& limit, F&& f)
+{
+	auto beginBox = box;
+
+	expand(box);
+
+	auto crop = box;
+	auto endBox = box;
+
+	expand(endBox);
+
+	intersectWithUnchecked(crop, limit);
+	intersectWithUnchecked(beginBox, limit);
+	intersectWithUnchecked(endBox, limit);
+
+	for (auto& c : propagationSequence)
+	{
+		//check if plane of side is inside of limit box
+		if (box[c.k.first] == crop[c.k.first])
+		{
+			iterateSide(box[c.k.first], beginBox, endBox, c, f);
+		}
+	}
+}
+template<typename F>
+void iterateVolume(Pos start, int eventRadius, int range, MapSubset gs, int end_z, F&& f)
+{
+	auto b = fromPos(start, start);
+	const auto limit = Box{ gs.beg_x, gs.beg_y, 0, gs.end_x - 1, gs.end_y - 1, end_z - 1 };
+
+	//check that make sure that `intersectWithUnchecked` is guarantee to work correctly
+	if (!isIntersectingWith(b, limit))
+	{
+		return;
+	}
+
+	if (eventRadius == 0)
+	{
+		f(start);
+	}
+	else
+	{
+		//expanding range without update as it should be already updated, only edge need processing, this is why we "transfer" one step to next loop.
+		range++;
+		eventRadius--;
+		while (eventRadius-- > 0)
+		{
+			expand(b);
+		}
+	}
+
+	while (range-- > 0)
+	{
+		iterateSurface(b, limit, f);
+	}
+}
+
+constexpr static int dir_max = 9;
+constexpr static int dir_x[dir_max] = { 0,  0, +1, +1, +1,  0, -1, -1, -1, };
+constexpr static int dir_y[dir_max] = { 0, -1, -1,  0, +1, +1, +1,  0, -1, };
+constexpr static int dir_z[dir_max] = { 0,  0,  0,  0,  0,  0,  0,  0,  0, };
+
+constexpr static int dir_level_max = 3;
+constexpr static int dir_level_x[dir_level_max] = {  0,  0,  0};
+constexpr static int dir_level_y[dir_level_max] = {  0,  0,  0};
+constexpr static int dir_level_z[dir_level_max] = { -1,  0, +1};
+
+constexpr auto getPosOffsetByDirections(int dir)
+{
+	return Pos
+	{
+		dir_x[dir + 1],
+		dir_y[dir + 1],
+		dir_z[dir + 1],
+	};
+}
+constexpr auto getPosUpDown(int dir)
+{
+	return Pos
+	{
+		dir_level_x[dir + 1],
+		dir_level_y[dir + 1],
+		dir_level_z[dir + 1],
+	};
+}
+
+struct DirConfig
+{
+	signed char level;
+	signed char dir;
+	Pos offset;
+	unsigned int mask;
+	unsigned int next;
+};
+
+constexpr bool isSameCubFace(Pos a, Pos b)
+{
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		if (a[i] != 0 && a[i] == b[i])
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Work around for lack of `constexpr std::max` in some supported compilers
+ */
+constexpr int getMax(int a, int b)
+{
+	return a > b ? a : b;
+}
+
+/**
+ * Work around for lack of `constexpr std::abs` in some supported compilers
+ */
+constexpr int getAbs(int a)
+{
+	return a >= 0 ? a : -a;
+}
+
+constexpr int getChebyshevDistance(Pos a, Pos b)
+{
+	auto dis = 0;
+	for (int i = 0; i < AxisMax; ++i)
+	{
+		dis = getMax(getAbs(a[i]-b[i]), dis);
+	}
+	return dis;
+}
+
+constexpr int dir3dMax = dir_level_max * dir_max;
+constexpr int dir3dStartMask = (1 << dir3dMax) - 1;
+
+/**
+ * Object with definition of directions to check
+ */
+constexpr auto directions = ([]
+{
+	auto array = std::array<DirConfig, dir3dMax>{};
+
+	for (int i = 0; i < dir3dMax; ++i)
+	{
+		auto& a = array[i];
+		a.level = (i / dir_max) - 1;
+		a.dir = (i % dir_max) - 1;
+		a.offset = add(getPosOffsetByDirections(a.dir), getPosUpDown(a.level));
+		a.mask = selectBit(a.dir, a.level);
+	}
+
+	for (int i = 0; i < dir3dMax; ++i)
+	{
+		auto& a = array[i];
+		for (int j = 0; j < dir3dMax; ++j)
+		{
+			const auto& b = array[j];
+
+			if (isSameCubFace(a.offset, b.offset) && getChebyshevDistance(a.offset, b.offset) <= 1)
+			{
+				a.next |= b.mask;
+			}
+		}
+	}
+
+	return array;
+}());
+
+/**
+ * Iterate through some subset of map tiles.
+ * @param save Map data.
+ */
+template<typename TileWorkSet, typename TileBlockCache>
+void iterateTilesLightMaxBound(SavedBattleGame* save, Position position, int eventRadius, int maxRange, MapSubset gsMap, TileWorkSet& work, const TileBlockCache& blockCache)
+{
+	if (position == TileEngine::invalid)
+	{
+		iterateTiles(save, gsMap,
+			[&](int idx)
+			{
+				work[idx] = dir3dStartMask;
+			}
+		);
+
+		return;
+	}
+
+	iterateTiles(save, gsMap,
+		[&](int idx)
+		{
+			work[idx] = 0x0;
+		}
+	);
+	iterateTiles(save, mapArea(position, eventRadius),
+		[&](Tile* tile, int idx)
+		{
+			// on multi level maps we skip far levels to speed calculations.
+			if (std::abs(tile->getPosition().z - position.z) <= eventRadius)
+			{
+				work[idx] = dir3dStartMask;
+			}
+		}
+	);
+
+
+	const int map_mul_y = save->getMapSizeX();
+	const int map_mul_z = map_mul_y * save->getMapSizeY();
+	auto index = [map_mul_y, map_mul_z](Pos pp)
+	{
+		return pp[X] + pp[Y] * map_mul_y + pp[Z] * map_mul_z;
+	};
+	auto callback = [&](Pos pp)
+	{
+		const auto idx = index(pp);
+		const auto c = work[idx];
+
+		const auto check = c & ~getBlockDir(blockCache[idx]);
+		if (check)
+		{
+			for (const auto& d : directions)
+			{
+				if (d.mask & check)
+				{
+					work[index(add(pp, d.offset))] |= c & d.next;
+				}
+			}
+		}
+	};
+
+
+	iterateVolume(Pos{position.x, position.y, position.z}, eventRadius, maxRange, gsMap, save->getMapSizeZ(), callback);
+}
 
 } // namespace
 
@@ -364,6 +894,7 @@ TileEngine::TileEngine(SavedBattleGame *save, Mod *mod) :
 	_enhancedLighting(mod->getEnhancedLighting())
 {
 	_blockVisibility.resize(save->getMapSizeXYZ());
+	_lightVisibility.resize(save->getMapSizeXYZ());
 	_cacheTilePos = invalid;
 
 	if (Options::oxceTogglePersonalLightType == 2)
@@ -573,7 +1104,8 @@ void TileEngine::calculateUnitLighting(MapSubset gs)
 
 void TileEngine::calculateLighting(LightLayers layer, Position position, int eventRadius, bool terrianChanged)
 {
-	auto gsDynamic = MapSubset{ _save->getMapSizeX(), _save->getMapSizeY() };
+	const auto gsMap = MapSubset{ _save->getMapSizeX(), _save->getMapSizeY() };
+	auto gsDynamic = gsMap;
 	auto gsStatic = gsDynamic;
 
 	if (position != invalid)
@@ -586,7 +1118,7 @@ void TileEngine::calculateLighting(LightLayers layer, Position position, int eve
 	{
 		iterateTiles(
 			_save,
-			mapArea(position, position != invalid ? eventRadius + 1 : 1000),
+			position != invalid ? mapArea(position, eventRadius + 1) : gsMap,
 			[&](Tile* tile)
 			{
 				const auto currPos = tile->getPosition();
@@ -630,14 +1162,16 @@ void TileEngine::calculateLighting(LightLayers layer, Position position, int eve
 		);
 	}
 
+	iterateTilesLightMaxBound(_save, position, eventRadius, getMaxDynamicLightDistance(), gsMap, _lightVisibility, _blockVisibility);
+
 	if (layer <= LL_FIRE)
 	{
 		iterateTiles(
 			_save,
 			gsStatic,
-			[&](Tile* tile)
+			[&](Tile* tile, int index)
 			{
-				tile->resetLightMulti(layer);
+				if (_lightVisibility[index]) tile->resetLightMulti(layer);
 			}
 		);
 	}
@@ -645,9 +1179,9 @@ void TileEngine::calculateLighting(LightLayers layer, Position position, int eve
 	iterateTiles(
 		_save,
 		gsDynamic,
-		[&](Tile* tile)
+		[&](Tile* tile, int index)
 		{
-			tile->resetLightMulti(std::max(layer, LL_ITEMS));
+			if (_lightVisibility[index]) tile->resetLightMulti(std::max(layer, LL_ITEMS));
 		}
 	);
 
@@ -687,7 +1221,7 @@ void TileEngine::addLight(MapSubset gs, Position center, int power, LightLayers 
 	iterateTiles(
 		_save,
 		MapSubset::intersection(gs, mapArea(center, power - 1)),
-		[&](Tile* tile)
+		[&](Tile* tile, int idx)
 		{
 			const auto target = tile->getPosition();
 			const auto diff = target - center;
@@ -702,6 +1236,10 @@ void TileEngine::addLight(MapSubset gs, Position center, int power, LightLayers 
 			if (clasicLighting)
 			{
 				tile->addLight(currLight, layer);
+				return;
+			}
+			if (_lightVisibility[idx] == 0)
+			{
 				return;
 			}
 
