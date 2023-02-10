@@ -95,7 +95,7 @@ public:
 	void baseHunting();
 	/// Trigger whenever 30 minutes pass.
 	void time30Minutes();
-	void ufoDetection(Ufo* ufo, const std::vector<Craft*>* activeCrafts);
+	void ufoDetection(Ufo* ufo, const std::vector<Craft*>* activeCrafts, const Craft *ufoTarget = nullptr);
 	/// Trigger whenever 1 hour passes.
 	void time1Hour();
 	/// Trigger whenever 1 day passes.
