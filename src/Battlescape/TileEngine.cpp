@@ -488,18 +488,20 @@ constexpr std::array diffToAxis =
 	AxisInvalid,
 };
 
+
 struct ConfigSide
 {
-	constexpr ConfigSide() = default;
-
-	constexpr ConfigSide(BoxVertex start, BoxVertex ii, BoxVertex jj)
+	constexpr static ConfigSide fill(BoxVertex start, BoxVertex ii, BoxVertex jj)
 	{
 		// `kk` is determined as vertex that lie on orthogonal line to surface defined by vertexes `start`, `ii` and `jj`.
 		const auto kk = BoxVertex(start ^ (V_111 - (start ^ jj) - (start ^ ii)));
 
-		i.fill(start, ii);
-		j.fill(start, jj);
-		k.fill(start, kk);
+		return ConfigSide
+		{
+			Direction::fill(start, ii),
+			Direction::fill(start, jj),
+			Direction::fill(start, kk),
+		};
 	}
 
 	struct Direction
@@ -509,15 +511,21 @@ struct ConfigSide
 		BoxAxis first = {};
 		BoxAxis last = {};
 
-		constexpr Direction() = default;
+		constexpr static Sint8 Plus = +1;
+		constexpr static Sint8 Minus = -1;
 
-		constexpr void fill(BoxVertex from, BoxVertex to)
+		constexpr static Direction fill(BoxVertex from, BoxVertex to)
 		{
 			const bool asc = from < to;
-			axis = diffToAxis[from ^ to];
-			dir = asc ? +1 : -1;
-			first = BoxAxis(axis + (asc ? 0 : AxisMax));
-			last = BoxAxis(axis + (asc ? AxisMax : 0));
+			const Axis axis = diffToAxis[from ^ to];
+
+			return Direction
+			{
+				axis,
+				asc ? Plus : Minus,
+				BoxAxis(axis + (asc ? 0 : AxisMax)),
+				BoxAxis(axis + (asc ? AxisMax : 0)),
+			};
 		}
 	};
 
@@ -562,21 +570,19 @@ constexpr std::array propagationSequence = ([]
 	};
 	for (int j = 0; j < SquareLoopSize; ++j, ++total)
 	{
-		s[total] = ConfigSide
-		{
+		s[total] = ConfigSide::fill(
 			curr(floor_loop, j),
 			next(floor_loop, j),
-			prev(floor_loop, j),
-		};
+			prev(floor_loop, j)
+		);
 	}
 	for (int j = 0; j < SquareLoopSize; ++j, ++total)
 	{
-		s[total] = ConfigSide
-		{
+		s[total] = ConfigSide::fill(
 			up(curr(floor_loop, j)),
 			up(next(floor_loop, j)),
-			up(prev(floor_loop, j)),
-		};
+			up(prev(floor_loop, j))
+		);
 	}
 	for (int i = 0; i < SquareLoopSize; ++i)
 	{
@@ -589,12 +595,11 @@ constexpr std::array propagationSequence = ([]
 		};
 		for (int j = 0; j < SquareLoopSize; ++j, ++total)
 		{
-			s[total] = ConfigSide
-			{
+			s[total] = ConfigSide::fill(
 				curr(side, j),
 				next(side, j),
-				prev(side, j),
-			};
+				prev(side, j)
+			);
 		}
 	}
 
