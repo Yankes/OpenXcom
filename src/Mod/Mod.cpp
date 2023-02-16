@@ -3289,16 +3289,61 @@ template <typename T>
 T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::vector<std::string> *index, const std::string &key) const
 {
 	T *rule = 0;
-	if (node[key])
-	{
-		std::string type = node[key].as<std::string>();
 
-		if (isEmptyRuleName(type))
+	auto getNode = [&](const YAML::Node& i, const std::string& nodeName)
+	{
+		const auto& n = i[nodeName];
+		return std::make_tuple(nodeName, n, !!n);
+	};
+	auto haveNode = [&](const std::tuple<std::string, YAML::Node, bool>& nn)
+	{
+		return std::get<bool>(nn);
+	};
+	auto getDescriptionNode = [&](const std::tuple<std::string, YAML::Node, bool>& nn)
+	{
+		return std::string("'") + std::get<std::string>(nn) + "' at line " + std::to_string(std::get<YAML::Node>(nn).Mark().line);
+	};
+	auto getNameFromNode = [&](const std::tuple<std::string, YAML::Node, bool>& nn)
+	{
+		auto name = std::get<YAML::Node>(nn).as<std::string>();
+		if (isEmptyRuleName(name))
 		{
 			throw Exception("Invalid value for '" + key + "' at line " + std::to_string(node[key].Mark().line));
 		}
+		return name;
+	};
 
-		typename std::map<std::string, T*>::const_iterator i = map->find(type);
+	const auto defaultNode = getNode(node, key);
+	const auto deleteNode = getNode(node, "delete");
+	const auto newNode = getNode(node, "new");
+	const auto overrideNode = getNode(node, "override");
+	const auto updateNode = getNode(node, "update");
+
+	{
+		// check for duplicates
+		const std::tuple<std::string, YAML::Node, bool>* last = nullptr;
+		for (auto* p : { &defaultNode, &deleteNode, &newNode, &updateNode, &overrideNode })
+		{
+			if (haveNode(*p))
+			{
+				if (last)
+				{
+					throw Exception("Conflict of " + getDescriptionNode(*last) + " and " + getDescriptionNode(*p));
+				}
+				else
+				{
+					last = p;
+				}
+			}
+		}
+	}
+
+	if (haveNode(defaultNode))
+	{
+		std::string type = getNameFromNode(defaultNode);
+
+
+		auto i = map->find(type);
 		if (i != map->end())
 		{
 			rule = i->second;
@@ -3316,18 +3361,14 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 		// protection from self referencing refNode node
 		refNodeTestDeepth(node, type, 0);
 	}
-	else if (node["delete"])
+	else if (haveNode(deleteNode))
 	{
-		std::string type = node["delete"].as<std::string>();
+		std::string type = getNameFromNode(deleteNode);
 
-		if (isEmptyRuleName(type))
-		{
-			throw Exception("Invalid value for 'delete' at line " +  std::to_string(node["delete"].Mark().line));
-		}
-
-		typename std::map<std::string, T*>::iterator i = map->find(type);
+		auto i = map->find(type);
 		if (i != map->end())
 		{
+			delete i->second;
 			map->erase(i);
 		}
 		if (index != 0)
@@ -3339,6 +3380,74 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 			}
 		}
 	}
+	else if (haveNode(newNode))
+	{
+		std::string type = getNameFromNode(newNode);
+
+		auto i = map->find(type);
+		if (i != map->end())
+		{
+			checkForSoftError(true, type, "Rule named '" + type  + "' already used for " + getDescriptionNode(newNode), LOG_ERROR);
+		}
+		else
+		{
+			rule = new T(type);
+			(*map)[type] = rule;
+			if (index != 0)
+			{
+				index->push_back(type);
+			}
+
+			// protection from self referencing refNode node
+			refNodeTestDeepth(node, type, 0);
+		}
+	}
+	else if (haveNode(overrideNode))
+	{
+		std::string type = getNameFromNode(overrideNode);
+
+		auto i = map->find(type);
+		if (i != map->end())
+		{
+			delete i->second;
+			rule = new T(type);
+			(*map)[type] = rule;
+		}
+		else
+		{
+			rule = new T(type);
+			(*map)[type] = rule;
+			if (index != 0)
+			{
+				index->push_back(type);
+			}
+		}
+
+		// protection from self referencing refNode node
+		refNodeTestDeepth(node, type, 0);
+	}
+	else if (haveNode(updateNode))
+	{
+		std::string type = getNameFromNode(updateNode);
+
+		auto i = map->find(type);
+		if (i != map->end())
+		{
+			rule = i->second;
+
+			// protection from self referencing refNode node
+			refNodeTestDeepth(node, type, 0);
+		}
+		else
+		{
+			checkForSoftError(true, type, "Rule named '" + type  + "' do not exist for " + getDescriptionNode(newNode), LOG_ERROR);
+		}
+	}
+	else
+	{
+		//no correct id throw exception?
+	}
+
 	return rule;
 }
 
