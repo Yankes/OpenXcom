@@ -2251,8 +2251,9 @@ void StatsForNerdsState::initItemList()
 		addBoolean(ss, !itemRule->getZombieUnitByArmorFemaleRaw().empty(), "zombieUnitByArmorFemale*", false); // just say if there are any or not
 		addBoolean(ss, !itemRule->getZombieUnitByTypeRaw().empty(), "zombieUnitByType*", false); // just say if there are any or not
 		addSingleString(ss, itemRule->getZombieUnit(nullptr), "zombieUnit");
-		addSingleString(ss, itemRule->getSpawnUnit(), "spawnUnit");
+		addRule(ss, itemRule->getSpawnUnit(), "spawnUnit");
 		addInteger(ss, itemRule->getSpawnUnitFaction(), "spawnUnitFaction", -1);
+		addRule(ss, itemRule->getSpawnItem(), "spawnItem");
 
 		addSection("{Sprites}", "", _white);
 		addBoolean(ss, itemRule->getFixedShow(), "fixedWeaponShow");

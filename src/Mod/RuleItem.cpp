@@ -677,7 +677,8 @@ void RuleItem::load(const YAML::Node &node, Mod *mod, int listOrder, const ModSc
 	mod->loadUnorderedNamesToNames(_type, _zombieUnitByArmorFemale, node["zombieUnitByArmorFemale"]);
 	mod->loadUnorderedNamesToNames(_type, _zombieUnitByType, node["zombieUnitByType"]);
 	mod->loadNameNull(_type, _zombieUnit, node["zombieUnit"]);
-	mod->loadNameNull(_type, _spawnUnit, node["spawnUnit"]);
+	mod->loadNameNull(_type, _spawnUnitName, node["spawnUnit"]);
+	mod->loadNameNull(_type, _spawnItemName, node["spawnItem"]);
 	_spawnUnitFaction = node["spawnUnitFaction"].as<int>(_spawnUnitFaction);
 	if (node["psiTargetMatrix"])
 	{
@@ -769,6 +770,8 @@ void RuleItem::afterLoad(const Mod* mod)
 	{
 		_vehicleUnit = mod->getUnit(_type);
 	}
+	mod->linkRule(_spawnUnit, _spawnUnitName);
+	mod->linkRule(_spawnItem, _spawnItemName);
 
 	for (auto& pair : _recoveryTransformationsName)
 	{
@@ -2405,7 +2408,7 @@ const std::string &RuleItem::getZombieUnit(const BattleUnit* victim) const
  * Gets the unit that is spawned when this item hits something.
  * @return The weapon's spawn unit.
  */
-const std::string &RuleItem::getSpawnUnit() const
+const Unit* RuleItem::getSpawnUnit() const
 {
 	return _spawnUnit;
 }
