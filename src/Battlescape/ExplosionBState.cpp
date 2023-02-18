@@ -485,9 +485,15 @@ void ExplosionBState::explode()
 	}
 
 	// Spawn a unit if the item does that
-	if (_attack.damage_item && !_attack.damage_item->getRules()->getSpawnUnit().empty())
+	if (_attack.damage_item)
 	{
 		_parent->spawnNewUnit(_attack, _center.toTile());
+	}
+
+	// Spawn a item if the weapon does that
+	if (_attack.damage_item)
+	{
+		_parent->spawnNewItem(_attack, _center.toTile());
 	}
 }
 

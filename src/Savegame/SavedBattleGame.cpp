@@ -2000,6 +2000,16 @@ BattleItem *SavedBattleGame::createItemForTile(const RuleItem *rule, Tile *tile)
 }
 
 /**
+ * Create new temporary item. Item is not added to unit list and is not initialized fully.
+ * @param rule Item config
+ * @return New temporary item.
+ */
+BattleItem *SavedBattleGame::createTempItem(const RuleItem *rule)
+{
+	return new BattleItem(rule, getCurrentItemId());
+}
+
+/**
  * Create new temporary unit. Unit is not added to unit list and is not initialized fully.
  * @param rules Unit config
  * @param faction Faction of unit

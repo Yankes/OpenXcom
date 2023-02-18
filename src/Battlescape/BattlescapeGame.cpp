@@ -2154,7 +2154,10 @@ void BattlescapeGame::spawnNewUnit(BattleActionAttack attack, Position position)
 		return;
 
 	const RuleItem *item = attack.damage_item->getRules();
-	Unit *type = getMod()->getUnit(item->getSpawnUnit(), true);
+	const Unit *type = item->getSpawnUnit();
+
+	if (!type)
+		return;
 
 	// Check which faction the new unit will be
 	UnitFaction faction;
@@ -2247,12 +2250,58 @@ void BattlescapeGame::spawnNewUnit(BattleActionAttack attack, Position position)
 		newUnit->setVisible(visible);
 		getSave()->initUnit(newUnit, itemLevel);
 
-		getTileEngine()->calculateFOV(newUnit->getPosition());  //happens fairly rarely, so do a full recalc for units in range to handle the potential unit visible cache issues.
 		getTileEngine()->applyGravity(newUnit->getTile());
+		getTileEngine()->calculateFOV(newUnit->getPosition());  //happens fairly rarely, so do a full recalc for units in range to handle the potential unit visible cache issues.
 	}
 	else
 	{
 		delete newUnit;
+	}
+}
+
+/**
+ * Spawns a new item mid-battle
+ * @param attack BattleActionAttack that calls to spawn the item
+ * @param position Tile position to try and spawn item on
+ */
+void BattlescapeGame::spawnNewItem(BattleItem *item)
+{
+	spawnNewItem(BattleActionAttack{ BA_NONE, nullptr, item, item, }, item->getTile()->getPosition());
+}
+
+void BattlescapeGame::spawnNewItem(BattleActionAttack attack, Position position)
+{
+	if (!attack.damage_item) // no idea how this happened, but make sure we have an item
+		return;
+
+	const RuleItem *item = attack.damage_item->getRules();
+	const RuleItem *type = item->getSpawnItem();
+
+	if (!type)
+		return;
+
+	// Create the item
+	auto* newItem = _save->createTempItem(type);
+
+	auto* tile  = _save->getTile(position);
+
+	if (tile) // Place the item and initialize it in the battlescape
+	{
+		tile->addItem(newItem, getMod()->getInventoryGround());
+		_save->getItems()->push_back(newItem);
+		_save->initItem(newItem, attack.attacker);
+
+		getTileEngine()->applyGravity(newItem->getTile());
+		if (newItem->getGlow())
+		{
+			tile = newItem->getTile(); //item could drop down
+			getTileEngine()->calculateLighting(LL_ITEMS, tile->getPosition());
+			getTileEngine()->calculateFOV(tile->getPosition(), newItem->getVisibilityUpdateRange(), false);
+		}
+	}
+	else
+	{
+		delete newItem;
 	}
 }
 
@@ -2269,7 +2318,7 @@ void BattlescapeGame::spawnFromPrimedItems()
 		{
 			continue;
 		}
-		if (!bi->getRules()->getSpawnUnit().empty() && !bi->getXCOMProperty() && !bi->isSpecialWeapon())
+		if ((bi->getRules()->getSpawnUnit() || bi->getRules()->getSpawnItem()) && !bi->getXCOMProperty() && !bi->isSpecialWeapon())
 		{
 			if (bi->getRules()->getBattleType() == BT_GRENADE && bi->getFuseTimer() == 0 && bi->isFuseEnabled())
 			{
@@ -2281,6 +2330,7 @@ void BattlescapeGame::spawnFromPrimedItems()
 	for (auto* item : itemsSpawningUnits)
 	{
 		spawnNewUnit(item);
+		spawnNewItem(item);
 		_save->removeItem(item);
 	}
 }
