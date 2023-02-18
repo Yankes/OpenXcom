@@ -81,6 +81,7 @@ private:
 	TileEngine *_tileEngine;
 	std::string _missionType, _strTarget, _strCraftOrBase, _alienCustomDeploy, _alienCustomMission;
 	std::string _lastUsedMapScript;
+	int _alienItemLevel = 0;
 	std::string _reinforcementsDeployment, _reinforcementsRace;
 	int _reinforcementsItemLevel;
 	std::map<std::string, int> _reinforcementsMemory;
@@ -179,6 +180,11 @@ public:
 	void setLastUsedMapScript(const std::string& lastUsedMapScript) { _lastUsedMapScript = lastUsedMapScript; }
 	/// Gets the last used map script.
 	const std::string& getLastUsedMapScript() const { return _lastUsedMapScript; }
+
+	/// Sets the alien item level.
+	void setAlienItemLevel(int itemLevel) { _alienItemLevel = itemLevel; }
+	/// Gets the alien item level.
+	int getAlienItemLevel() { return _alienItemLevel; }
 
 	/// Sets the alien deployment to use for reinforcements.
 	void setReinforcementsDeployment(const std::string &reinforcementsDeployment) { _reinforcementsDeployment = reinforcementsDeployment; }
