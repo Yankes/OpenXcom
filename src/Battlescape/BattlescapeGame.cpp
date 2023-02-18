@@ -2219,26 +2219,7 @@ void BattlescapeGame::spawnNewUnit(BattleActionAttack attack, Position position)
 		}
 
 		// Pick the item sets if the unit has builtInWeaponSets
-		int monthsPassed = _parentState->getGame()->getSavedGame()->getMonthsPassed();
-		size_t alienItemLevels = getMod()->getAlienItemLevels().size();
-		int month;
-		if (monthsPassed != -1)
-		{
-			if ((size_t)monthsPassed > alienItemLevels - 1)
-			{
-				month = alienItemLevels - 1;
-			}
-			else
-			{
-				month = monthsPassed;
-			}
-		}
-		else // For "New Battle" saves
-		{
-			// We don't have access to the BattlescapeGenerator or the alienItemLevel set on generation at this point, so pick a random one
-			month = RNG::generate(0, alienItemLevels - 1);
-		}
-		size_t itemLevel = (size_t)(getMod()->getAlienItemLevels().at(month).at(RNG::generate(0,9)));
+		size_t itemLevel = (size_t)(getMod()->getAlienItemLevels().at(_save->getAlienItemLevel()).at(RNG::generate(0,9)));
 
 		// Initialize the unit and its position
 		newUnit->setTile(_save->getTile(position), _save);
