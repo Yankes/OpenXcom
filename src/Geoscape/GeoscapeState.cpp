@@ -2009,7 +2009,7 @@ void GeoscapeState::time30Minutes()
 }
 
 /**
- * Logic resposible for detecting ufo and its tracking.
+ * Logic responsible for detecting ufo and its tracking.
  * @param ufo
  */
 void GeoscapeState::ufoDetection(Ufo* ufo, const std::vector<Craft*>* activeCrafts)
