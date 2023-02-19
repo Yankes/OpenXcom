@@ -553,7 +553,7 @@ UfoDetection Base::detect(const Ufo *target, const SavedGame *save, bool already
 
 	work.execute(target->getRules()->getScript<ModScript::DetectUfoFromBase>(), args);
 
-	return RNG::percent(args.getSecond()) ? (UfoDetection)args.getFirst() : DETECTION_NONE;
+	return SavedGame::tryDetectUfo(args.getSecond()) ? (UfoDetection)args.getFirst() : DETECTION_NONE;
 }
 
 /**

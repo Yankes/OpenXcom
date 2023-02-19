@@ -908,11 +908,12 @@ const std::vector<Craft*>* GeoscapeState::updateActiveCrafts()
  */
 void GeoscapeState::time5Seconds()
 {
-	// If in "slow mode", handle UFO hunting and escorting logic every 5 seconds, not only every 10 minutes
-	if ((_timeSpeed == _btn5Secs || _timeSpeed == _btn1Min) && _game->getMod()->getHunterKillerFastRetarget())
-	{
-		ufoHuntingAndEscorting();
-	}
+	//HACK: this break new logic, temporary removed
+//	// If in "slow mode", handle UFO hunting and escorting logic every 5 seconds, not only every 10 minutes
+//	if ((_timeSpeed == _btn5Secs || _timeSpeed == _btn1Min) && _game->getMod()->getHunterKillerFastRetarget())
+//	{
+//		ufoHuntingAndEscorting();
+//	}
 
 	// Game over if there are no more bases.
 	if (_game->getSavedGame()->getBases()->empty())
@@ -1573,6 +1574,8 @@ void GeoscapeState::ufoHuntingAndEscorting()
 {
 	auto* activeCrafts = updateActiveCrafts();
 
+	std::unordered_set<const Ufo*> targetChanged;
+
 	for (auto* ufo : *_game->getSavedGame()->getUfos())
 	{
 		if (ufo->isHunterKiller() && ufo->getStatus() == Ufo::FLYING)
@@ -1614,19 +1617,12 @@ void GeoscapeState::ufoHuntingAndEscorting()
 				{
 					// set new target
 					ufo->setTargetedXcomCraft(newTarget);
-					// TODO: rethink: always reveal the hunting UFO (even outside of radar range?)
-					ufo->setDetected(true);
 					if (ufo->getId() == 0)
 					{
 						ufo->setId(_game->getSavedGame()->getId("STR_UFO"));
 					}
 
-					ufoDetection(ufo, activeCrafts, newTarget);
-
-					if (ufo->getDetected())
-					{
-						//TODO
-					}
+					targetChanged.insert(ufo);
 				}
 			}
 			else if (originalTarget)
@@ -1653,6 +1649,31 @@ void GeoscapeState::ufoHuntingAndEscorting()
 					}
 				}
 			}
+		}
+	}
+
+	// Handle UFO detection
+	for (auto* ufo : *_game->getSavedGame()->getUfos())
+	{
+		// instant retaliation missions are ignored (UFOs shouldn't be detected)
+		if (ufo->getMission()->getRules().getObjective() == OBJECTIVE_INSTANT_RETALIATION)
+		{
+			continue;
+		}
+
+		switch (ufo->getStatus())
+		{
+		case Ufo::LANDED:
+			FALLTHROUGH;
+		case Ufo::FLYING:
+
+			// Detection ufo state
+			ufoDetection(ufo, activeCrafts, targetChanged.count(ufo) ? ufo->getTargetedXcomCraft() : nullptr);
+
+			break;
+		case Ufo::CRASHED:
+		case Ufo::DESTROYED:
+			break;
 		}
 	}
 }
@@ -1916,10 +1937,7 @@ void GeoscapeState::time30Minutes()
 		}
 	}
 
-	// can be updated by previous loop
-	auto* activeCrafts = updateActiveCrafts();
-
-	// Handle UFO detection and give aliens points
+	// Handle UFO aliens points
 	for (auto* ufo : *_game->getSavedGame()->getUfos())
 	{
 		// instant retaliation missions are ignored (UFOs shouldn't be detected)
@@ -1953,9 +1971,6 @@ void GeoscapeState::time30Minutes()
 					break;
 				}
 			}
-
-			// Detection ufo state
-			ufoDetection(ufo, activeCrafts);
 
 			break;
 		case Ufo::CRASHED:

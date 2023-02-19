@@ -139,6 +139,17 @@ bool haveReserchVector(const std::vector<const RuleResearch*> &vec,  const std::
 
 }
 
+
+/**
+ * Check if ufo get detected in 10min interval instead of 30min one.
+ * @param percent Percent chance of detection of UFO in 30min interval.
+ * @return is Ufo detected?
+ */
+bool SavedGame::tryDetectUfo(int percent)
+{
+	return RNG::generate(0.0, 1.0) < (1.0 - std::pow( 1.0 - 0.01 * percent));
+}
+
 /**
  * Initializes a brand new saved game according to the specified difficulty.
  */

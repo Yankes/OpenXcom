@@ -114,6 +114,10 @@ struct PromotionInfo
 class SavedGame
 {
 public:
+
+	/// Calculate chance of detection of ufo.
+	static bool tryDetectUfo(int percent);
+
 	Country *debugCountry = nullptr;
 	Region *debugRegion = nullptr;
 	int debugType = 0;
