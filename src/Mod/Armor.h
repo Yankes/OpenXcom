@@ -173,7 +173,7 @@ public:
 	~Armor();
 
 	/// Loads the armor data from YAML.
-	void load(const YAML::Node& node, const ModScript& parsers, Mod *mod);
+	void load(const YAML::Node& node, Mod *mod, const ModScript& parsers);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 	/// Gets whether or not there is an infinite supply of this armor.

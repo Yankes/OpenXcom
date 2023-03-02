@@ -57,7 +57,7 @@ public:
 	/// Cleans up the soldier bonus ruleset.
 	~RuleSoldierBonus() = default;
 	/// Loads the soldier bonus definition from YAML.
-	void load(const YAML::Node &node, const ModScript &parsers);
+	void load(const YAML::Node &node, Mod* mod, const ModScript &parsers);
 	/// Gets the soldier bonus unique name/type.
 	const std::string &getName() const { return _name; }
 	/// Gets the bonus to night vision (in tiles).

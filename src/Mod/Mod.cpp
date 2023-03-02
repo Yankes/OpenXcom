@@ -2595,7 +2595,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		RuleUfo *rule = loadRule(*i, &_ufos, &_ufosIndex);
 		if (rule != 0)
 		{
-			rule->load(*i, parsers, this);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("invs", "id"))
@@ -2620,7 +2620,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		Armor *rule = loadRule(*i, &_armors, &_armorsIndex);
 		if (rule != 0)
 		{
-			rule->load(*i, parsers, this);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("skills", "type"))
@@ -2708,7 +2708,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		RuleSoldierBonus *rule = loadRule(*i, &_soldierBonus, &_soldierBonusIndex, "name", RuleListOrderedFactory<RuleSoldierBonus>{ _soldierBonusListOrder, 100 });
 		if (rule != 0)
 		{
-			rule->load(*i, parsers);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("soldierTransformation", "name"))

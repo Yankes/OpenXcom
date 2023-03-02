@@ -34,11 +34,11 @@ RuleSoldierBonus::RuleSoldierBonus(const std::string &name, int listOrder) : _na
  * Loads the soldier bonus definition from YAML.
  * @param node YAML node.
  */
-void RuleSoldierBonus::load(const YAML::Node &node, const ModScript &parsers)
+void RuleSoldierBonus::load(const YAML::Node &node, Mod* mod, const ModScript &parsers)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		load(parent, parsers);
+		load(parent, mod, parsers);
 	}
 
 	_visibilityAtDark = node["visibilityAtDark"].as<int>(_visibilityAtDark);
