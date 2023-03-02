@@ -318,9 +318,24 @@ private:
 	void loadConstants(const YAML::Node &node);
 	/// Loads a ruleset from a YAML file.
 	void loadFile(const FileMap::FileRecord &filerec, ModScript &parsers);
+
+	template<typename T>
+	struct RuleFactory
+	{
+		T* operator()(const std::string& type) { return new T(type); }
+	};
+	template<typename T>
+	struct RuleListOrderedFactory
+	{
+		int& _currentListOrder;
+		int offset;
+
+		T* operator()(const std::string& type) { _currentListOrder += offset; return new T(type, _currentListOrder); }
+	};
+
 	/// Loads a ruleset element.
-	template <typename T>
-	T *loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::vector<std::string> *index = 0, const std::string &key = "type") const;
+	template <typename T, typename F = RuleFactory<T>>
+	T *loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::vector<std::string> *index = 0, const std::string &key = "type", F&& factory = { }) const;
 	/// Gets a ruleset element.
 	template <typename T>
 	T *getRule(const std::string &id, const std::string &name, const std::map<std::string, T*> &map, bool error) const;

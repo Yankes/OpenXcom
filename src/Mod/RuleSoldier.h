@@ -99,11 +99,11 @@ private:
 	void addSoldierNamePool(const std::string &namFile);
 public:
 	/// Creates a blank soldier ruleset.
-	RuleSoldier(const std::string &type);
+	RuleSoldier(const std::string &type, int listOrder);
 	/// Cleans up the soldier ruleset.
 	~RuleSoldier();
 	/// Loads the soldier data from YAML.
-	void load(const YAML::Node& node, Mod *mod, int listOrder, const ModScript &parsers);
+	void load(const YAML::Node& node, Mod *mod, const ModScript &parsers);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 	/// Gets the soldier's type.

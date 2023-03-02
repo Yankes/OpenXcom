@@ -55,7 +55,7 @@ namespace OpenXcom
  * type of inventory section.
  * @param id String defining the id.
  */
-RuleInventory::RuleInventory(const std::string &id): _id(id), _x(0), _y(0), _type(INV_SLOT), _listOrder(0), _hand(0)
+RuleInventory::RuleInventory(const std::string &id, int listOrder): _id(id), _x(0), _y(0), _type(INV_SLOT), _listOrder(listOrder), _hand(0)
 {
 }
 
@@ -68,11 +68,11 @@ RuleInventory::~RuleInventory()
  * @param node YAML node.
  * @param listOrder The list weight for this inventory.
  */
-void RuleInventory::load(const YAML::Node &node, int listOrder)
+void RuleInventory::load(const YAML::Node &node)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
-		load(parent, listOrder);
+		load(parent);
 	}
 
 	_x = node["x"].as<int>(_x);
@@ -80,7 +80,7 @@ void RuleInventory::load(const YAML::Node &node, int listOrder)
 	_type = (InventoryType)node["type"].as<int>(_type);
 	_slots = node["slots"].as< std::vector<RuleSlot> >(_slots);
 	_costs = node["costs"].as< std::map<std::string, int> >(_costs);
-	_listOrder = node["listOrder"].as<int>(listOrder);
+	_listOrder = node["listOrder"].as<int>(_listOrder);
 	if (_id == "STR_RIGHT_HAND")
 	{
 		_hand = 2;

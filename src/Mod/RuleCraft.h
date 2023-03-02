@@ -199,11 +199,11 @@ private:
 
 public:
 	/// Creates a blank craft ruleset.
-	RuleCraft(const std::string &type);
+	RuleCraft(const std::string &type, int listOrder);
 	/// Cleans up the craft ruleset.
 	~RuleCraft();
 	/// Loads craft data from YAML.
-	void load(const YAML::Node& node, Mod *mod, int listOrder, const ModScript &parsers);
+	void load(const YAML::Node& node, Mod *mod, const ModScript &parsers);
 	/// Gets the craft's type.
 	const std::string &getType() const;
 	/// Gets the craft's requirements.

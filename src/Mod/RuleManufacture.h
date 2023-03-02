@@ -68,10 +68,10 @@ public:
 	static const int MANU_STATUS_HIDDEN = 2;
 	static const int MANU_STATUSES = 3;
 	/// Creates a new manufacture.
-	RuleManufacture(const std::string &name);
+	RuleManufacture(const std::string &name, int listOrder);
 
 	/// Loads the manufacture from YAML.
-	void load(const YAML::Node& node, Mod* mod, int listOrder);
+	void load(const YAML::Node& node, Mod* mod);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 	/// Change the name and break down the sub-projects into simpler components.

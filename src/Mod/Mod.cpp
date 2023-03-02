@@ -2552,20 +2552,18 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	for (YAML::const_iterator i : iterateRules("facilities", "type"))
 	{
-		RuleBaseFacility *rule = loadRule(*i, &_facilities, &_facilitiesIndex);
+		RuleBaseFacility *rule = loadRule(*i, &_facilities, &_facilitiesIndex, "type", RuleListOrderedFactory<RuleBaseFacility>{ _facilityListOrder, 100 });
 		if (rule != 0)
 		{
-			_facilityListOrder += 100;
-			rule->load(*i, this, _facilityListOrder);
+			rule->load(*i, this);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("crafts", "type"))
 	{
-		RuleCraft *rule = loadRule(*i, &_crafts, &_craftsIndex);
+		RuleCraft *rule = loadRule(*i, &_crafts, &_craftsIndex, "type", RuleListOrderedFactory<RuleCraft>{ _craftListOrder, 100 });
 		if (rule != 0)
 		{
-			_craftListOrder += 100;
-			rule->load(*i, this, _craftListOrder, parsers);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("craftWeapons", "type"))
@@ -2578,20 +2576,18 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	for (YAML::const_iterator i : iterateRules("itemCategories", "type"))
 	{
-		RuleItemCategory *rule = loadRule(*i, &_itemCategories, &_itemCategoriesIndex);
+		RuleItemCategory *rule = loadRule(*i, &_itemCategories, &_itemCategoriesIndex, "type", RuleListOrderedFactory<RuleItemCategory>{ _itemCategoryListOrder, 100 });
 		if (rule != 0)
 		{
-			_itemCategoryListOrder += 100;
-			rule->load(*i, this, _itemCategoryListOrder);
+			rule->load(*i, this);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("items", "type"))
 	{
-		RuleItem *rule = loadRule(*i, &_items, &_itemsIndex);
+		RuleItem *rule = loadRule(*i, &_items, &_itemsIndex, "type", RuleListOrderedFactory<RuleItem>{ _itemListOrder, 100 });
 		if (rule != 0)
 		{
-			_itemListOrder += 100;
-			rule->load(*i, this, _itemListOrder, parsers);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("ufos", "type"))
@@ -2604,11 +2600,10 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	for (YAML::const_iterator i : iterateRules("invs", "id"))
 	{
-		RuleInventory *rule = loadRule(*i, &_invs, &_invsIndex, "id");
+		RuleInventory *rule = loadRule(*i, &_invs, &_invsIndex, "id", RuleListOrderedFactory<RuleInventory>{ _invListOrder, 10 });
 		if (rule != 0)
 		{
-			_invListOrder += 10;
-			rule->load(*i, _invListOrder);
+			rule->load(*i);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("terrains", "name"))
@@ -2638,11 +2633,10 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	for (YAML::const_iterator i : iterateRules("soldiers", "type"))
 	{
-		RuleSoldier *rule = loadRule(*i, &_soldiers, &_soldiersIndex);
+		RuleSoldier *rule = loadRule(*i, &_soldiers, &_soldiersIndex, "type", RuleListOrderedFactory<RuleSoldier>{ _soldierListOrder, 1 });
 		if (rule != 0)
 		{
-			_soldierListOrder += 1;
-			rule->load(*i, this, _soldierListOrder, parsers);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("units", "type"))
@@ -2687,20 +2681,18 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	for (YAML::const_iterator i : iterateRules("research", "name"))
 	{
-		RuleResearch *rule = loadRule(*i, &_research, &_researchIndex, "name");
+		RuleResearch *rule = loadRule(*i, &_research, &_researchIndex, "name", RuleListOrderedFactory<RuleResearch>{ _researchListOrder, 100 });
 		if (rule != 0)
 		{
-			_researchListOrder += 100;
-			rule->load(*i, this, parsers, _researchListOrder);
+			rule->load(*i, this, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("manufacture", "name"))
 	{
-		RuleManufacture *rule = loadRule(*i, &_manufacture, &_manufactureIndex, "name");
+		RuleManufacture *rule = loadRule(*i, &_manufacture, &_manufactureIndex, "name", RuleListOrderedFactory<RuleManufacture>{ _manufactureListOrder, 100 });
 		if (rule != 0)
 		{
-			_manufactureListOrder += 100;
-			rule->load(*i, this, _manufactureListOrder);
+			rule->load(*i, this);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("manufactureShortcut", "name"))
@@ -2713,20 +2705,18 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	for (YAML::const_iterator i : iterateRules("soldierBonuses", "name"))
 	{
-		RuleSoldierBonus *rule = loadRule(*i, &_soldierBonus, &_soldierBonusIndex, "name");
+		RuleSoldierBonus *rule = loadRule(*i, &_soldierBonus, &_soldierBonusIndex, "name", RuleListOrderedFactory<RuleSoldierBonus>{ _soldierBonusListOrder, 100 });
 		if (rule != 0)
 		{
-			_soldierBonusListOrder += 100;
-			rule->load(*i, parsers, _soldierBonusListOrder);
+			rule->load(*i, parsers);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("soldierTransformation", "name"))
 	{
-		RuleSoldierTransformation *rule = loadRule(*i, &_soldierTransformation, &_soldierTransformationIndex, "name");
+		RuleSoldierTransformation *rule = loadRule(*i, &_soldierTransformation, &_soldierTransformationIndex, "name", RuleListOrderedFactory<RuleSoldierTransformation>{ _transformationListOrder, 100 });
 		if (rule != 0)
 		{
-			_transformationListOrder += 100;
-			rule->load(*i, this, _transformationListOrder);
+			rule->load(*i, this);
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("commendations", "type"))
@@ -3354,8 +3344,8 @@ static void refNodeTestDeepth(const YAML::Node &node, const std::string &name, i
  * @param key Rule key name.
  * @return Pointer to new rule if one was created, or NULL if one was removed.
  */
-template <typename T>
-T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::vector<std::string> *index, const std::string &key) const
+template <typename T, typename F>
+T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::vector<std::string> *index, const std::string &key, F&& factory) const
 {
 	T *rule = 0;
 
@@ -3419,7 +3409,7 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 		}
 		else
 		{
-			rule = new T(type);
+			rule = factory(type);
 			(*map)[type] = rule;
 			if (index != 0)
 			{
@@ -3460,7 +3450,7 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 		}
 		else
 		{
-			rule = new T(type);
+			rule = factory(type);
 			(*map)[type] = rule;
 			if (index != 0)
 			{
@@ -3479,12 +3469,12 @@ T *Mod::loadRule(const YAML::Node &node, std::map<std::string, T*> *map, std::ve
 		if (i != map->end())
 		{
 			delete i->second;
-			rule = new T(type);
+			rule = factory(type);
 			(*map)[type] = rule;
 		}
 		else
 		{
-			rule = new T(type);
+			rule = factory(type);
 			(*map)[type] = rule;
 			if (index != 0)
 			{

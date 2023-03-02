@@ -443,13 +443,13 @@ public:
 	static void ScriptRegister(ScriptParserBase* parser);
 
 	/// Creates a blank item ruleset.
-	RuleItem(const std::string &type);
+	RuleItem(const std::string &type, int listOrder);
 	/// Cleans up the item ruleset.
 	~RuleItem();
 	/// Updates item categories based on replacement rules.
 	void updateCategories(std::map<std::string, std::string> *replacementRules);
 	/// Loads item data from YAML.
-	void load(const YAML::Node& node, Mod *mod, int listIndex, const ModScript& parsers);
+	void load(const YAML::Node& node, Mod *mod, const ModScript& parsers);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 
