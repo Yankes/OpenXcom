@@ -2180,6 +2180,20 @@ void Mod::loadAll()
 	Collections::sortVectorMakeUnique(_craftWeaponStorageItemsCache);
 
 
+	for (auto& r : _research)
+	{
+		if (r.second->unlockFinalMission())
+		{
+			if (_finalResearch != nullptr)
+			{
+				checkForSoftError(true, "mod", "Both '" + _finalResearch->getName() + "' and '" + r.second->getName() + "' research are marked as 'unlockFinalMission: true'", LOG_WARNING);
+			}
+			_finalResearch = r.second;
+		}
+	}
+	checkForSoftError(_finalResearch == nullptr, "mod", "Missing final research with 'unlockFinalMission: true'", LOG_INFO);
+
+
 	// check unique listOrder
 	{
 		std::vector<int> tmp;
@@ -2678,10 +2692,6 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		{
 			_researchListOrder += 100;
 			rule->load(*i, this, parsers, _researchListOrder);
-			if ((*i)["unlockFinalMission"].as<bool>(false))
-			{
-				_finalResearch = (*i)["name"].as<std::string>(_finalResearch);
-			}
 		}
 	}
 	for (YAML::const_iterator i : iterateRules("manufacture", "name"))
@@ -4929,7 +4939,7 @@ ScriptGlobal *Mod::getScriptGlobal() const
 
 RuleResearch *Mod::getFinalResearch() const
 {
-	return getResearch(_finalResearch, true);
+	return _finalResearch;
 }
 
 RuleBaseFacility *Mod::getDestroyedFacility() const

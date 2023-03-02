@@ -129,9 +129,10 @@ SelectDestinationState::SelectDestinationState(std::vector<Craft*> crafts, Globe
 	_txtTitle->setVerticalAlign(ALIGN_MIDDLE);
 	_txtTitle->setWordWrap(true);
 
-	if (_crafts.size() != 1 || 
-		_crafts.front()->getFuelPercentage() < 100 || 
-		!_crafts.front()->getRules()->getSpacecraft() || 
+	if (_crafts.size() != 1 ||
+		_crafts.front()->getFuelPercentage() < 100 ||
+		!_crafts.front()->getRules()->getSpacecraft() ||
+		!_game->getMod()->getFinalResearch() ||
 		!_game->getSavedGame()->isResearched(_game->getMod()->getFinalResearch()))
 	{
 		_btnCydonia->setVisible(false);

@@ -253,7 +253,8 @@ private:
 	int _defeatScore, _defeatFunds;
 	bool _difficultyDemigod;
 	std::pair<std::string, int> _alienFuel;
-	std::string _fontName, _finalResearch, _psiUnlockResearch, _fakeUnderwaterBaseUnlockResearch, _newBaseUnlockResearch;
+	RuleResearch* _finalResearch = nullptr;
+	std::string _fontName, _psiUnlockResearch, _fakeUnderwaterBaseUnlockResearch, _newBaseUnlockResearch;
 	std::string _hireScientistsUnlockResearch, _hireEngineersUnlockResearch;
 	RuleBaseFacilityFunctions _hireScientistsRequiresBaseFunc, _hireEngineersRequiresBaseFunc;
 
