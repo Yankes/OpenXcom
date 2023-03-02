@@ -2510,6 +2510,8 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		return Collections::rangeValueUncheck(node.begin(), node.end());
 	};
 
+
+
 	for (YAML::const_iterator i : iterateRules("countries", "type"))
 	{
 		RuleCountry *rule = loadRule(*i, &_countries, &_countriesIndex);
@@ -2717,6 +2719,89 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 			rule->load(*i, this, _transformationListOrder);
 		}
 	}
+	for (YAML::const_iterator i : iterateRules("commendations", "type"))
+	{
+		RuleCommendations *rule = loadRule(*i, &_commendations);
+		if (rule != 0)
+		{
+			rule->load(*i, this);
+		}
+	}
+
+
+
+	for (YAML::const_iterator i : iterateRules("ufoTrajectories", "id"))
+	{
+		UfoTrajectory *rule = loadRule(*i, &_ufoTrajectories, 0, "id");
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	for (YAML::const_iterator i : iterateRules("alienMissions", "type"))
+	{
+		RuleAlienMission *rule = loadRule(*i, &_alienMissions, &_alienMissionsIndex);
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	for (YAML::const_iterator i : iterateRules("arcScripts", "type"))
+	{
+		RuleArcScript* rule = loadRule(*i, &_arcScripts, &_arcScriptIndex, "type");
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	for (YAML::const_iterator i : iterateRules("eventScripts", "type"))
+	{
+		RuleEventScript* rule = loadRule(*i, &_eventScripts, &_eventScriptIndex, "type");
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	for (YAML::const_iterator i : iterateRules("events", "name"))
+	{
+		RuleEvent* rule = loadRule(*i, &_events, &_eventIndex, "name");
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	for (YAML::const_iterator i : iterateRules("missionScripts", "type"))
+	{
+		RuleMissionScript *rule = loadRule(*i, &_missionScripts, &_missionScriptIndex, "type");
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+
+
+
+	for (YAML::const_iterator i = doc["mapScripts"].begin(); i != doc["mapScripts"].end(); ++i)
+	{
+		std::string type = (*i)["type"].as<std::string>();
+		if ((*i)["delete"])
+		{
+			type = (*i)["delete"].as<std::string>(type);
+		}
+		if (_mapScripts.find(type) != _mapScripts.end())
+		{
+			Collections::deleteAll(_mapScripts[type]);
+		}
+		for (YAML::const_iterator j = (*i)["commands"].begin(); j != (*i)["commands"].end(); ++j)
+		{
+			MapScript *mapScript = new MapScript();
+			mapScript->load(*j);
+			_mapScripts[type].push_back(mapScript);
+		}
+	}
+
+
+
 	for (YAML::const_iterator i = doc["ufopaedia"].begin(); i != doc["ufopaedia"].end(); ++i)
 	{
 		if ((*i)["id"])
@@ -2778,6 +2863,9 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 			}
 		}
 	}
+
+
+
 	auto loadStartingBase = [](YAML::Node &docRef, const std::string &startingBaseType, YAML::Node &destRef)
 	{
 		// Bases can't be copied, so for savegame purposes we store the node instead
@@ -2975,7 +3063,12 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 	}
 	loadSoundOffset("global", _selectBaseSound, doc["selectBaseSound"], "BATTLE.CAT");
 	loadSoundOffset("global", _startDogfightSound, doc["startDogfightSound"], "BATTLE.CAT");
-	_flagByKills = doc["flagByKills"].as<std::vector<int> >(_flagByKills);
+	if (doc["flagByKills"])
+	{
+		_flagByKills = doc["flagByKills"].as<std::vector<int> >(_flagByKills);
+	}
+
+
 
 	_defeatScore = doc["defeatScore"].as<int>(_defeatScore);
 	_defeatFunds = doc["defeatFunds"].as<int>(_defeatFunds);
@@ -3028,23 +3121,13 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 			++num;
 		}
 	}
-	for (YAML::const_iterator i : iterateRules("ufoTrajectories", "id"))
+	if (doc["alienItemLevels"])
 	{
-		UfoTrajectory *rule = loadRule(*i, &_ufoTrajectories, 0, "id");
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
+		_alienItemLevels = doc["alienItemLevels"].as< std::vector< std::vector<int> > >();
 	}
-	for (YAML::const_iterator i : iterateRules("alienMissions", "type"))
-	{
-		RuleAlienMission *rule = loadRule(*i, &_alienMissions, &_alienMissionsIndex);
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
-	_alienItemLevels = doc["alienItemLevels"].as< std::vector< std::vector<int> > >(_alienItemLevels);
+
+
+
 	for (YAML::const_iterator i = doc["MCDPatches"].begin(); i != doc["MCDPatches"].end(); ++i)
 	{
 		std::string type = (*i)["type"].as<std::string>();
@@ -3132,6 +3215,24 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 			rule->load(*i, this);
 		}
 	}
+
+	for (YAML::const_iterator i = doc["cutscenes"].begin(); i != doc["cutscenes"].end(); ++i)
+	{
+		RuleVideo *rule = loadRule(*i, &_videos);
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+	for (YAML::const_iterator i = doc["musics"].begin(); i != doc["musics"].end(); ++i)
+	{
+		RuleMusic *rule = loadRule(*i, &_musicDefs);
+		if (rule != 0)
+		{
+			rule->load(*i);
+		}
+	}
+
 	if (doc["globe"])
 	{
 		_globe->load(doc["globe"]);
@@ -3155,56 +3256,6 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 			loadConstants(constants);
 		}
 	}
-	for (YAML::const_iterator i = doc["mapScripts"].begin(); i != doc["mapScripts"].end(); ++i)
-	{
-		std::string type = (*i)["type"].as<std::string>();
-		if ((*i)["delete"])
-		{
-			type = (*i)["delete"].as<std::string>(type);
-		}
-		if (_mapScripts.find(type) != _mapScripts.end())
-		{
-			Collections::deleteAll(_mapScripts[type]);
-		}
-		for (YAML::const_iterator j = (*i)["commands"].begin(); j != (*i)["commands"].end(); ++j)
-		{
-			MapScript *mapScript = new MapScript();
-			mapScript->load(*j);
-			_mapScripts[type].push_back(mapScript);
-		}
-	}
-	for (YAML::const_iterator i : iterateRules("arcScripts", "type"))
-	{
-		RuleArcScript* rule = loadRule(*i, &_arcScripts, &_arcScriptIndex, "type");
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
-	for (YAML::const_iterator i : iterateRules("eventScripts", "type"))
-	{
-		RuleEventScript* rule = loadRule(*i, &_eventScripts, &_eventScriptIndex, "type");
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
-	for (YAML::const_iterator i : iterateRules("events", "name"))
-	{
-		RuleEvent* rule = loadRule(*i, &_events, &_eventIndex, "name");
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
-	for (YAML::const_iterator i : iterateRules("missionScripts", "type"))
-	{
-		RuleMissionScript *rule = loadRule(*i, &_missionScripts, &_missionScriptIndex, "type");
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
 
 	// refresh _psiRequirements for psiStrengthEval
 	for (const auto& facType : _facilitiesIndex)
@@ -3223,30 +3274,6 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		_psiRequirements.push_back(_psiUnlockResearch);
 	}
 
-	for (YAML::const_iterator i = doc["cutscenes"].begin(); i != doc["cutscenes"].end(); ++i)
-	{
-		RuleVideo *rule = loadRule(*i, &_videos);
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
-	for (YAML::const_iterator i = doc["musics"].begin(); i != doc["musics"].end(); ++i)
-	{
-		RuleMusic *rule = loadRule(*i, &_musicDefs);
-		if (rule != 0)
-		{
-			rule->load(*i);
-		}
-	}
-	for (YAML::const_iterator i : iterateRules("commendations", "type"))
-	{
-		RuleCommendations *rule = loadRule(*i, &_commendations);
-		if (rule != 0)
-		{
-			rule->load(*i, this);
-		}
-	}
 	size_t count = 0;
 	for (YAML::const_iterator i = doc["aimAndArmorMultipliers"].begin(); i != doc["aimAndArmorMultipliers"].end() && count < MaxDifficultyLevels; ++i)
 	{
