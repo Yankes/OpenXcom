@@ -43,7 +43,7 @@ RuleItemCategory::~RuleItemCategory()
  * @param mod Mod for the item.
  * @param listOrder The list weight for this item.
  */
-void RuleItemCategory::load(const YAML::Node &node, Mod *mod)
+void RuleItemCategory::load(const YAML::Node &node, const Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

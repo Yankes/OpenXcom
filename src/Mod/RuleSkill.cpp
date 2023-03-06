@@ -34,7 +34,7 @@ RuleSkill::RuleSkill(const std::string& type) : _type(type),
  * @param node YAML node.
  * @param mod Mod for the skill.
  */
-void RuleSkill::load(const YAML::Node& node, Mod *mod, const ModScript& parsers)
+void RuleSkill::load(const YAML::Node& node, const Mod *mod, const ModScript& parsers)
 {
 	if (const YAML::Node& parent = node["refNode"])
 	{

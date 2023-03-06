@@ -71,7 +71,7 @@ public:
 	RuleManufacture(const std::string &name, int listOrder);
 
 	/// Loads the manufacture from YAML.
-	void load(const YAML::Node& node, Mod* mod);
+	void load(const YAML::Node& node, const Mod* mod);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 	/// Change the name and break down the sub-projects into simpler components.

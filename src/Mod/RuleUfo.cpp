@@ -56,7 +56,7 @@ RuleUfo::~RuleUfo()
  * @param node YAML node.
  * @param mod Mod for the UFO.
  */
-void RuleUfo::load(const YAML::Node &node, Mod *mod, const ModScript &parsers)
+void RuleUfo::load(const YAML::Node &node, const Mod *mod, const ModScript &parsers)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

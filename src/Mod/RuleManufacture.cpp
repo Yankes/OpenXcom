@@ -41,7 +41,7 @@ RuleManufacture::RuleManufacture(const std::string &name, int listOrder) : _name
  * @param node YAML node.
  * @param listOrder The list weight for this manufacture.
  */
-void RuleManufacture::load(const YAML::Node &node, Mod* mod)
+void RuleManufacture::load(const YAML::Node &node, const Mod* mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

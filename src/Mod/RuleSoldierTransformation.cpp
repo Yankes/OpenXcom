@@ -41,7 +41,7 @@ RuleSoldierTransformation::RuleSoldierTransformation(const std::string &name, in
  * @param node YAML node.
  * @param listOrder The list weight for this transformation project.
  */
-void RuleSoldierTransformation::load(const YAML::Node &node, Mod* mod)
+void RuleSoldierTransformation::load(const YAML::Node &node, const Mod* mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

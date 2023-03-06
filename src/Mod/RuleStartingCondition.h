@@ -56,7 +56,7 @@ public:
 	/// Cleans up the Starting Conditions ruleset.
 	~RuleStartingCondition();
 	/// Loads Starting Conditions data from YAML.
-	void load(const YAML::Node& node, Mod *mod);
+	void load(const YAML::Node& node, const Mod *mod);
 	/// Cross link with other rules.
 	void afterLoad(const Mod* mod);
 	/// Gets the Starting Conditions's type.

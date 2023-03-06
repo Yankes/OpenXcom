@@ -41,7 +41,7 @@ public:
 	/// Cleans up the item category ruleset.
 	~RuleItemCategory();
 	/// Loads item data from YAML.
-	void load(const YAML::Node& node, Mod *mod);
+	void load(const YAML::Node& node, const Mod *mod);
 	/// Gets the item category type.
 	const std::string &getType() const;
 	/// Gets the item category type, which should be used instead of this one.

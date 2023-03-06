@@ -59,7 +59,7 @@ public:
 	/// Default constructor
 	RuleSoldierTransformation(const std::string &name, int listOrder);
 	/// Loads the project data from YAML
-	void load(const YAML::Node& node, Mod* mod);
+	void load(const YAML::Node& node, const Mod* mod);
 	/// Gets the unique name id of the project
 	const std::string &getName() const;
 	/// Gets the list weight of the project

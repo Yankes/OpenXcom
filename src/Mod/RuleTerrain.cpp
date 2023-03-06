@@ -51,7 +51,7 @@ RuleTerrain::~RuleTerrain()
  * @param node YAML node.
  * @param mod Mod for the terrain.
  */
-void RuleTerrain::load(const YAML::Node &node, Mod *mod)
+void RuleTerrain::load(const YAML::Node &node, const Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

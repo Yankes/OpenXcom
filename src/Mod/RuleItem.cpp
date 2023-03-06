@@ -367,7 +367,7 @@ void RuleItem::updateCategories(std::map<std::string, std::string> *replacementR
  * @param mod Mod for the item.
  * @param listOrder The list weight for this item.
  */
-void RuleItem::load(const YAML::Node &node, Mod *mod, const ModScript& parsers)
+void RuleItem::load(const YAML::Node &node, const Mod *mod, const ModScript& parsers)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

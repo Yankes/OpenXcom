@@ -48,7 +48,7 @@ RuleCraftWeapon::~RuleCraftWeapon()
  * @param node YAML node.
  * @param mod Mod for the craft weapon.
  */
-void RuleCraftWeapon::load(const YAML::Node &node, Mod *mod)
+void RuleCraftWeapon::load(const YAML::Node &node, const Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

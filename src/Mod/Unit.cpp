@@ -52,7 +52,7 @@ Unit::~Unit()
  * @param node YAML node.
  * @param mod Mod for the unit.
  */
-void Unit::load(const YAML::Node &node, Mod *mod)
+void Unit::load(const YAML::Node &node, const Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{

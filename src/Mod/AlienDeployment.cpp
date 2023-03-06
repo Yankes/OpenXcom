@@ -214,7 +214,7 @@ AlienDeployment::~AlienDeployment()
  * @param node YAML node.
  * @param mod Mod for the deployment.
  */
-void AlienDeployment::load(const YAML::Node &node, Mod *mod)
+void AlienDeployment::load(const YAML::Node &node, const Mod *mod)
 {
 	if (const YAML::Node &parent = node["refNode"])
 	{
