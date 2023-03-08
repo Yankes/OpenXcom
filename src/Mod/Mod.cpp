@@ -1212,6 +1212,16 @@ struct LoadFuncNullable
 	auto funcTagForNew() -> LoadFuncNullable { return { }; }
 };
 
+/**
+ * Tag dispatch struct representing can have null value.
+ */
+template<typename R, typename A>
+struct LoadFuncCallback
+{
+	FuncRef<R(const A&)> callback;
+
+	auto funcTagForNew() -> LoadFuncCallback { return *this; }
+};
 
 
 /**
@@ -1457,6 +1467,17 @@ void loadHelper(const std::string &parent, std::vector<std::pair<K, V>>& v, cons
 		{
 			throwOnBadMapHelper(parent, node);
 		}
+	}
+}
+
+template<typename T, typename A, typename... LoadFuncTag>
+void loadHelper(const std::string &parent, T& v, const YAML::Node &node, LoadFuncCallback<T, A> tag, LoadFuncTag... rest)
+{
+	if (node)
+	{
+		A a = {};
+		loadHelper(parent, a, node, rest.funcTagForNew()...);
+		v = tag.callback(a);
 	}
 }
 
@@ -6169,6 +6190,18 @@ bool Mod::isDemigod() const
 {
 	return _difficultyDemigod;
 }
+
+
+/**
+ * Load rule and register new MapDataSet in Mod.
+ */
+void ModUpdater::loadMapDataSet(const std::string &parent, std::vector<MapDataSet*>& v, const YAML::Node &node)
+{
+	auto callback = [&](const std::string& s){ return _mod->getMapDataSet(s); };
+	loadHelper(parent, v, node, LoadFuncStandard{}, LoadFuncCallback<MapDataSet*, std::string>{FuncRef<MapDataSet*(const std::string&)>(&callback)}, LoadFuncStandard{});
+}
+
+
 
 
 ////////////////////////////////////////////////////////////

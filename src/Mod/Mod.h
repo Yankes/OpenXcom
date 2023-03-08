@@ -96,6 +96,7 @@ class RuleArcScript;
 class RuleEventScript;
 class RuleEvent;
 class RuleMissionScript;
+class Mod;
 class ModScript;
 class ModScriptGlobal;
 class ScriptParserBase;
@@ -1093,5 +1094,20 @@ public:
 	const std::vector<int>& getAliensFacingCraftOdds() { return _aliensFacingCraftOdds; }
 
 };
+
+/**
+ * Class expose parts that need be changed during
+ */
+class ModUpdater
+{
+	Mod* _mod;
+public:
+
+	void loadMapDataSet(const std::string &parent, std::vector<MapDataSet*>& v, const YAML::Node &node);
+    void loadBaseFunction(const std::string &parent, RuleBaseFacilityFunctions& f, const YAML::Node &node) { _mod->loadBaseFunction(parent, f, node); }
+
+	const Mod* getMod() const { return _mod; }
+};
+
 
 }

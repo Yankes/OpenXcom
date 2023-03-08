@@ -33,6 +33,8 @@ RuleTerrain::RuleTerrain(const std::string &name) : _name(name), _mapScript("DEF
 	_ambience(-1), _ambientVolume(0.5), _minAmbienceRandomDelay(20), _maxAmbienceRandomDelay(60),
 	_lastCraftSkinIndex(0)
 {
+	_civilianTypes.push_back("MALE_CIVILIAN");
+	_civilianTypes.push_back("FEMALE_CIVILIAN");
 }
 
 /**
@@ -85,11 +87,6 @@ void RuleTerrain::load(const YAML::Node &node, const Mod *mod)
 	if (const YAML::Node &civs = node["civilianTypes"])
 	{
 		_civilianTypes = civs.as<std::vector<std::string> >(_civilianTypes);
-	}
-	else
-	{
-		_civilianTypes.push_back("MALE_CIVILIAN");
-		_civilianTypes.push_back("FEMALE_CIVILIAN");
 	}
 	for (YAML::const_iterator i = node["music"].begin(); i != node["music"].end(); ++i)
 	{
