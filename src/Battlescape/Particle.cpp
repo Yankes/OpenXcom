@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include "../Engine/RNG.h"
 #include "Particle.h"
 
@@ -31,8 +32,18 @@ namespace OpenXcom
  * @param color the color set to use from the transparency LUTs
  * @param opacity another reference for the LUT, this one is divided by 5 for the actual offset to use.
  */
-Particle::Particle(int voxelZ, float xOffset, float yOffset, float density, Uint8 color, Uint8 opacity) : _xOffset(xOffset), _yOffset(yOffset), _density(density), _voxelZ(voxelZ), _color(color), _opacity(opacity), _size(0)
+Particle::Particle(Position voxelPos, Uint8 density, Uint8 color, Uint8 opacity) : _density(density), _color(color), _opacity(opacity), _size(0)
 {
+	_layerZ = (voxelPos.z / Position::TileZ) << 1;
+
+	_subVoxelPos = voxelPos.clipVoxel() * SubVoxelAccuracy;
+
+	_subVoxelPos.x += RNG::seedless(-2*SubVoxelAccuracy, +2*SubVoxelAccuracy);
+	_subVoxelPos.y += RNG::seedless(-2*SubVoxelAccuracy, +2*SubVoxelAccuracy);
+	_subVoxelPos.z += RNG::seedless(-2*SubVoxelAccuracy, +2*SubVoxelAccuracy);
+
+	updateScreenData();
+
 	//size is initialized at 0
 	if (density < 100)
 	{
@@ -54,15 +65,36 @@ Particle::Particle(int voxelZ, float xOffset, float yOffset, float density, Uint
  */
 bool Particle::animate()
 {
-	_yOffset -= ((320-_density)/256.0);
-	_voxelZ += 1;
+//	_subVoxelPos.z += (320-_density);
+	if (_subVoxelPos.z >= Position::TileZ * SubVoxelAccuracy)
+	{
+		_subVoxelPos.z -= Position::TileZ * SubVoxelAccuracy;
+		_layerZ += LayerAccuracy;
+	}
 	_opacity--;
-	_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);
+//	_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);
+	_subVoxelPos.x += 10*RNG::seedless(-SubVoxelAccuracy / 4, SubVoxelAccuracy / 4);
+	_subVoxelPos.y += 10*RNG::seedless(-SubVoxelAccuracy / 4, SubVoxelAccuracy / 4);
+
+	updateScreenData();
+
 	if ( _opacity == 0 )
 	{
 		return false;
 	}
 	return true;
+}
+
+void Particle::updateScreenData()
+{
+	// voxel closer to front of screen are consider on higher layer
+	_layerZ &= 0xFE; //cut smallest bit
+	_layerZ |= (_subVoxelPos.x + _subVoxelPos.y > Position::TileXY*SubVoxelAccuracy);
+
+	Position v = _subVoxelPos / SubVoxelAccuracy;
+	_screenData.x = v.x - v.y;
+	_screenData.y = (v.x / 2) + (v.y / 2) - v.z - getTileZ() * Position::TileZ;
+	_screenData.z = std::min((_opacity + 7) / 10, 3);
 }
 
 }

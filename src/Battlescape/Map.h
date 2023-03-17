@@ -159,7 +159,7 @@ public:
 	/// Add new vapor particle.
 	void addVaporParticle(const Tile* tile, Particle particle);
 	/// Get all vapor for tile.
-	Collections::Range<const Particle*> getVaporParticle(const Tile* tile, bool topLayer) const;
+	Collections::Range<const Particle*> getVaporParticle(const Tile* tile, int topLayer) const;
 	/// Gets explosion set.
 	std::list<Explosion*> *getExplosions();
 

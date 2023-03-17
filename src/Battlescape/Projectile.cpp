@@ -592,12 +592,11 @@ void Projectile::addVaporCloud()
 	if (tile)
 	{
 		Position voxelScreenPos;
-		_save->getBattleGame()->getMap()->getCamera()->convertVoxelToScreen(voxelPos, &voxelScreenPos);
-		voxelScreenPos -= _save->getBattleGame()->getMap()->getCamera()->getMapOffset();
+//		_save->getBattleGame()->getMap()->getCamera()->convertVoxelToScreen(voxelPos, &voxelScreenPos);
+//		voxelScreenPos -= _save->getBattleGame()->getMap()->getCamera()->getMapOffset();
 		for (int i = 0; i != _vaporDensity; ++i)
 		{
-			int offset = RNG::seedless(0, 4) - 2;
-			Particle particle = Particle(voxelPos.z - offset, voxelScreenPos.x + RNG::seedless(0, 4) - 2, voxelScreenPos.y + offset, RNG::seedless(48, 224), _vaporColor, RNG::seedless(32, 44));
+			Particle particle = Particle(voxelPos, RNG::seedless(48, 224), _vaporColor, RNG::seedless(32, 44));
 			_save->getBattleGame()->getMap()->addVaporParticle(tile, particle);
 		}
 	}
