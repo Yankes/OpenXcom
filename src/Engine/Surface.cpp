@@ -29,6 +29,8 @@
 #include "Logger.h"
 #include "SDL2Helpers.h"
 #include "FileMap.h"
+#include "Script.h"
+#include "ScriptBind.h"
 #ifdef _WIN32
 #include <malloc.h>
 #endif
@@ -1072,6 +1074,31 @@ void SurfaceCrop::blit(Surface* dest)
 			srcShader
 		);
 	}
+}
+
+////////////////////////////////////////////////////////////
+//					Script binding
+////////////////////////////////////////////////////////////
+
+namespace
+{
+void blitSpriteScript(Surface *dest, Surface *&source, int x, int y, int shade)
+{
+	dest->blitNShade(source, x, y, shade);
+}
+void drawTextScript(Surface *surf, const std::string *&text, int x, int y, int color)
+{
+	surf->drawString(x, y, text->c_str(), color);
+}
+}
+void Surface::ScriptRegister(ScriptParserBase *parser)
+{
+	parser->registerPointerType<Surface>();
+
+	Bind<Surface> surfaceBinder = {parser};
+
+	surfaceBinder.add<&blitSpriteScript>("blitSprite", "Blits a sprite ontop of another sprite.");
+	surfaceBinder.add<&drawTextScript>("drawText", "Draws text on a sprite.");
 }
 
 }

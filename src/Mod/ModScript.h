@@ -181,6 +181,10 @@ class ModScript
 	{
 		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
+	struct TransformItemParser : ScriptParserEvents<ScriptOutputArgs<>, const BattleItem*, const SavedBattleGame*, Surface*, int, int, int>
+	{
+		TransformItemParser(ScriptGlobal *shared, const std::string &name, Mod *mod);
+	};
 
 	struct TryPsiAttackItemParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleItem*, const BattleUnit*, const BattleUnit*, const RuleSkill*, int, int, int, RNG::RandomState*, int, int, const SavedBattleGame*>
 	{
@@ -319,6 +323,7 @@ public:
 
 	using RecolorItemSprite = MACRO_NAMED_SCRIPT("recolorItemSprite", RecolorItemParser);
 	using SelectItemSprite = MACRO_NAMED_SCRIPT("selectItemSprite", SelectItemParser);
+	using TransformItemSprite = MACRO_NAMED_SCRIPT("transformItemSprite", TransformItemParser);
 
 	using ReactionWeaponAction = MACRO_NAMED_SCRIPT("reactionWeaponAction", ReactionUnitParser);
 
@@ -420,6 +425,7 @@ public:
 	using BattleItemScripts = ScriptGroup<Mod,
 		RecolorItemSprite,
 		SelectItemSprite,
+		TransformItemSprite,
 
 		ReactionWeaponAction,
 
