@@ -24,6 +24,7 @@
 #include <vector>
 #include <assert.h>
 #include "GraphSubset.h"
+#include "Script.h"
 
 namespace OpenXcom
 {
