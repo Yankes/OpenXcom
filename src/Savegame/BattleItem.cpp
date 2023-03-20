@@ -729,10 +729,10 @@ const Surface *BattleItem::getBigSprite(const SurfaceSet *set, const SavedBattle
 		);
 
 		auto* newSurf = set->getFrame(i);
-		if (newSurf == nullptr)
-		{
-			newSurf = surf;
-		}
+		newSurf = newSurf == nullptr ? surf : newSurf;
+		SavedBattleGame* derp = const_cast<SavedBattleGame*>(save);
+
+		ModScript::scriptCallback<ModScript::TransformItemSprite>(_rules, this, save, BODYPART_ITEM_INVENTORY, animFrame, 0);
 		return newSurf;
 	}
 	else
@@ -1614,6 +1614,17 @@ ModScript::SelectItemParser::SelectItemParser(ScriptGlobal* shared, const std::s
 	commonImpl(b, mod);
 
 	setDefault("add sprite_index sprite_offset; return sprite_index;");
+}
+
+/**
+ * Constructor of transform sprite script parser.
+ */
+ModScript::TransformItemParser::TransformItemParser(ScriptGlobal *shared, const std::string &name, Mod *mod) : ScriptParserEvents{ shared, name,
+	"item", "battle_game", "blit_part", "anim_frame", "shade", }
+{
+	BindBase b { this };
+
+	commonImpl(b, mod);
 }
 
 ModScript::CreateItemParser::CreateItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "item", "unit", "battle_game", "turn", }

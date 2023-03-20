@@ -32,6 +32,7 @@ class Font;
 class Language;
 class ScriptWorkerBase;
 class SurfaceCrop;
+class ScriptParserBase;
 template<typename Pixel> class SurfaceRaw;
 
 /**
@@ -330,6 +331,10 @@ public:
 	virtual void setBorderColor(Uint8 /*color*/) { /* empty by design */ };
 	/// Sets the high contrast color setting of the surface.
 	virtual void setHighContrast(bool /*contrast*/) { /* empty by design */ };
+
+	/// Name of class used in script.
+	static constexpr const char *ScriptName = "Surface";
+	static void ScriptRegister(ScriptParserBase *parser);
 };
 
 /**

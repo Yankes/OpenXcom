@@ -6278,6 +6278,12 @@ void getInventoryScript(const Mod* mod, const RuleInventory* &inv, const std::st
 		inv = nullptr;
 	}
 }
+void getSpiteScript(const Mod* mod, OpenXcom::Surface*& surface, const std::string &setName, int id)
+{
+	// the getSurfaceSet method really should be immutable, but it isn't because of lazy-loading.
+	// in the future that could be worked around, but we'll just lie for now.
+	surface = mod ? const_cast<Mod *>(mod)->getSurfaceSet(setName)->getFrame(id) : nullptr;
+}
 
 } // namespace
 
@@ -6293,6 +6299,7 @@ void Mod::ScriptRegister(ScriptParserBase *parser)
 	parser->registerPointerType<RuleResearch>();
 	parser->registerPointerType<RuleSoldier>();
 	parser->registerPointerType<RuleInventory>();
+	parser->registerPointerType<Surface>();
 
 	Bind<Mod> mod = { parser };
 
@@ -6320,6 +6327,9 @@ void Mod::ScriptRegister(ScriptParserBase *parser)
 	mod.add<&Mod::getInventoryBackpack>("getRuleInventoryBackpack");
 	mod.add<&Mod::getInventoryBelt>("getRuleInventoryBelt");
 	mod.add<&Mod::getInventoryGround>("getRuleInventoryGround");
+
+	mod.add<&getSpiteScript>("getSpriteFromSet", "Gets a sprite identified by set name and index from the appropriate store.");
+	mod.add<&Mod::getSurface>("getNamedSprite", "Get a sprite identified by a string.");
 
 	mod.addScriptValue<&Mod::_scriptGlobal, &ModScriptGlobal::getScriptValues>();
 }
