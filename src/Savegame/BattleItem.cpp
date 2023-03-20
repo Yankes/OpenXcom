@@ -732,7 +732,7 @@ const Surface *BattleItem::getBigSprite(const SurfaceSet *set, const SavedBattle
 		newSurf = newSurf == nullptr ? surf : newSurf;
 		SavedBattleGame* derp = const_cast<SavedBattleGame*>(save);
 
-		ModScript::scriptCallback<ModScript::TransformItemSprite>(_rules, this, save, BODYPART_ITEM_INVENTORY, animFrame, 0);
+		ModScript::scriptCallback<ModScript::TransformItemSprite>(_rules, this, save, newSurf, BODYPART_ITEM_INVENTORY, animFrame, 0);
 		return newSurf;
 	}
 	else
@@ -1620,7 +1620,7 @@ ModScript::SelectItemParser::SelectItemParser(ScriptGlobal* shared, const std::s
  * Constructor of transform sprite script parser.
  */
 ModScript::TransformItemParser::TransformItemParser(ScriptGlobal *shared, const std::string &name, Mod *mod) : ScriptParserEvents{ shared, name,
-	"item", "battle_game", "blit_part", "anim_frame", "shade", }
+	"item", "battle_game", "surface", "blit_part", "anim_frame", "shade", }
 {
 	BindBase b { this };
 

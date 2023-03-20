@@ -181,7 +181,7 @@ class ModScript
 	{
 		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
-	struct TransformItemParser : ScriptParserEvents<ScriptOutputArgs<>, const BattleItem *, const SavedBattleGame *, int, int, int>
+	struct TransformItemParser : ScriptParserEvents<ScriptOutputArgs<>, const BattleItem *, const SavedBattleGame *, const Surface*, int, int, int>
 	{
 		TransformItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
