@@ -20,6 +20,7 @@
 #include <algorithm>
 #include "../Engine/RNG.h"
 #include "Particle.h"
+#include "../Mod/Mod.h"
 
 namespace OpenXcom
 {
@@ -38,11 +39,11 @@ Particle::Particle(Position voxelPos, Uint8 density, Uint8 color, Uint8 opacity)
 
 	_subVoxelPos = voxelPos.clipVoxel() * SubVoxelAccuracy;
 
-	_subVoxelPos.x += RNG::seedless(-2*SubVoxelAccuracy, +2*SubVoxelAccuracy);
-	_subVoxelPos.y += RNG::seedless(-2*SubVoxelAccuracy, +2*SubVoxelAccuracy);
-	_subVoxelPos.z += RNG::seedless(-2*SubVoxelAccuracy, +2*SubVoxelAccuracy);
-
-	updateScreenData();
+	// approximation of old `int offset = RNG::seedless(0, 4) - 2;`
+	const int offset = SubVoxelAccuracy * 3 / 2;
+	_subVoxelPos.x += RNG::seedless(-offset, +offset);
+	_subVoxelPos.y += RNG::seedless(-offset, +offset);
+	_subVoxelPos.z += RNG::seedless(-offset, +offset);
 
 	//size is initialized at 0
 	if (density < 100)
@@ -65,18 +66,14 @@ Particle::Particle(Position voxelPos, Uint8 density, Uint8 color, Uint8 opacity)
  */
 bool Particle::animate()
 {
-//	_subVoxelPos.z += (320-_density);
-	if (_subVoxelPos.z >= Position::TileZ * SubVoxelAccuracy)
-	{
-		_subVoxelPos.z -= Position::TileZ * SubVoxelAccuracy;
-		_layerZ += LayerAccuracy;
-	}
+	_subVoxelPos.z += (320-_density);
 	_opacity--;
-//	_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);
-	_subVoxelPos.x += 10*RNG::seedless(-SubVoxelAccuracy / 4, SubVoxelAccuracy / 4);
-	_subVoxelPos.y += 10*RNG::seedless(-SubVoxelAccuracy / 4, SubVoxelAccuracy / 4);
 
-	updateScreenData();
+	// approximation of old `_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);`
+	const int drift = SubVoxelAccuracy / 2;
+	_subVoxelPos.x += RNG::seedless(-drift, drift);
+	_subVoxelPos.y += RNG::seedless(-drift, drift);
+	_subVoxelPos.z += RNG::seedless(-drift, drift);
 
 	if ( _opacity == 0 )
 	{
@@ -85,8 +82,33 @@ bool Particle::animate()
 	return true;
 }
 
-void Particle::updateScreenData()
+/**
+ * Update relative screen position of particle.
+ * @return Offset to next tile if particle cross tile boundaries.
+ */
+Position Particle::updateScreenPosition()
 {
+	static constexpr Position one = Position(1, 1, 1);
+	static constexpr Position scale = one.toVoxel() * SubVoxelAccuracy;
+
+	// this convert postion to -1, 0 or +1 depending if _subVoxelPos is outside current tile
+	Position tileOffset = ((_subVoxelPos + scale) /  scale - one);
+
+	// keep values inside one tile
+	if (tileOffset.x)
+	{
+		_subVoxelPos.x -= tileOffset.x * Position::TileXY * SubVoxelAccuracy;
+	}
+	if (tileOffset.y)
+	{
+		_subVoxelPos.y -= tileOffset.y * Position::TileXY * SubVoxelAccuracy;
+	}
+	if (tileOffset.z)
+	{
+		_subVoxelPos.z -= tileOffset.z * Position::TileZ * SubVoxelAccuracy;
+		_layerZ += tileOffset.z * LayerAccuracy;
+	}
+
 	// voxel closer to front of screen are consider on higher layer
 	_layerZ &= 0xFE; //cut smallest bit
 	_layerZ |= (_subVoxelPos.x + _subVoxelPos.y > Position::TileXY*SubVoxelAccuracy);
@@ -94,7 +116,9 @@ void Particle::updateScreenData()
 	Position v = _subVoxelPos / SubVoxelAccuracy;
 	_screenData.x = v.x - v.y;
 	_screenData.y = (v.x / 2) + (v.y / 2) - v.z - getTileZ() * Position::TileZ;
-	_screenData.z = std::min((_opacity + 7) / 10, 3);
+	_screenData.z = std::min((_opacity + 7) / 10, Mod::TransparenciesOpacityLevels - 1);
+
+	return tileOffset;
 }
 
 }

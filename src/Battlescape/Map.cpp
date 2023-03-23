@@ -1943,13 +1943,30 @@ void Map::animate(bool redraw)
 	}
 
 	// animate vapor
-	for (auto& tilePar : _vaporParticles)
+	for (auto i : Collections::rangeValueLess(_vaporParticles.size()))
 	{
+		auto& v = _vaporParticles[i];
+		int posX = i % _camera->getMapSizeX();
+		int posY = i / _camera->getMapSizeX();
+
 		Collections::removeIf(
-			tilePar,
-			[](Particle& p)
+			v,
+			[&](Particle& p)
 			{
-				return p.animate() == false;
+				if (p.animate())
+				{
+					Position tileOffset = p.updateScreenPosition();
+					if (tileOffset != Position(0,0,0))
+					{
+						addVaporParticle(Position(posX,posY,0) + tileOffset, p);
+						return true;
+					}
+					return false;
+				}
+				else
+				{
+					return true;
+				}
 			}
 		);
 	}
@@ -2213,14 +2230,33 @@ Projectile *Map::getProjectile() const
 
 /**
  * Add new vapor particle.
+ * @param pos Tile position of particle.
+ * @param particle Particle to add.
  */
-void Map::addVaporParticle(const Tile* tile, Particle particle)
+void Map::addVaporParticle(Position pos, Particle particle)
 {
-	if ((int)(_transparencies->size()) >= (particle.getColor() + 1) * Mod::TransparenciesOpacityLevels * Mod::TransparenciesPaletteColors)
+	if ((int)(_transparencies->size()) < (particle.getColor() + 1) * Mod::TransparenciesOpacityLevels * Mod::TransparenciesPaletteColors)
 	{
-		auto& v = _vaporParticlesInit[_camera->getMapSizeX() * tile->getPosition().y + tile->getPosition().x];
-		v.push_back(particle);
+		return;
 	}
+	if (pos.x >= _camera->getMapSizeX() || pos.y >= _camera->getMapSizeY())
+	{
+		return;
+	}
+	if (pos.x < 0 || pos.y < 0)
+	{
+		return;
+	}
+
+	auto& v = _vaporParticlesInit[_camera->getMapSizeX() * pos.y + pos.x];
+
+	// as there will usually be more than one Particle, we prepare more space
+	if (v.capacity() < 64)
+	{
+		v.reserve(64);
+	}
+
+	v.push_back(particle);
 }
 
 /**

@@ -51,7 +51,7 @@ public:
 	/// Animate a particle.
 	bool animate();
 	/// Update screen data.
-	void updateScreenData();
+	Position updateScreenPosition();
 	/// Get the size value.
 	int getSize() const { return _size; }
 	/// Get the color.
