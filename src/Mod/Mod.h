@@ -18,6 +18,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <bitset>
@@ -311,6 +312,10 @@ private:
 	std::vector<const Armor*> _armorsForSoldiersCache;
 	std::vector<const RuleItem*> _armorStorageItemsCache;
 	std::vector<const RuleItem*> _craftWeaponStorageItemsCache;
+	/// Track of what mod create rule object.
+	std::unordered_map<const void*, const ModData*> _ruleCreationTracking;
+	/// Track of what mod last update rule object.
+	std::unordered_map<const void*, const ModData*> _ruleLastUpdateTracking;
 
 	size_t _surfaceOffsetBigobs = 0;
 	size_t _surfaceOffsetFloorob = 0;
@@ -969,6 +974,14 @@ public:
 	int getTURecoveryWakeUpNewTurn() const { return _tuRecoveryWakeUpNewTurn; }
 	/// Gets whether or not to load base defense terrain from globe texture
 	int getBaseDefenseMapFromLocation() const { return _baseDefenseMapFromLocation; }
+
+	/// Return mod what created given rule object.
+	template<typename T>
+	const ModData* getModCreatingRule(const T* t) const { return _ruleCreationTracking.at(static_cast<const void*>(t)); }
+	/// Return mod what last updated given rule object.
+	template<typename T>
+	const ModData* getModLastUpdatingRule(const T* t) const { return _ruleLastUpdateTracking.at(static_cast<const void*>(t)); }
+
 	/// Gets the ruleset for a specific research project.
 	RuleResearch *getResearch(const std::string &id, bool error = false) const;
 	/// Gets the ruleset for a specific research project.

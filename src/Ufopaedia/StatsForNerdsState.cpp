@@ -2364,6 +2364,13 @@ void StatsForNerdsState::initItemList()
 			addScriptTags(ss, itemRule->getScriptValuesRaw());
 			endHeading();
 		}
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(itemRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(itemRule)->name, "updatedByMod");
+			endHeading();
+		}
 	}
 }
 
@@ -2855,6 +2862,13 @@ void StatsForNerdsState::initArmorList()
 			addScriptTags(ss, armorRule->getScriptValuesRaw());
 			endHeading();
 		}
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(armorRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(armorRule)->name, "updatedByMod");
+			endHeading();
+		}
 	}
 }
 
@@ -2911,6 +2925,13 @@ void StatsForNerdsState::initSoldierBonusList()
 		addSection("{Script tags}", "", _white, true);
 		{
 			addScriptTags(ss, bonusRule->getScriptValuesRaw());
+			endHeading();
+		}
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(bonusRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(bonusRule)->name, "updatedByMod");
 			endHeading();
 		}
 	}
@@ -3120,6 +3141,13 @@ void StatsForNerdsState::initFacilityList()
 		tmpSoundVector.clear();
 		tmpSoundVector.push_back(facilityRule->getPlaceSound());
 		addSoundVectorResourcePaths(ss, mod, "GEO.CAT", tmpSoundVector);
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(facilityRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(facilityRule)->name, "updatedByMod");
+			endHeading();
+		}
 	}
 }
 
@@ -3367,6 +3395,13 @@ void StatsForNerdsState::initCraftList()
 			addScriptTags(ss, craftRule->getScriptValuesRaw());
 			endHeading();
 		}
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(craftRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(craftRule)->name, "updatedByMod");
+			endHeading();
+		}
 	}
 }
 
@@ -3606,6 +3641,13 @@ void StatsForNerdsState::initUfoList()
 			addScriptTags(ss, ufoRule->getScriptValuesRaw());
 			endHeading();
 		}
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(ufoRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(ufoRule)->name, "updatedByMod");
+			endHeading();
+		}
 	}
 }
 
@@ -3713,6 +3755,13 @@ void StatsForNerdsState::initCraftWeaponList()
 		std::vector<int> tmpSoundVector;
 		tmpSoundVector.push_back(craftWeaponRule->getSound());
 		addSoundVectorResourcePaths(ss, mod, "GEO.CAT", tmpSoundVector);
+
+		addSection("{Mod info}", "", _white);
+		{
+			addSingleString(ss, mod->getModCreatingRule(craftWeaponRule)->name, "createdByMod");
+			addSingleString(ss, mod->getModLastUpdatingRule(craftWeaponRule)->name, "updatedByMod");
+			endHeading();
+		}
 	}
 }
 
