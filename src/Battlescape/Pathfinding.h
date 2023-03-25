@@ -89,7 +89,99 @@ public:
 
 	static const int DIR_UP = 8;
 	static const int DIR_DOWN = 9;
-	enum bigWallTypes{ BLOCK = 1, BIGWALLNESW, BIGWALLNWSE, BIGWALLWEST, BIGWALLNORTH, BIGWALLEAST, BIGWALLSOUTH, BIGWALLEASTANDSOUTH, BIGWALLWESTANDNORTH};
+	enum bigWallTypes
+	{
+		/**
+             /###\
+         W  /#####\  N
+           /#######\
+          |#########|
+           \#######/
+         S  \#####/  E
+             \###/
+		 */
+		BLOCK = 1,
+		/**
+             /   \
+         W  /     \  N
+           /#######\
+          |#########|
+           \#######/
+         S  \     /  E
+             \   /
+		 */
+		BIGWALLNESW = 2,
+		/**
+             /###\
+         W  / ### \  N
+           /  ###  \
+          |   ###   |
+           \  ###  /
+         S  \ ### /  E
+             \###/
+		 */
+		BIGWALLNWSE = 3,
+		/**
+             /## \
+         W  /##   \  N
+           /##     \
+          |##       |
+           \       /
+         S  \     /  E
+             \   /
+		 */
+		BIGWALLWEST = 4,
+		/**
+             / ##\
+         W  /   ##\  N
+           /     ##\
+          |       ##|
+           \       /
+         S  \     /  E
+             \   /
+		 */
+		BIGWALLNORTH = 5,
+		/**
+             /   \
+         W  /     \  N
+           /       \
+          |       ##|
+           \     ##/
+         S  \   ##/  E
+             \ ##/
+		 */
+		BIGWALLEAST = 6,
+		/**
+             /   \
+         W  /     \  N
+           /       \
+          |##       |
+           \##     /
+         S  \##   /  E
+             \## /
+		 */
+		BIGWALLSOUTH = 7,
+		/**
+             /   \
+         W  /     \  N
+           /       \
+          |##     ##|
+           \##   ##/
+         S  \#####/  E
+             \###/
+		 */
+		BIGWALLEASTANDSOUTH = 8,
+		/**
+             /###\
+         W  /#####\  N
+           /##   ##\
+          |##     ##|
+           \       /
+         S  \     /  E
+             \   /
+		 */
+		BIGWALLWESTANDNORTH = 9,
+	};
 	static const int O_BIGWALL = -1;
 	static int red;
 	static int green;
