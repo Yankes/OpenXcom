@@ -4434,7 +4434,7 @@ VoxelType TileEngine::voxelCheck(Position voxel, BattleUnit *excludeUnit, bool e
 
 	if (tile->hasGravLiftFloor() && (voxel.z % 24 == 0 || voxel.z % 24 == 1))
 	{
-		if ((tile->getPosition().z == 0) || (tileBelow && tileBelow->getMapData(O_FLOOR) && !tileBelow->hasGravLiftFloor()))
+		if ((tile->getPosition().z == 0) || (tileBelow && !tileBelow->hasGravLiftFloor()))
 		{
 			return V_FLOOR;
 		}
