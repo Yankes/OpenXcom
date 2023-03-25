@@ -923,6 +923,10 @@ bool Pathfinding::canFallDown(Tile *here) const
 	if (here->getPosition().z == 0)
 		return false;
 
+	auto tileBelow = _save->getBelowTile(here);
+	if (tileBelow && (tileBelow->getMapData(O_WESTWALL) || tileBelow->getMapData(O_NORTHWALL)))
+		return false;
+
 	return here->hasNoFloor(_save);
 }
 
@@ -1063,6 +1067,10 @@ bool Pathfinding::validateUpDown(const BattleUnit *bu, const Position& startPosi
 			{
 				return true;
 			}
+		}
+		if (startTile->getMapData(O_NORTHWALL) || startTile->getMapData(O_WESTWALL))
+		{
+			return true;
 		}
 	}
 

@@ -3221,6 +3221,12 @@ void BattleUnit::updateTileFloorState(SavedBattleGame *saveBattleGame)
 						_haveNoFloorBelow = false;
 						return;
 					}
+					auto tileBelow = saveBattleGame->getBelowTile(t);
+					if (tileBelow && (tileBelow->getMapData(O_WESTWALL) || tileBelow->getMapData(O_NORTHWALL)))
+					{
+						_haveNoFloorBelow = false;
+						return;
+					}
 				}
 			}
 		}
