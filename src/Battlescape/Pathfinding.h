@@ -101,6 +101,7 @@ public:
              \###/
 		 */
 		BLOCK = 1,
+
 		/**
              /   \
          W  /     \  N
@@ -111,6 +112,7 @@ public:
              \   /
 		 */
 		BIGWALLNESW = 2,
+
 		/**
              /###\
          W  / ### \  N
@@ -121,6 +123,7 @@ public:
              \###/
 		 */
 		BIGWALLNWSE = 3,
+
 		/**
              /## \
          W  /##   \  N
@@ -131,6 +134,7 @@ public:
              \   /
 		 */
 		BIGWALLWEST = 4,
+
 		/**
              / ##\
          W  /   ##\  N
@@ -141,6 +145,7 @@ public:
              \   /
 		 */
 		BIGWALLNORTH = 5,
+
 		/**
              /   \
          W  /     \  N
@@ -151,6 +156,7 @@ public:
              \ ##/
 		 */
 		BIGWALLEAST = 6,
+
 		/**
              /   \
          W  /     \  N
@@ -161,6 +167,7 @@ public:
              \## /
 		 */
 		BIGWALLSOUTH = 7,
+
 		/**
              /   \
          W  /     \  N
@@ -171,6 +178,7 @@ public:
              \###/
 		 */
 		BIGWALLEASTANDSOUTH = 8,
+
 		/**
              /###\
          W  /#####\  N
