@@ -3284,7 +3284,7 @@ void BattleUnit::setTile(Tile *tile, SavedBattleGame *saveBattleGame)
 			auto t = saveBattleGame->getTile(newPos + Position(x, y, 0));
 			if (t)
 			{
-				_haveNoFloorBelow &= t->hasNoFloor(saveBattleGame);
+				_haveNoFloorBelow &= t->hasNoFloor(saveBattleGame) && !t->hasLadder() && !(saveBattleGame->getBelowTile(t) && saveBattleGame->getBelowTile(t)->hasLadder());
 				t->setUnit(this);
 			}
 		}
