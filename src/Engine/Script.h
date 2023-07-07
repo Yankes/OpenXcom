@@ -953,7 +953,7 @@ public:
 	/// Return sub range of current range.
 	constexpr ScriptRef substr(size_t p, size_t s = std::string::npos) const
 	{
-		const size_t totalSize = _end - _begin;
+		const size_t totalSize = size();
 		if (p >= totalSize)
 		{
 			return ScriptRef{ };
@@ -968,6 +968,38 @@ public:
 		{
 			return ScriptRef{ b, b + s };
 		}
+	}
+
+	constexpr ScriptRef head(size_t p) const
+	{
+		return substr(0, p);
+	}
+
+	constexpr ScriptRef tail(size_t p) const
+	{
+		return substr(p);
+	}
+
+	constexpr ScriptRef headFromEnd(size_t p) const
+	{
+		const size_t totalSize = size();
+		if (p >= totalSize)
+		{
+			return *this;
+		}
+
+		return substr(totalSize - p);
+	}
+
+	constexpr ScriptRef tailFromEnd(size_t p) const
+	{
+		const size_t totalSize = size();
+		if (p >= totalSize)
+		{
+			return ScriptRef{ };
+		}
+
+		return substr(0, totalSize - p);
 	}
 
 	/// Create string based on current range.
