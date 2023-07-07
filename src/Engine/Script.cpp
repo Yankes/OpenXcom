@@ -24,6 +24,7 @@
 #include <cmath>
 #include <bitset>
 #include <array>
+#include <numeric>
 
 #include "Logger.h"
 #include "Options.h"
@@ -667,6 +668,82 @@ public:
 	SelectedToken getNextToken(TokenEnum excepted = TokenNone);
 };
 
+/**
+ * ScriptRef that is glue from independent parts.
+ * First empty ref mean end of list.
+ */
+class ScriptRefCompound
+{
+
+public:
+	template<typename Callback>
+	constexpr void interateMutate(Callback&& f)
+	{
+		for (auto& p : parts)
+		{
+			if constexpr (std::is_invocable_r_v<bool, Callback, ScriptRef&>)
+			{
+				if (!f(p))
+				{
+					return;
+				}
+			}
+			else
+			{
+				f(p);
+			}
+		}
+	}
+
+	template<typename Callback>
+	constexpr void interate(Callback&& f) const
+	{
+		for (const auto& p : parts)
+		{
+			if (!p)
+			{
+				return;
+			}
+
+			f(p);
+		}
+	}
+
+	std::array<ScriptRef, 4> parts;
+
+
+	constexpr bool haveParts() const
+	{
+		return !!parts[1];
+	}
+
+	constexpr size_t sizeParts() const
+	{
+		size_t s = 0;
+		interate([&](const ScriptRef& r){ s += 1; });
+		return s;
+	}
+
+	constexpr size_t size() const
+	{
+		size_t s = 0;
+		interate([&](const ScriptRef& r){ s += r.size(); });
+		return s;
+	}
+
+	std::string toString() const
+	{
+		std::string s;
+		s.reserve(size());
+		interate([&](const ScriptRef& r){ s.append(r.begin(), r.size()); });
+		return s;
+	}
+
+	constexpr explicit operator bool() const
+	{
+		return !!parts[0];
+	}
+};
 
 class ScriptRefOperation
 {
@@ -2035,6 +2112,33 @@ void addSortHelper(std::vector<R>& vec, R value)
 {
 	vec.push_back(value);
 	std::sort(vec.begin(), vec.end(), [](const R& a, const R& b) { return ScriptRef::compare(a.name, b.name) < 0; });
+}
+
+template<bool upper, typename R>
+auto boundSortHelper(R* begin, R* end, ScriptRange<ScriptRef> than)
+{
+	constexpr int limit = upper ? 1 : 0;
+	const auto total_size = std::accumulate(than.begin(), than.end(), size_t{}, [](size_t acc, ScriptRef r) { return acc + r.size(); });
+	return std::partition_point(begin, end,
+		[&](const R& a)
+		{
+			const auto curr = a.name.size();
+			if (curr < total_size)
+			{
+				return true;
+			}
+			else if (curr == total_size)
+			{
+//				const auto comp  = ScriptRef::compare(a.name.substr(0, size), prefix);
+//				return comp < 0 || (comp == 0 && ScriptRef::compare(a.name.substr(size), postfix) < limit);
+				return false;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	);
 }
 
 /**
@@ -4050,6 +4154,58 @@ static auto dummyTestScriptFunctionParser = ([]
 
 	return 0;
 })();
+
+
+static auto dummyTestScriptStringRef = ([]
+{
+	assert(ScriptRef{"foo"} == ScriptRef{"foo"}.substr(0));
+	assert(ScriptRef{"oo"} == ScriptRef{"foo"}.substr(1));
+	assert(ScriptRef{"o"} == ScriptRef{"foo"}.substr(2));
+	assert(ScriptRef{""} == ScriptRef{"foo"}.substr(3));
+	assert(ScriptRef{""} == ScriptRef{"foo"}.substr(4));
+
+	assert(ScriptRef{""} == ScriptRef{"foo1234"}.substr(3, 0));
+	assert(ScriptRef{"1"} == ScriptRef{"foo1234"}.substr(3, 1));
+	assert(ScriptRef{"12"} == ScriptRef{"foo1234"}.substr(3, 2));
+	assert(ScriptRef{"123"} == ScriptRef{"foo1234"}.substr(3, 3));
+	assert(ScriptRef{"1234"} == ScriptRef{"foo1234"}.substr(3, 4));
+	assert(ScriptRef{"1234"} == ScriptRef{"foo1234"}.substr(3, 5));
+
+	assert(ScriptRef{""} == ScriptRef{"12345"}.head(0));
+	assert(ScriptRef{"1"} == ScriptRef{"12345"}.head(1));
+	assert(ScriptRef{"12"} == ScriptRef{"12345"}.head(2));
+	assert(ScriptRef{"123"} == ScriptRef{"12345"}.head(3));
+	assert(ScriptRef{"1234"} == ScriptRef{"12345"}.head(4));
+	assert(ScriptRef{"12345"} == ScriptRef{"12345"}.head(5));
+	assert(ScriptRef{"12345"} == ScriptRef{"12345"}.head(6));
+
+	assert(ScriptRef{"12345"} == ScriptRef{"12345"}.tail(0));
+	assert(ScriptRef{"2345"} == ScriptRef{"12345"}.tail(1));
+	assert(ScriptRef{"345"} == ScriptRef{"12345"}.tail(2));
+	assert(ScriptRef{"45"} == ScriptRef{"12345"}.tail(3));
+	assert(ScriptRef{"5"} == ScriptRef{"12345"}.tail(4));
+	assert(ScriptRef{""} == ScriptRef{"12345"}.tail(5));
+	assert(ScriptRef{""} == ScriptRef{"12345"}.tail(6));
+
+	assert(ScriptRef{""} == ScriptRef{"12345"}.headFromEnd(0));
+	assert(ScriptRef{"5"} == ScriptRef{"12345"}.headFromEnd(1));
+	assert(ScriptRef{"45"} == ScriptRef{"12345"}.headFromEnd(2));
+	assert(ScriptRef{"345"} == ScriptRef{"12345"}.headFromEnd(3));
+	assert(ScriptRef{"2345"} == ScriptRef{"12345"}.headFromEnd(4));
+	assert(ScriptRef{"12345"} == ScriptRef{"12345"}.headFromEnd(5));
+	assert(ScriptRef{"12345"} == ScriptRef{"12345"}.headFromEnd(6));
+
+	assert(ScriptRef{"12345"} == ScriptRef{"12345"}.tailFromEnd(0));
+	assert(ScriptRef{"1234"} == ScriptRef{"12345"}.tailFromEnd(1));
+	assert(ScriptRef{"123"} == ScriptRef{"12345"}.tailFromEnd(2));
+	assert(ScriptRef{"12"} == ScriptRef{"12345"}.tailFromEnd(3));
+	assert(ScriptRef{"1"} == ScriptRef{"12345"}.tailFromEnd(4));
+	assert(ScriptRef{""} == ScriptRef{"12345"}.tailFromEnd(5));
+	assert(ScriptRef{""} == ScriptRef{"12345"}.tailFromEnd(6));
+
+	return 0;
+})();
+
 
 
 } //namespace
