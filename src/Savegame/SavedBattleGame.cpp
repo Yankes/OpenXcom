@@ -1987,7 +1987,7 @@ BattleItem *SavedBattleGame::createItemForTile(const std::string& type, Tile *ti
 /**
  * Create new item for tile;
  */
-BattleItem *SavedBattleGame::createItemForTile(const RuleItem *rule, Tile *tile)
+BattleItem *SavedBattleGame::createItemForTile(const RuleItem *rule, Tile *tile, BattleUnit *corpseFor)
 {
 	// Note: this is allowed also in preview mode; for items spawned from map blocks (and friendly units spawned from such items)
 
@@ -1997,6 +1997,7 @@ BattleItem *SavedBattleGame::createItemForTile(const RuleItem *rule, Tile *tile)
 		RuleInventory *ground = _rule->getInventoryGround();
 		tile->addItem(item, ground);
 	}
+	item->setUnit(corpseFor);
 	_items.push_back(item);
 	initItem(item);
 	return item;

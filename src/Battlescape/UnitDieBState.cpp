@@ -310,8 +310,7 @@ void UnitDieBState::convertUnitToCorpse()
 			{
 				for (int x = size - 1; x >= 0; --x)
 				{
-					BattleItem *corpse = _parent->getSave()->createItemForTile(_unit->getArmor()->getCorpseBattlescape()[i], nullptr);
-					corpse->setUnit(_unit);
+					BattleItem *corpse = _parent->getSave()->createItemForTile(_unit->getArmor()->getCorpseBattlescape()[i], nullptr, _unit);
 					_parent->dropItem(lastPosition + Position(x,y,0), corpse, false);
 					--i;
 				}
