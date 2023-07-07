@@ -2544,7 +2544,7 @@ void SavedBattleGame::removeUnconsciousBodyItem(BattleUnit *bu)
 	{
 		if ((*iter)->getUnit() == bu)
 		{
-			removeItem((*iter));
+			removeItem((*iter)); //TODO: if used on anything other that corpse it will crash as it could remove MORE than one item from `getItems()` and them go pass `!= end()`
 			if (--size == 0) break;
 		}
 		else
