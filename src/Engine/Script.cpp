@@ -2119,6 +2119,13 @@ auto boundSortHelper(R* begin, R* end, ScriptRange<ScriptRef> than)
 {
 	constexpr int limit = upper ? 1 : 0;
 	const auto total_size = std::accumulate(than.begin(), than.end(), size_t{}, [](size_t acc, ScriptRef r) { return acc + r.size(); });
+	const auto last_empty = std::find_if(than.begin(), than.end(), [](ScriptRef r){ return !r; });
+
+	// some garbage, should not happened, for avoiding unexpected results make check for it
+	assert(std::all_of(last_empty, than.end(), [](ScriptRef r){ return !r; }));
+
+	const auto final_range = ScriptRange{ than.begin(), last_empty };
+
 	return std::partition_point(begin, end,
 		[&](const R& a)
 		{
@@ -2129,9 +2136,29 @@ auto boundSortHelper(R* begin, R* end, ScriptRange<ScriptRef> than)
 			}
 			else if (curr == total_size)
 			{
-//				const auto comp  = ScriptRef::compare(a.name.substr(0, size), prefix);
-//				return comp < 0 || (comp == 0 && ScriptRef::compare(a.name.substr(size), postfix) < limit);
-				return false;
+				ScriptRef head = {};
+				ScriptRef tail = a.name;
+				auto comp = 0;
+				for (ScriptRef r : final_range)
+				{
+					auto s = r.size();
+					head = tail.head(s);
+					tail = tail.tail(s);
+					comp = ScriptRef::compare(head, r);
+					if (comp < 0)
+					{
+						return true;
+					}
+					else if (comp > 0)
+					{
+						return false;
+					}
+					else // comp == 0
+					{
+						continue;
+					}
+				}
+				return comp < limit;
 			}
 			else
 			{
@@ -4227,6 +4254,85 @@ static auto dummyTestScriptStringRef = ([]
 	return 0;
 })();
 
+
+
+static auto dummyTestScriptLowerBound = ([]
+{
+	std::vector<ScriptTypeData> test;
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "b" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "bb" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "bbb" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "bbbb" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "c" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "cc" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "ccc" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "a" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "aa" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "aaa" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "aaaa" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "aaab" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "aaaba" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "aaaaa" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "abcde" }  });
+	addSortHelper(test, ScriptTypeData{ ScriptRef{ "abcdf" }  });
+
+	auto pairRange = [&](const auto &pr, const auto &po)
+	{
+		ScriptRef prefix{ pr };
+		ScriptRef postfix{ po };
+		auto lower = test.data();
+		auto upper = test.data() + test.size();
+		lower = boundSortHelper<false>(lower, upper, prefix, postfix);
+		upper = boundSortHelper<true>(lower, upper, prefix, postfix);
+		return std::make_pair(lower, upper);
+	};
+	auto listRange = [&](std::initializer_list<const char*> l)
+	{
+		ScriptRef prefix[64] = { };
+		int i = 0;
+		for (auto* p : l)
+		{
+			prefix[i] = ScriptRef{ p, p + std::strlen(p) };
+			++i;
+		}
+		auto lower = test.data();
+		auto upper = test.data() + test.size();
+		lower = boundSortHelper<false>(lower, upper, ScriptRange{ prefix, prefix + i });
+		upper = boundSortHelper<true>(lower, upper, ScriptRange{ prefix, prefix + i });
+		return std::make_pair(lower, upper);
+	};
+	auto foundSomething = [](std::pair<const ScriptTypeData*, const ScriptTypeData*> p)
+	{
+		return p.first != p.second;
+	};
+
+	assert(true == foundSomething(pairRange("aa", "")));
+	assert(true == foundSomething(pairRange("aaaa", "")));
+	assert(true == foundSomething(pairRange("aa", "aa")));
+	assert((pairRange("aaaa", "")) == (pairRange("aa", "aa")));
+	assert((pairRange("abcde", "")) == (pairRange("abc", "de")));
+	assert((pairRange("abcde", "")) == (pairRange("ab", "cde")));
+
+	assert(false == foundSomething(listRange({"www"})));
+	assert(false == foundSomething(listRange({"www", ""})));
+	assert(true == foundSomething(listRange({"aa"})));
+	assert(true == foundSomething(listRange({"aa", ""})));
+	assert(true == foundSomething(listRange({"aaaa", ""})));
+	assert(true == foundSomething(listRange({"aa", "aa"})));
+	assert((listRange({"aaaa", ""})) == (listRange({"aa", "aa"})));
+	assert((listRange({"abcde", ""})) == (listRange({"abc", "de"})));
+	assert((listRange({"abcde", ""})) == (listRange({"ab", "cde"})));
+	assert((listRange({"abcde", ""})) == (listRange({"a", "b", "cde"})));
+	assert((listRange({"abcde", ""})) == (listRange({"a", "b", "c", "d", "e"})));
+	assert(false == foundSomething(listRange({"www", ""})));
+
+	assert((pairRange("abcde", "")) == (listRange({"a", "b", "cde"})));
+
+	assert((pairRange("aaaba", "").second) == (pairRange("abcde", "").first));
+	assert((pairRange("abcde", "").second) == (pairRange("ab", "cdf").first));
+
+	return 0;
+})();
 
 
 } //namespace
