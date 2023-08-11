@@ -676,40 +676,17 @@ class ScriptRefCompound
 {
 
 public:
-	template<typename Callback>
-	constexpr void interateMutate(Callback&& f)
-	{
-		for (auto& p : parts)
-		{
-			if constexpr (std::is_invocable_r_v<bool, Callback, ScriptRef&>)
-			{
-				if (!f(p))
-				{
-					return;
-				}
-			}
-			else
-			{
-				f(p);
-			}
-		}
-	}
-
-	template<typename Callback>
-	constexpr void interate(Callback&& f) const
-	{
-		for (const auto& p : parts)
-		{
-			if (!p)
-			{
-				return;
-			}
-
-			f(p);
-		}
-	}
 
 	std::array<ScriptRef, 4> parts;
+
+	/// Default constructor.
+	constexpr ScriptRefCompound() = default;
+
+	/// Constructor from one ref.
+	constexpr ScriptRefCompound(ScriptRef r) : parts{ r }
+	{
+
+	}
 
 
 	constexpr bool haveParts() const
@@ -743,14 +720,51 @@ public:
 	{
 		return !!parts[0];
 	}
+
+	constexpr explicit operator ScriptRange<ScriptRef>() const
+	{
+		return { parts.begin(), parts.end() };
+	}
+
+	template<typename Callback>
+	constexpr void interateMutate(Callback&& f)
+	{
+		for (auto& p : parts)
+		{
+			if constexpr (std::is_invocable_r_v<bool, Callback, ScriptRef&>)
+			{
+				if (!f(p))
+				{
+					return;
+				}
+			}
+			else
+			{
+				f(p);
+			}
+		}
+	}
+
+	template<typename Callback>
+	constexpr void interate(Callback&& f) const
+	{
+		for (const auto& p : parts)
+		{
+			if (!p)
+			{
+				return;
+			}
+
+			f(p);
+		}
+	}
 };
 
 class ScriptRefOperation
 {
 public:
 	ScriptRange<ScriptProcData> procList;
-	ScriptRef procNamePrefix;
-	ScriptRef procName;
+	ScriptRefCompound procName;
 
 	ScriptRefData argRef;
 	ScriptRef argName;
@@ -760,7 +774,7 @@ public:
 	{
 		return
 			(procName && procList) && // have function name and have related overload set
-			(!argName || (argRef && procNamePrefix)) // have optional argument embedded in original operation name
+			(!argName || (argRef && procName.haveParts())) // have optional argument embedded in original operation name
 		;
 	}
 
@@ -772,16 +786,6 @@ public:
 	bool haveArg() const
 	{
 		return !!argName;
-	}
-
-	std::string toStringProc() const
-	{
-		return procNamePrefix.toString() + procName.toString();
-	}
-
-	std::string toStringArg() const
-	{
-		return argName.toString();
 	}
 };
 
@@ -1274,9 +1278,8 @@ ScriptRefOperation findOperationAndArg(const ParserWriter& ph, ScriptRef op)
 			return result;
 		}
 
-		result.procNamePrefix = name;
-		result.procName = op.substr(first_dot);
-		result.procList = ph.parser.getProc(result.procNamePrefix, result.procName);
+		result.procName.parts = { name, op.substr(first_dot) };
+		result.procList = ph.parser.getProc(ScriptRange<ScriptRef>{ result.procName });
 	}
 
 	return result;
@@ -1293,18 +1296,18 @@ void logErrorOnOperationArg(const ScriptRefOperation& op)
 	{
 		if (op.argRef)
 		{
-			if (op.procNamePrefix)
+			if (op.procName.haveParts())
 			{
-				Log(LOG_ERROR) << "Unknown operation name '" << op.toStringProc() << "' for variable '" << op.toStringArg() << "'";
+				Log(LOG_ERROR) << "Unknown operation name '" << op.procName.toString() << "' for variable '" << op.argName.toString() << "'";
 			}
 			else
 			{
-				Log(LOG_ERROR) << "Unsupported type for variable '" << op.toStringArg() << "'";
+				Log(LOG_ERROR) << "Unsupported type for variable '" << op.argName.toString() << "'";
 			}
 		}
 		else
 		{
-			Log(LOG_ERROR) << "Unknown variable name '" << op.toStringArg() << "'";
+			Log(LOG_ERROR) << "Unknown variable name '" << op.argName.toString() << "'";
 		}
 	}
 }
@@ -2211,36 +2214,51 @@ R* boundSortHelper(R* begin, R* end, ScriptRef prefix, ScriptRef postfix = {})
 }
 
 /**
- * Helper function finding data by name (that can be merge from two parts).
+ * Helper function finding data by name (that can be merge from multiple parts).
  * @param begin begin of sorted range.
  * @param end end of sorted range.
- * @param prefix First part of name.
- * @param postfix Second part of name.
+ * @param name Name split to parts.
  * @return Found data or null.
  */
-template<typename R>
-R* findSortHelper(R* begin, R* end, ScriptRef prefix, ScriptRef postfix = {})
+template<typename R, typename... Args>
+R* findSortHelper(R* begin, R* end, Args... args)
 {
-	auto f = boundSortHelper<false>(begin, end, prefix, postfix);
+	auto f = boundSortHelper<false>(begin, end, args...);
 	if (f != end)
 	{
-		if (postfix)
+		// check upper bound, if is different than lower, its mean we have hit
+		if (f != boundSortHelper<true>(f, f + 1, args...))
 		{
-			const auto size = prefix.size();
-			if (f->name.substr(0, size) == prefix && f->name.substr(size) == postfix)
-			{
-				return &*f;
-			}
-		}
-		else
-		{
-			if (f->name == prefix)
-			{
-				return &*f;
-			}
+			return &*f;
 		}
 	}
 	return nullptr;
+}
+
+/**
+ * Helper function finding data by name (that can be merge from multiple parts).
+ * @param begin begin of sorted range.
+ * @param end end of sorted range.
+ * @param name Name split to parts.
+ * @return Found data or null.
+ */
+template<typename R>
+const R* findSortHelper(const std::vector<R>& vec, ScriptRange<ScriptRef> name)
+{
+	return findSortHelper(vec.data(), vec.data() + vec.size(), name);
+}
+
+/**
+ * Helper function finding data by name (that can be merge from multiple parts).
+ * @param begin begin of sorted range.
+ * @param end end of sorted range.
+ * @param name Name split to parts.
+ * @return Found data or null.
+ */
+template<typename R>
+R* findSortHelper(std::vector<R>& vec, ScriptRange<ScriptRef> name)
+{
+	return findSortHelper(vec.data(), vec.data() + vec.size(), name);
 }
 
 /**
@@ -3024,40 +3042,37 @@ const ScriptTypeData* ScriptParserBase::getType(ArgEnum type) const
 
 /**
  * Get type data with name equal prefix + postfix.
- * @param prefix Beginning of name.
- * @param postfix End of name.
+ * @param name Name split in parts.
  * @return Pointer to data or null if not find.
  */
-const ScriptTypeData* ScriptParserBase::getType(ScriptRef prefix, ScriptRef postfix) const
+const ScriptTypeData* ScriptParserBase::getType(ScriptRange<ScriptRef> name) const
 {
-	return findSortHelper(_typeList, prefix, postfix);
+	return findSortHelper(_typeList, name);
 }
 
 /**
  * Get function data with name equal prefix + postfix.
- * @param prefix Beginning of name.
- * @param postfix End of name.
+ * @param name Name split in parts.
  * @return Pointer to data or null if not find.
  */
-ScriptRange<ScriptProcData> ScriptParserBase::getProc(ScriptRef prefix, ScriptRef postfix) const
+ScriptRange<ScriptProcData> ScriptParserBase::getProc(ScriptRange<ScriptRef> name) const
 {
 	auto lower = _procList.data();
 	auto upper = _procList.data() + _procList.size();
-	lower = boundSortHelper<false>(lower, upper, prefix, postfix);
-	upper = boundSortHelper<true>(lower, upper, prefix, postfix);
+	lower = boundSortHelper<false>(lower, upper, name);
+	upper = boundSortHelper<true>(lower, upper, name);
 
 	return { lower, upper };
 }
 
 /**
  * Get arguments data with name equal prefix + postfix.
- * @param prefix Beginning of name.
- * @param postfix End of name.
+ * @param name Name split in parts.
  * @return Pointer to data or null if not find.
  */
-const ScriptRefData* ScriptParserBase::getRef(ScriptRef prefix, ScriptRef postfix) const
+const ScriptRefData* ScriptParserBase::getRef(ScriptRange<ScriptRef> name) const
 {
-	return findSortHelper(_refList, prefix, postfix);
+	return findSortHelper(_refList, name);
 }
 
 /**

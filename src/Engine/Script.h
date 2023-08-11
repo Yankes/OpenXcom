@@ -1364,11 +1364,30 @@ public:
 	/// Get type data.
 	const ScriptTypeData* getType(ArgEnum type) const;
 	/// Get type data.
-	const ScriptTypeData* getType(ScriptRef name, ScriptRef postfix = {}) const;
+	const ScriptTypeData* getType(ScriptRef name) const
+	{
+		ScriptRef r[] = { name };
+		return getType({ std::begin(r), std::end(r)});
+	}
 	/// Get function data.
-	ScriptRange<ScriptProcData> getProc(ScriptRef name, ScriptRef postfix = {}) const;
+	ScriptRange<ScriptProcData> getProc(ScriptRef name) const
+	{
+		ScriptRef r[] = { name };
+		return getProc({ std::begin(r), std::end(r)});
+	}
 	/// Get arguments data.
-	const ScriptRefData* getRef(ScriptRef name, ScriptRef postfix = {}) const;
+	const ScriptRefData* getRef(ScriptRef name) const
+	{
+		ScriptRef r[] = { name };
+		return getRef({ std::begin(r), std::end(r)});
+	}
+	/// Get type data.
+	const ScriptTypeData* getType(ScriptRange<ScriptRef> name) const;
+	/// Get function data.
+	ScriptRange<ScriptProcData> getProc(ScriptRange<ScriptRef> name) const;
+	/// Get arguments data.
+	const ScriptRefData* getRef(ScriptRange<ScriptRef> name) const;
+
 	/// Get script shared data.
 	ScriptGlobal* getGlobal() { return _shared; }
 	/// Get script shared data.
