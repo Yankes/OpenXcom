@@ -708,6 +708,13 @@ public:
 		return s;
 	}
 
+	constexpr ScriptRef last() const
+	{
+		ScriptRef l;
+		interate([&](const ScriptRef& r){ l = r; });
+		return l;
+	}
+
 	std::string toString() const
 	{
 		std::string s;
@@ -1280,6 +1287,21 @@ ScriptRefOperation findOperationAndArg(const ParserWriter& ph, ScriptRef op)
 
 		result.procName.parts = { name, op.substr(first_dot) };
 		result.procList = ph.parser.getProc(ScriptRange<ScriptRef>{ result.procName });
+	}
+
+	return result;
+}
+
+ScriptRefOperation update(const ParserWriter& ph, ScriptRefOperation op, ScriptRef tail)
+{
+	ScriptRefOperation result = op;
+
+	if (result.procName.size())
+	{
+		if (result.procName.last().headFromEnd(tail.size()) == tail)
+		{
+
+		}
 	}
 
 	return result;
