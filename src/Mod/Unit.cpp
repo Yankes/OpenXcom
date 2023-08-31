@@ -168,9 +168,9 @@ void Unit::afterLoad(const Mod* mod)
 		if (_capturable && _armor->getCorpseBattlescape().front()->isRecoverable() && _spawnUnit == nullptr)
 		{
 			mod->checkForSoftError(
-				_liveAlien == nullptr,
+				_liveAlien == nullptr && !isRecoverableAsCivilian(),
 				_type,
-				"This unit can be recovered (in theory), but there is no corresponding item to recover.",
+				"This unit can be recovered (in theory), but there is no corresponding 'liveAlien:' or 'civilianRecoveryType:' to recover.",
 				LOG_INFO
 			);
 		}
