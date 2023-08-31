@@ -2512,18 +2512,18 @@ void DebriefingState::recoverItems(std::vector<BattleItem*> *from, Base *base)
 */
 void DebriefingState::recoverCivilian(BattleUnit *from, Base *base, Craft* craft)
 {
-	std::string type = from->getUnitRules()->getCivilianRecoveryType();
-	if (type.empty())
+	const Unit* rule = from->getUnitRules();
+	if (rule->isRecoverableAsCivilian() == false)
 	{
 		return;
 	}
-	if (type == "STR_SCIENTIST")
+	if (rule->isRecoverableAsScientist())
 	{
 		Transfer *t = new Transfer(24);
 		t->setScientists(1);
 		base->getTransfers()->push_back(t);
 	}
-	else if (type == "STR_ENGINEER")
+	else if (rule->isRecoverableAsEngineer())
 	{
 		Transfer *t = new Transfer(24);
 		t->setEngineers(1);
@@ -2531,7 +2531,7 @@ void DebriefingState::recoverCivilian(BattleUnit *from, Base *base, Craft* craft
 	}
 	else
 	{
-		RuleSoldier *ruleSoldier = _game->getMod()->getSoldier(type);
+		const RuleSoldier *ruleSoldier = rule->getCivilianRecoverySoliderType();
 		if (ruleSoldier != 0)
 		{
 			Transfer *t = new Transfer(24);
@@ -2556,7 +2556,7 @@ void DebriefingState::recoverCivilian(BattleUnit *from, Base *base, Craft* craft
 		}
 		else
 		{
-			RuleItem *ruleItem = _game->getMod()->getItem(type);
+			const RuleItem *ruleItem = rule->getCivilianRecoveryItemType();
 			if (ruleItem != 0)
 			{
 				if (!ruleItem->isAlien())
@@ -2565,7 +2565,7 @@ void DebriefingState::recoverCivilian(BattleUnit *from, Base *base, Craft* craft
 				}
 				else
 				{
-					RuleItem *ruleLiveAlienItem = ruleItem;
+					const RuleItem *ruleLiveAlienItem = ruleItem;
 					bool killPrisonersAutomatically = base->getAvailableContainment(ruleLiveAlienItem->getPrisonType()) == 0;
 					if (killPrisonersAutomatically)
 					{

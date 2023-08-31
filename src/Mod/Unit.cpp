@@ -61,7 +61,7 @@ void Unit::load(const YAML::Node &node, Mod *mod)
 		load(parent, mod);
 	}
 
-	mod->loadNameNull(_type, _civilianRecoveryType, node["civilianRecoveryType"]);
+	mod->loadNameNull(_type, _civilianRecoveryTypeName, node["civilianRecoveryType"]);
 	mod->loadNameNull(_type, _spawnedPersonName, node["spawnedPersonName"]);
 	mod->loadNameNull(_type, _liveAlienName, node["liveAlien"]);
 	if (node["spawnedSoldier"])
@@ -143,6 +143,23 @@ void Unit::afterLoad(const Mod* mod)
 	else
 	{
 		mod->linkRule(_liveAlien, _liveAlienName);
+	}
+
+	if (Mod::isEmptyRuleName(_civilianRecoveryTypeName) == false)
+	{
+		if (!isRecoverableAsEngineer() && !isRecoverableAsScientist())
+		{
+			_civilianRecoverySoldierType = mod->getSoldier(_civilianRecoveryTypeName, false);
+			if (_civilianRecoverySoldierType)
+			{
+				_civilianRecoveryTypeName = "";
+			}
+			else
+			{
+				mod->linkRule(_civilianRecoveryItemType, _civilianRecoveryTypeName);
+			}
+		}
+		assert(isRecoverableAsCivilian() && "Check missing some cases");
 	}
 
 	mod->checkForSoftError(_armor == nullptr, _type, "Unit is missing armor", LOG_ERROR);
