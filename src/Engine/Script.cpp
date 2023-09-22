@@ -1276,7 +1276,21 @@ ScriptRefOperation findOperationAndArg(const ParserWriter& ph, ScriptRef op)
 		result.argRef = ph.getReferece(result.argName);
 		if (!result.argRef)
 		{
-			return result;
+			auto temp = op.tail(first_dot).find('.');
+			if (first_dot == std::string::npos)
+			{
+				return result;
+			}
+			temp += first_dot;
+			result.argName = op.substr(0, temp);
+			result.argRef = ph.getReferece(result.argName);
+			if (!result.argRef)
+			{
+				// restore initial name for error propose.
+				result.argName = op.substr(0, first_dot);
+				return result;
+			}
+			first_dot = temp;
 		}
 
 		auto name = ph.parser.getTypeName(result.argRef.type);
@@ -4202,6 +4216,8 @@ static auto dummyTestScriptFunctionParser = ([]
 		f
 	);
 	help.addReg<DummyClass*&>(ScriptRef{"foo"});
+	help.addReg<DummyClass*&>(ScriptRef{"bar.a"});
+	help.addReg<DummyClass*&>(ScriptRef{"bar.b"});
 
 	{
 		auto r = help.getReferece(ScriptRef{"foo"});
@@ -4235,6 +4251,14 @@ static auto dummyTestScriptFunctionParser = ([]
 		assert(r.haveArg() == true && "func 'foo.test2'");
 		assert(r.argName == ScriptRef{"foo"} && "func 'foo.test2'");
 		assert(r.haveProc() == true && "func 'foo.test2'");
+	}
+
+	{
+		auto r = findOperationAndArg(help, ScriptRef{"bar.a.test2"});
+		assert(!!r && "func 'bar.a.test2'");
+		assert(r.haveArg() == true && "func 'bar.a.test2'");
+		assert(r.argName == ScriptRef{"bar.a"} && "func 'bar.a.test2'");
+		assert(r.haveProc() == true && "func 'bar.a.test2'");
 	}
 
 	return 0;
