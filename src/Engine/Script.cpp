@@ -41,6 +41,27 @@ namespace OpenXcom
 {
 
 ////////////////////////////////////////////////////////////
+//						const definition
+////////////////////////////////////////////////////////////
+
+constexpr ScriptRef KnowNamesPrefix[] = {
+	ScriptRef{ "ModList" },
+	ScriptRef{ "Tag" },
+};
+
+constexpr bool isKnowNamePrefix(ScriptRef name)
+{
+	for (ScriptRef r : KnowNamesPrefix)
+	{
+		if (r == name)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+////////////////////////////////////////////////////////////
 //						arg definition
 ////////////////////////////////////////////////////////////
 #define MACRO_QUOTE(...) __VA_ARGS__
@@ -1272,25 +1293,31 @@ ScriptRefOperation findOperationAndArg(const ParserWriter& ph, ScriptRef op)
 			return result;
 		}
 
-		result.argName = op.substr(0, first_dot);
+		result.argName = op.head(first_dot);
 		result.argRef = ph.getReferece(result.argName);
 		if (!result.argRef)
 		{
-			auto temp = op.tail(first_dot).find('.');
-			if (first_dot == std::string::npos)
+			auto origArgName = result.argName;
+
+			++first_dot; //skip '.'
+			auto second_dot = op.tail(first_dot).find('.');
+			if (second_dot == std::string::npos)
 			{
 				return result;
 			}
-			temp += first_dot;
-			result.argName = op.substr(0, temp);
+			second_dot += first_dot;
+			result.argName = op.head(second_dot);
 			result.argRef = ph.getReferece(result.argName);
 			if (!result.argRef)
 			{
-				// restore initial name for error propose.
-				result.argName = op.substr(0, first_dot);
+				// restore initial name for error propose, but only if is unknown. Other wise typo should be in next part
+				if (isKnowNamePrefix(origArgName) == false)
+				{
+					result.argName = origArgName;
+				}
 				return result;
 			}
-			first_dot = temp;
+			first_dot = second_dot;
 		}
 
 		auto name = ph.parser.getTypeName(result.argRef.type);
@@ -1299,7 +1326,7 @@ ScriptRefOperation findOperationAndArg(const ParserWriter& ph, ScriptRef op)
 			return result;
 		}
 
-		result.procName.parts = { name, op.substr(first_dot) };
+		result.procName.parts = { name, op.tail(first_dot) };
 		result.procList = ph.parser.getProc(ScriptRange<ScriptRef>{ result.procName });
 	}
 
@@ -4218,6 +4245,7 @@ static auto dummyTestScriptFunctionParser = ([]
 	help.addReg<DummyClass*&>(ScriptRef{"foo"});
 	help.addReg<DummyClass*&>(ScriptRef{"bar.a"});
 	help.addReg<DummyClass*&>(ScriptRef{"bar.b"});
+	help.addReg<DummyClass*&>(ScriptRef{"Tag.foo"});
 
 	{
 		auto r = help.getReferece(ScriptRef{"foo"});
@@ -4259,6 +4287,28 @@ static auto dummyTestScriptFunctionParser = ([]
 		assert(r.haveArg() == true && "func 'bar.a.test2'");
 		assert(r.argName == ScriptRef{"bar.a"} && "func 'bar.a.test2'");
 		assert(r.haveProc() == true && "func 'bar.a.test2'");
+	}
+
+	{
+		auto r = findOperationAndArg(help, ScriptRef{"Tag.foo.test2"});
+		assert(!!r && "func 'Tag.foo.test2'");
+		assert(r.haveArg() == true && "func 'Tag.foo.test2'");
+		assert(r.argName == ScriptRef{"Tag.foo"} && "func 'Tag.foo.test2'");
+		assert(r.haveProc() == true && "func 'Tag.foo.test2'");
+	}
+
+	{
+		auto r = findOperationAndArg(help, ScriptRef{"bar.a2.test2"});
+		assert(!r && "func 'bar.a2.test2'");
+		assert(r.haveArg() == true && "func 'bar.a2.test2'");
+		assert(r.argName == ScriptRef{"bar"} && "func 'bar.a2.test2'");
+	}
+
+	{
+		auto r = findOperationAndArg(help, ScriptRef{"Tag.foo2.test2"});
+		assert(!r && "func 'Tag.foo.test2'");
+		assert(r.haveArg() == true && "func 'Tag.foo2.test2'");
+		assert(r.argName == ScriptRef{"Tag.foo2"} && "func 'Tag.foo2.test2'");
 	}
 
 	return 0;
