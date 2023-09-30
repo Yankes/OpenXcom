@@ -1766,6 +1766,8 @@ public:
 	virtual void initParserGlobals(ScriptParserBase* parser) { }
 	/// Prepare for loading data.
 	virtual void beginLoad();
+	/// Prepare for loading file.
+	virtual void fileLoad(const std::string& path);
 	/// Finishing loading data.
 	virtual void endLoad();
 

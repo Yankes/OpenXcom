@@ -2418,6 +2418,7 @@ void Mod::loadMod(const std::vector<FileMap::FileRecord> &rulesetFiles, ModScrip
 		Log(LOG_VERBOSE) << "- " << filerec.fullpath;
 		try
 		{
+//			parsers->getShared()->addConst()
 			loadFile(filerec, parsers);
 		}
 		catch (Exception &e)
