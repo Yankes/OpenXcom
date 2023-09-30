@@ -4306,6 +4306,14 @@ void ScriptGlobal::beginLoad()
 }
 
 /**
+ * Prepare for loading file from mod.
+ */
+void ScriptGlobal::fileLoad(const std::string& path)
+{
+
+}
+
+/**
  * Finishing loading data.
  */
 void ScriptGlobal::endLoad()
