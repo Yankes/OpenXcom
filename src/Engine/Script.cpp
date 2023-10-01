@@ -710,6 +710,49 @@ public:
 	}
 
 
+	constexpr bool tryPopBack()
+	{
+		ScriptRef* prev = nullptr;
+		interateMutate(
+			[&](ScriptRef& r)
+			{
+				if (r)
+				{
+					prev = &r;
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+		);
+		if (prev) *prev = {};
+		return prev;
+	}
+
+	constexpr bool tryPushBack(ScriptRef n)
+	{
+		ScriptRef* prev = nullptr;
+		interateMutate(
+			[&](ScriptRef& r)
+			{
+				if (r)
+				{
+					return true;
+				}
+				else
+				{
+					prev = &r;
+					return false;
+				}
+			}
+		);
+		if (prev) *prev = n;
+		return prev;
+	}
+
+
 	constexpr bool haveParts() const
 	{
 		return !!parts[1];
@@ -4373,6 +4416,36 @@ static auto dummyTestScriptStringRef = ([]
 	return 0;
 })();
 
+
+[[maybe_unused]]
+static auto dummyTestScriptRefCompound = ([]
+{
+	ScriptRefCompound t;
+	assert(t.toString() == "");
+	assert(t.tryPushBack(ScriptRef{"f1"}));
+	assert(t.toString() == "f1");
+	assert(t.tryPushBack(ScriptRef{"f2"}));
+	assert(t.toString() == "f1f2");
+	assert(t.tryPushBack(ScriptRef{"f3"}));
+	assert(t.toString() == "f1f2f3");
+	assert(t.tryPushBack(ScriptRef{"f4"}));
+	assert(t.toString() == "f1f2f3f4");
+	assert(!t.tryPushBack(ScriptRef{"f5"}));
+	assert(t.toString() == "f1f2f3f4");
+	assert(t.tryPopBack());
+	assert(t.toString() == "f1f2f3");
+	assert(t.tryPopBack());
+	assert(t.toString() == "f1f2");
+	assert(t.tryPopBack());
+	assert(t.toString() == "f1");
+	assert(t.tryPopBack());
+	assert(t.toString() == "");
+	assert(!t.tryPopBack());
+	assert(t.toString() == "");
+	assert(t.tryPushBack(ScriptRef{"f6"}));
+	assert(t.toString() == "f6");
+	return 0;
+})();
 
 
 static auto dummyTestScriptLowerBound = ([]
