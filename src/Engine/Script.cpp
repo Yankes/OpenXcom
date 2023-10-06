@@ -752,6 +752,16 @@ public:
 		return prev;
 	}
 
+	constexpr void clear()
+	{
+		interateMutate(
+			[&](ScriptRef& r)
+			{
+				r = {};
+			}
+		);
+	}
+
 
 	constexpr bool haveParts() const
 	{
@@ -787,15 +797,17 @@ public:
 		return s;
 	}
 
+
 	constexpr explicit operator bool() const
 	{
 		return !!parts[0];
 	}
 
-	constexpr explicit operator ScriptRange<ScriptRef>() const
+	constexpr operator ScriptRange<ScriptRef>() const
 	{
 		return { parts.begin(), parts.end() };
 	}
+
 
 	template<typename Callback>
 	constexpr void interateMutate(Callback&& f)
@@ -1370,25 +1382,40 @@ ScriptRefOperation findOperationAndArg(const ParserWriter& ph, ScriptRef op)
 		}
 
 		result.procName.parts = { name, op.tail(first_dot) };
-		result.procList = ph.parser.getProc(ScriptRange<ScriptRef>{ result.procName });
+		result.procList = ph.parser.getProc(result.procName);
 	}
 
 	return result;
 }
 
-ScriptRefOperation update(const ParserWriter& ph, ScriptRefOperation op, ScriptRef tail)
+ScriptRefOperation replaceOperation(const ParserWriter& ph, const ScriptRefOperation& op, ScriptRef from, ScriptRef to)
 {
 	ScriptRefOperation result = op;
 
+	bool correct = false;
 	if (result.procName.size())
 	{
-		if (result.procName.last().headFromEnd(tail.size()) == tail)
+		auto last = result.procName.last();
+		auto lastHead = last.headFromEnd(from.size());
+		auto lastTail = last.tailFromEnd(from.size());
+		if (lastHead == from)
 		{
-
+			correct = true;
+			correct &= result.procName.tryPopBack();
+			correct &= result.procName.tryPushBack(lastTail);
+			correct &= result.procName.tryPushBack(to);
+			correct &= bool(result.procList = ph.parser.getProc(result.procName));
 		}
 	}
 
-	return result;
+	if (correct)
+	{
+		return result;
+	}
+	else
+	{
+		return {};
+	}
 }
 
 void logErrorOnOperationArg(const ScriptRefOperation& op)
@@ -1766,9 +1793,9 @@ bool parseBegin(const ScriptProcData& spd, ParserWriter& ph, const ScriptRefData
  */
 bool parseLoop(const ScriptProcData& spd, ParserWriter& ph, const ScriptRefData* begin, const ScriptRefData* end)
 {
-	if (std::distance(begin, end) != 3)
+	if (std::distance(begin, end) < 3)
 	{
-		Log(LOG_ERROR) << "Unexpected symbols after 'loop'";
+		Log(LOG_ERROR) << "Missing symbols after 'loop'";
 		return false;
 	}
 	if (begin[0].name != ScriptRef{ "var" })
@@ -1780,40 +1807,51 @@ bool parseLoop(const ScriptProcData& spd, ParserWriter& ph, const ScriptRefData*
 	// each operation can fail, we can't prevent
 	auto correct = true;
 
-	auto& loop = ph.pushScopeBlock(BlockLoop);
-	loop.nextLabel = ph.addLabel();
-	loop.finalLabel = ph.addLabel();
-
-	auto limit = ph.addReg({}, ArgSpecAdd(ArgInt, ArgSpecVar));
-	auto curr = ph.addReg({}, ArgSpecAdd(ArgInt, ArgSpecVar));
-	auto var = ph.addReg(begin[1].name, ArgSpecAdd(ArgInt, ArgSpecVar));
-
-	correct &= !!limit;
-	correct &= !!curr;
-	correct &= !!var;
-
-	correct &= parseVariableImpl(ph, limit, begin[2]);
-	correct &= parseVariableImpl(ph, curr);
-
-	correct &= ph.setLabel(loop.nextLabel, ph.getCurrPos());
-
-	ScriptRefData breakCond[] =
+	// we support simple `loop var x 100;` or complex like `loop var x obj.getInv.list "BIG_GUN";`
+	const auto functionPostfix = ScriptRef{ ".list" };
+	const auto functionName = begin[2].name;
+	if (functionName.headFromEnd(functionPostfix.size()) == functionPostfix && !isKnowNamePrefix(functionName.tailFromEnd(functionPostfix.size())))
 	{
-		ScriptRefData { ScriptRef{ "lt" }, ArgInvalid },
-		curr,
-		limit,
-	};
-	correct &= parseFullConditionImpl(ph, loop.finalLabel, std::begin(breakCond), std::end(breakCond));
+		// now we known that parameter look like `obj.foo.list`
+		auto potentialOperation = findOperationAndArg(ph, functionName);
 
-	correct &= parseVariableImpl(ph, var, curr);
-
-	ScriptRefData addArgs[] =
+	}
+	else
 	{
-		curr,
-		{ {}, ArgInt, 1 },
-	};
-	correct &= parseOverloadProc(ph, ph.parser.getProc(ScriptRef{ "add" }), std::begin(addArgs), std::end(addArgs));
+		auto& loop = ph.pushScopeBlock(BlockLoop);
+		loop.nextLabel = ph.addLabel();
+		loop.finalLabel = ph.addLabel();
 
+		auto limit = ph.addReg({}, ArgSpecAdd(ArgInt, ArgSpecVar));
+		auto curr = ph.addReg({}, ArgSpecAdd(ArgInt, ArgSpecVar));
+		auto var = ph.addReg(begin[1].name, ArgSpecAdd(ArgInt, ArgSpecVar));
+
+		correct &= !!limit;
+		correct &= !!curr;
+		correct &= !!var;
+
+		correct &= parseVariableImpl(ph, limit, begin[2]);
+		correct &= parseVariableImpl(ph, curr);
+
+		correct &= ph.setLabel(loop.nextLabel, ph.getCurrPos());
+
+		ScriptRefData breakCond[] =
+		{
+			ScriptRefData { ScriptRef{ "lt" }, ArgInvalid },
+			curr,
+			limit,
+		};
+		correct &= parseFullConditionImpl(ph, loop.finalLabel, std::begin(breakCond), std::end(breakCond));
+
+		correct &= parseVariableImpl(ph, var, curr);
+
+		ScriptRefData addArgs[] =
+		{
+			curr,
+			{ {}, ArgInt, 1 },
+		};
+		correct &= parseOverloadProc(ph, ph.parser.getProc(ScriptRef{ "add" }), std::begin(addArgs), std::end(addArgs));
+	}
 
 	if (correct)
 	{
@@ -4138,6 +4176,7 @@ void ScriptGlobal::load(const YAML::Node& node)
 namespace
 {
 
+
 struct Func_test_a
 {
 	[[gnu::always_inline]]
@@ -4168,6 +4207,7 @@ struct Func_test_c
 	}
 };
 
+[[maybe_unused]]
 static auto dummyTestScriptOverload = ([]
 {
 	ScriptProcData data_a {	};
@@ -4275,6 +4315,7 @@ void dummyFunctionClass(const DummyClass* c)
 
 }
 
+[[maybe_unused]]
 static auto dummyTestScriptFunctionParser = ([]
 {
 	ScriptGlobal g;
@@ -4285,6 +4326,7 @@ static auto dummyTestScriptFunctionParser = ([]
 	Bind<DummyClass> bind{ &f };
 	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionInt)>>("test1");
 	bind.add<&dummyFunctionClass>("test2");
+	bind.add<&dummyFunctionClass>("test3");
 
 
 	ScriptContainerBase tempScript;
@@ -4298,10 +4340,43 @@ static auto dummyTestScriptFunctionParser = ([]
 	help.addReg<DummyClass*&>(ScriptRef{"bar.b"});
 	help.addReg<DummyClass*&>(ScriptRef{"Tag.foo"});
 
+
 	{
 		auto r = help.getReferece(ScriptRef{"foo"});
 		assert(!!r && "reg 'foo'");
 	}
+
+	{
+		auto r = help.getReferece(ScriptRef{"bar.a"});
+		assert(!!r && "reg 'bar.a'");
+	}
+
+	{
+		auto r = help.getReferece(ScriptRef{"bar.b"});
+		assert(!!r && "reg 'bar.b'");
+	}
+
+	{
+		auto r = help.getReferece(ScriptRef{"Tag.foo"});
+		assert(!!r && "reg 'Tag.foo'");
+	}
+
+
+
+	{
+		auto getProcFromParser = [&](std::initializer_list<ScriptRef> l)
+		{
+			return !!help.parser.getProc(ScriptRange{ l.begin(), l.end() });
+		};
+		assert(getProcFromParser({ ScriptRef{"DummyClass.test2"} }));
+		assert(getProcFromParser({ ScriptRef{"DummyClass.test3"} }));
+		assert(getProcFromParser({ ScriptRef{"DummyClass"}, ScriptRef{".test2"} }));
+		assert(getProcFromParser({ ScriptRef{"DummyClass"}, ScriptRef{"."} , ScriptRef{"test2"} }));
+		assert(getProcFromParser({ ScriptRef{"DummyClass"}, ScriptRef{"."} , ScriptRef{"te"} , ScriptRef{"st2"} }));
+		assert(!getProcFromParser({ ScriptRef{"DummyClass.test1"} }));
+	}
+
+
 
 	{
 		auto r = findOperationAndArg(help, ScriptRef{"if"});
@@ -4362,10 +4437,32 @@ static auto dummyTestScriptFunctionParser = ([]
 		assert(r.argName == ScriptRef{"Tag.foo2"} && "func 'Tag.foo2.test2'");
 	}
 
+
+	{
+		auto r = findOperationAndArg(help, ScriptRef{"Tag.foo.test2"});
+		assert(!!r && "func 'Tag.foo.test2'");
+
+		{
+			auto u = replaceOperation(help, r, ScriptRef{"test2"}, ScriptRef{"test3"});
+			assert(!!u && "updated 'test2' to 'Tag.foo.test3'");
+		}
+
+		{
+			auto u = replaceOperation(help, r, ScriptRef{"2"}, ScriptRef{"3"});
+			assert(!!u && "updated '2' to 'Tag.foo.test1'");
+		}
+
+		{
+			auto u = replaceOperation(help, r, ScriptRef{"test3"}, ScriptRef{"test3"});
+			assert(!u && "updated 'test3' to 'Tag.foo.test3'");
+		}
+	}
+
 	return 0;
 })();
 
 
+[[maybe_unused]]
 static auto dummyTestScriptStringRef = ([]
 {
 	assert(ScriptRef{"foo"} == ScriptRef{"foo"}.substr(0));
@@ -4448,6 +4545,7 @@ static auto dummyTestScriptRefCompound = ([]
 })();
 
 
+[[maybe_unused]]
 static auto dummyTestScriptLowerBound = ([]
 {
 	std::vector<ScriptTypeData> test;
