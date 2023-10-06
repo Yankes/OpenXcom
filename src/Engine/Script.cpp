@@ -1402,7 +1402,10 @@ ScriptRefOperation replaceOperation(const ParserWriter& ph, const ScriptRefOpera
 		{
 			correct = true;
 			correct &= result.procName.tryPopBack();
-			correct &= result.procName.tryPushBack(lastTail);
+			if (lastTail)
+			{
+				correct &= result.procName.tryPushBack(lastTail);
+			}
 			correct &= result.procName.tryPushBack(to);
 			correct &= bool(result.procList = ph.parser.getProc(result.procName));
 		}
