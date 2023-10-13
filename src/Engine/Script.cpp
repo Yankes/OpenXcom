@@ -872,6 +872,76 @@ public:
 	}
 };
 
+class ScriptArgList
+{
+	size_t argsLength = 0;
+	ScriptRefData args[ScriptMaxArg] = { };
+
+public:
+	/// Default constructor.
+	ScriptArgList() = default;
+
+
+	/// Add one arg to list.
+	constexpr bool tryPushBack(const ScriptRefData& d)
+	{
+		if (argsLength < std::size(args))
+		{
+			args[argsLength++] = d;
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/// Add arg range to list.
+	constexpr bool tryPushBack(ScriptRange<ScriptRefData> l)
+	{
+		if (l.size() + argsLength <= std::size(args))
+		{
+			for (const auto& d : l)
+			{
+				args[argsLength++] = d;
+			}
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/// Add arg range to list.
+	constexpr bool tryPushBack(const ScriptRefData* b, const ScriptRefData* e)
+	{
+		return tryPushBack(ScriptRange<ScriptRefData>{b, e});
+	}
+
+
+
+	constexpr const size_t size() const
+	{
+		return argsLength;
+	}
+
+	constexpr const ScriptRefData* begin() const
+	{
+		return std::begin(args);
+	}
+
+	constexpr const ScriptRefData* end() const
+	{
+		return std::begin(args) + argsLength;
+	}
+
+	constexpr operator ScriptRange<ScriptRefData>() const
+	{
+		return { begin(), end() };
+	}
+};
+
 
 /**
  * Function extracting token from range
@@ -3334,12 +3404,6 @@ bool ScriptParserBase::parseBase(ScriptContainerBase& destScript, const std::str
 					++line_end;
 			}
 
-			if (args[ScriptMaxArg - 1].getType() != TokenNone)
-			{
-				Log(LOG_ERROR) << err << "too many arguments in line: '" << std::string(line_begin, line_end) << "'";
-				return false;
-			}
-
 			for (size_t i = 0; i < ScriptMaxArg; ++i)
 			{
 				if (args[i].getType() == TokenInvalid)
@@ -3354,7 +3418,6 @@ bool ScriptParserBase::parseBase(ScriptContainerBase& destScript, const std::str
 		}
 
 		ScriptRef line = ScriptRef{ line_begin, range.begin() };
-		ScriptRefData argData[ScriptMaxArg] = { };
 
 		// test validity of operation positions
 		auto isReturn = (op == ScriptRef{ "return" });
@@ -3384,11 +3447,19 @@ bool ScriptParserBase::parseBase(ScriptContainerBase& destScript, const std::str
 
 
 		// matching args from operation definition with args available in string
-		size_t i = 0;
-		while (i < ScriptMaxArg && args[i].getType() != TokenNone)
+		ScriptArgList argData = { };
+		for (const SelectedToken& t : args)
 		{
-			argData[i] = args[i].parse(help);
-			++i;
+			if (t.getType() == TokenNone)
+			{
+				break;
+			}
+
+			if (!argData.tryPushBack(t.parse(help)))
+			{
+				Log(LOG_ERROR) << err << "too many arguments in line: '" << line.toString() << "'";
+				return false;
+			}
 		}
 
 		if (label && !help.setLabel(label.parse(help), help.getCurrPos()))
@@ -3398,7 +3469,7 @@ bool ScriptParserBase::parseBase(ScriptContainerBase& destScript, const std::str
 		}
 
 		// create normal proc call
-		if (parseOverloadProc(help, op_curr.procList, argData, argData+i) == false)
+		if (parseOverloadProc(help, op_curr.procList, std::begin(argData), std::end(argData)) == false)
 		{
 			Log(LOG_ERROR) << err << "invalid operation in line: '" << line.toString() << "'";
 			return false;
@@ -4652,6 +4723,34 @@ static auto dummyTestScriptRefCompound = ([]
 	assert(t.tryPushBack(ScriptRef{"f6"}));
 	assert(t.toString() == "f6");
 	return 0;
+})();
+
+
+[[maybe_unused]]
+static auto dummyTestScriptArgList = ([]
+{
+	ScriptArgList list1;
+	ScriptArgList list2;
+	ScriptArgList list3;
+	ScriptRefData arg_a = { ScriptRef{ "a" } };
+	ScriptRefData arg_b = { ScriptRef{ "b" } };
+
+	assert(list1.tryPushBack(arg_a));
+	assert(list1.tryPushBack(arg_b));
+	assert(list1.size() == 2);
+	assert(list2.tryPushBack(list1));
+	assert(list2.tryPushBack(list1));
+	assert(list2.size() == 4);
+	assert(list3.tryPushBack(list2));
+	assert(list3.tryPushBack(list2));
+	assert(list3.size() == 8);
+	assert(list3.tryPushBack(list3));
+	assert(list3.size() == 16);
+	assert(list3.tryPushBack(list3));
+	assert(list3.size() == 32);
+	assert(list3.tryPushBack(list3));
+	assert(list3.size() == 64);
+	assert(!list3.tryPushBack(arg_a));
 })();
 
 
