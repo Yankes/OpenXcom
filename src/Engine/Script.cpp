@@ -2936,7 +2936,7 @@ ScriptParserBase::ScriptParserBase(ScriptGlobal* shared, const std::string& name
 	addSortHelper(_typeList, { nullName, ArgNull, { } });
 	addSortHelper(_refList, { nullName, ArgNull });
 	addSortHelper(_refList, { phName, ArgInvalid });
-	addSortHelper(_refList, { seperatorName, ArgInvalid });
+	addSortHelper(_refList, { seperatorName, ArgSep });
 	addSortHelper(_refList, { varName, ArgInvalid });
 
 	_shared->initParserGlobals(this);
@@ -4471,6 +4471,104 @@ static auto dummyTestScriptFunctionParser = ([]
 	}
 
 	return 0;
+})();
+
+
+void dummyFunctionSeperator0(int& i, int& j, int& k)
+{
+	i = 0;
+}
+void dummyFunctionSeperator1(int& i, ScriptArgSeparator, int& j, int& k)
+{
+	i = 1;
+}
+void dummyFunctionSeperator2(int& i, int& j, ScriptArgSeparator, int& k)
+{
+	i = 2;
+}
+void dummyFunctionSeperator2(int& i, int& j, int& k, ScriptArgSeparator)
+{
+	i = 3;
+}
+
+[[maybe_unused]]
+static auto dummyTestScriptOverloadSeperator = ([]
+{
+	ScriptGlobal g;
+	ScriptParserTest f(&g);
+
+	Bind<DummyClass> bind{ &f };
+	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionSeperator0)>>("funcSep");
+	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionSeperator1)>>("funcSep");
+	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionSeperator2)>>("funcSep");
+	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionSeperator3)>>("funcSep");
+
+
+	ScriptContainerBase tempScript;
+	ParserWriter help(
+		0,
+		tempScript,
+		f
+	);
+	auto arg_x = help.addReg<int&>(ScriptRef{"x"});
+	auto arg_y = help.addReg<int&>(ScriptRef{"y"});
+	auto arg_z = help.addReg<int&>(ScriptRef{"z"});
+	auto arg_sep = help.getReferece("__");
+
+	assert(arg_x);
+	assert(arg_y);
+	assert(arg_z);
+	assert(arg_sep);
+
+	auto callFunc = [&](std::tuple<int, const ScriptProcData*> t, const ScriptRefData* begin, const ScriptRefData* end)
+	{
+		auto p = std::get<const ScriptProcData*>(t);
+		if (p == nullptr)
+		{
+			return -1;
+		}
+		assert(p->overloadArg.size() == 1);
+		auto func = p->parserGet(0);
+
+		Uint8 dummy[64] = { };
+		ScriptWorkerBase wb;
+		ProgPos p;
+
+		wb.ref<int>(arg_x.getValue<RegEnum>()) = -1;
+		func(wb, dummy, p);
+		return wb.ref<int>(arg_x.getValue<RegEnum>());
+	}
+
+	auto r = findOperationAndArg(help, ScriptRef{"funcSep"});
+	assert(!r && "func 'funcSep'");
+
+	{
+		ScriptRefData args[] = { arg_x, arg_y, arg_z };
+		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		assert(std::get<int>(o) && "args 'funcSep x y z'");
+		assert(callFunc(o, std::begin(args), std::end(args)) == 0);
+	}
+
+	{
+		ScriptRefData args[] = { arg_x, arg_sep, arg_y, arg_z };
+		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		assert(std::get<int>(o) && "args 'funcSep x __ y z'");
+		assert(callFunc(o, std::begin(args), std::end(args)) == 1);
+	}
+
+	{
+		ScriptRefData args[] = { arg_x, arg_y, arg_sep, arg_z };
+		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		assert(std::get<int>(o) && "args 'funcSep x y __ z'");
+		assert(callFunc(o, std::begin(args), std::end(args)) == 2);
+	}
+
+	{
+		ScriptRefData args[] = { arg_x, arg_y, arg_z, arg_sep };
+		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		assert(std::get<int>(o) && "args 'funcSep x y z __'");
+		assert(callFunc(o, std::begin(args), std::end(args)) == 3);
+	}
 })();
 
 

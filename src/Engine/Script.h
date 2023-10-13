@@ -142,6 +142,13 @@ inline ProgPos operator++(ProgPos& pos, int)
 	return old;
 }
 
+/**
+ * Dummy type used to separate function args groups.
+ */
+class ScriptArgSeparator
+{
+};
+
 ////////////////////////////////////////////////////////////
 //					enum definitions
 ////////////////////////////////////////////////////////////
@@ -187,8 +194,9 @@ enum ArgEnum : ArgEnumBase
 	ArgInt = ArgSpecSize * 2,
 	ArgLabel = ArgSpecSize * 3,
 	ArgText = ArgSpecSize * 4,
+	ArgSep = ArgSpecSize * 5,
 
-	ArgMax = ArgSpecSize * 5,
+	ArgMax = ArgSpecSize * 6,
 };
 
 /**
@@ -300,6 +308,10 @@ inline ArgEnum ArgRegisteType()
 	else if (std::is_same<T, ProgPos>::value)
 	{
 		return ArgLabel;
+	}
+	else if (std::is_same<T, ScriptArgSeparator>::value)
+	{
+		return ArgSep;
 	}
 	else
 	{
