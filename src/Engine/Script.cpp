@@ -1815,9 +1815,18 @@ bool parseLoop(const ScriptProcData& spd, ParserWriter& ph, const ScriptRefData*
 	const auto functionName = begin[2].name;
 	if (functionName.headFromEnd(functionPostfix.size()) == functionPostfix && !isKnowNamePrefix(functionName.tailFromEnd(functionPostfix.size())))
 	{
-		// now we known that parameter look like `obj.foo.list`
-		auto potentialOperation = findOperationAndArg(ph, functionName);
+		// now we known that parameter look like `obj.foo.list` but not like `Tag.list`
+		auto loopFunction = findOperationAndArg(ph, functionName);
+		auto initFunction = replaceOperation(ph, loopFunction, functionPostfix, ScriptRef{".init"});
 
+		correct &= !!loopFunction;
+		correct &= !!initFunction;
+
+		ScriptRefData loopArgs[ScriptMaxArg] = {};
+
+
+		auto loopBestOverload = findBestOverloadProc(loopFunction);
+		auto initBestOverload = findBestOverloadProc(initFunction);
 	}
 	else
 	{
