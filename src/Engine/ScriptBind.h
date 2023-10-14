@@ -718,7 +718,7 @@ struct ArgNullDef
 
 struct ArgSepDef
 {
-	using ReturnType = ScriptSeparator;
+	using ReturnType = ScriptArgSeparator;
 	static constexpr size_t size = 0;
 	static ReturnType get(ScriptWorkerBase& sw, const Uint8* arg, ProgPos& curr)
 	{
@@ -873,7 +873,7 @@ struct ArgSelector<ScriptNull>
 };
 
 template<>
-struct ArgSelector<ScriptSeperator>
+struct ArgSelector<ScriptArgSeparator>
 {
 	using type = Arg<ArgSepDef>;
 };
