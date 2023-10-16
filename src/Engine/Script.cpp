@@ -921,7 +921,7 @@ public:
 
 
 
-	constexpr const size_t size() const
+	constexpr size_t size() const
 	{
 		return argsLength;
 	}
@@ -1267,9 +1267,9 @@ std::string displayArgs(const ScriptParserBase* spb, const ScriptRange<T>& range
 	std::string result = "";
 	for (auto& p : range)
 	{
-		if (p)
+		auto type = getType(p);
+		if (type != ArgInvalid)
 		{
-			auto type = getType(p);
 			result += "[";
 			result += spb->getTypePrefix(type);
 			result += spb->getTypeName(type).toString();
@@ -1288,7 +1288,7 @@ std::string displayArgs(const ScriptParserBase* spb, const ScriptRange<T>& range
  */
 std::string displayOverloadProc(const ScriptParserBase* spb, const ScriptRange<ScriptRange<ArgEnum>>& overload)
 {
-	return displayArgs(spb, overload, [](const ScriptRange<ArgEnum>& o) { return *o.begin(); });
+	return displayArgs(spb, overload, [](const ScriptRange<ArgEnum>& o) { return o ? *o.begin() : ArgInvalid; });
 }
 
 /**
@@ -1323,7 +1323,7 @@ int overloadCustomProc(const ScriptProcData& spd, const ScriptRefData* begin, co
 		const auto size = currOver.size();
 		if (size)
 		{
-			if (*curr)
+			if (ArgBase(curr->type) != ArgInvalid)
 			{
 				int oneArgTempScore = 0;
 				for (auto& o : currOver)
@@ -1363,9 +1363,9 @@ int getOverloadArgSize(const ScriptProcData& spd)
 /**
  * Return type of public argument of given function.
  */
-ScriptRange<ArgEnum> getOverloadArgType(const ScriptProcData& spd, int argPos)
+ScriptRange<ArgEnum> getOverloadArgType(ScriptRange<ScriptRange<ArgEnum>> over, int argPos)
 {
-	for (auto& currOver : spd.overloadArg)
+	for (auto& currOver : over)
 	{
 		if (currOver)
 		{
@@ -1378,6 +1378,42 @@ ScriptRange<ArgEnum> getOverloadArgType(const ScriptProcData& spd, int argPos)
 	}
 
 	return {};
+}
+
+/**
+ * Return type of public argument of given function.
+ */
+ScriptRange<ArgEnum> getOverloadArgType(const ScriptProcData& spd, int argPos)
+{
+	return getOverloadArgType(spd.overloadArg, argPos);
+}
+
+/**
+ * Return tail type list of public arguments of given function.
+ */
+ScriptRange<ScriptRange<ArgEnum>> getOverloadArgTypeTail(ScriptRange<ScriptRange<ArgEnum>> over, int argPos)
+{
+	for (auto& currOver : over)
+	{
+		if (currOver)
+		{
+			if (argPos == 0)
+			{
+				return { &currOver, over.end() };
+			}
+			--argPos;
+		}
+	}
+
+	return {};
+}
+
+/**
+ * Return tail type list of public arguments of given function.
+ */
+ScriptRange<ScriptRange<ArgEnum>> getOverloadArgTypeTail(const ScriptProcData& spd, int argPos)
+{
+	return getOverloadArgTypeTail(spd.overloadArg, argPos);
 }
 
 std::tuple<int, const ScriptProcData*> findBestOverloadProc(const ScriptRange<ScriptProcData>& proc, const ScriptRefData* begin, const ScriptRefData* end)
@@ -1883,20 +1919,127 @@ bool parseLoop(const ScriptProcData& spd, ParserWriter& ph, const ScriptRefData*
 	// we support simple `loop var x 100;` or complex like `loop var x obj.getInv.list "BIG_GUN";`
 	const auto functionPostfix = ScriptRef{ ".list" };
 	const auto functionName = begin[2].name;
+	const auto functionArgSep = ph.getReferece(ScriptRef{ "__" });
+	const auto functionArgPh = ph.getReferece(ScriptRef{ "_" });
+
+	assert(!!functionArgSep);
+	assert(!!functionArgPh);
+
 	if (functionName.headFromEnd(functionPostfix.size()) == functionPostfix && !isKnowNamePrefix(functionName.tailFromEnd(functionPostfix.size())))
 	{
+		auto& loop = ph.pushScopeBlock(BlockLoop);
+		loop.nextLabel = ph.addLabel();
+		loop.finalLabel = ph.addLabel();
+
+		ScriptArgList loopArgs = {};
+
+		auto getProcAndRegTypes = [&](const ScriptRefOperation& proc, size_t placeHolders) -> std::tuple<const ScriptProcData*, ScriptRange<ScriptRange<ArgEnum>>>
+		{
+			ScriptArgList temp;
+			temp.tryPushBack(loopArgs);
+			size_t org = temp.size();
+			for (size_t i = 0; i < placeHolders; ++i)
+			{
+				if (!temp.tryPushBack(functionArgPh))
+				{
+					return {};
+				}
+			}
+
+			auto bestOverload = std::get<const ScriptProcData*>(findBestOverloadProc(proc.procList, std::begin(temp), std::end(temp)));
+			if (!bestOverload)
+			{
+				Log(LOG_ERROR) << "Conflicting overloads for operator '" + proc.procList.begin()->name.toString() + "' for:";
+				Log(LOG_ERROR) << "  " << displayArgs(&ph.parser, ScriptRange<ScriptRefData>{ temp }, [](const ScriptRefData& r){ return r.type; });
+				Log(LOG_ERROR) << "Expected:";
+				for (auto& p : proc.procList)
+				{
+					if (p.parserArg != nullptr && p.overloadArg)
+					{
+						Log(LOG_ERROR) << "  " << displayOverloadProc(&ph.parser, p.overloadArg);
+					}
+				}
+				return {};
+			}
+
+			return std::make_tuple(bestOverload, getOverloadArgTypeTail(*bestOverload, org));
+		};
+
+		auto parseReg = [&](ScriptRef name, ScriptRange<ArgEnum> types) -> ScriptRefData
+		{
+			if (types.size() != 1)
+			{
+				return {};
+			}
+
+			auto c = true;
+			auto r = ph.addReg(name, ArgSpecAdd(*types.begin(), ArgSpecVar));
+			c &= !!r;
+			c &= loopArgs.tryPushBack(r);
+			c &= parseVariableImpl(ph, r);
+			return r;
+		};
+
+
 		// now we known that parameter look like `obj.foo.list` but not like `Tag.list`
 		auto loopFunction = findOperationAndArg(ph, functionName);
 		auto initFunction = replaceOperation(ph, loopFunction, functionPostfix, ScriptRef{".init"});
 
-		correct &= !!loopFunction;
-		correct &= !!initFunction;
 
-		ScriptRefData loopArgs[ScriptMaxArg] = {};
+		if (!loopFunction)
+		{
+			logErrorOnOperationArg(loopFunction);
+			Log(LOG_ERROR) << "Unsupported function '" << functionName.toString() << "' for 'loop'";
+			return false;
+		}
+
+		if (!initFunction)
+		{
+			Log(LOG_ERROR) << "Unsupported function '" << functionName.toString() << "' for 'loop'";
+			return false;
+		}
+
+		correct &= loopArgs.tryPushBack(loopFunction.argRef);
+		correct &= loopArgs.tryPushBack(begin + 3, end);
+		correct &= loopArgs.tryPushBack(functionArgSep);
+
+		// init part of loop, try parse arg types of control registers
+		auto [initBestProc, initBestOverload] = getProcAndRegTypes(initFunction, 2);
+		if (!correct || !initBestOverload)
+		{
+			Log(LOG_ERROR) << "Error in processing init of 'loop'";
+			return false;
+		}
+		auto curr = parseReg({}, *initBestOverload.begin());
+		auto limit = parseReg({}, *(initBestOverload.begin() + 1));
+		correct &= !!curr;
+		correct &= !!limit;
+		correct &= parseCustomProc(*initBestProc, ph, std::begin(loopArgs), std::end(loopArgs));
 
 
-		auto loopBestOverload = findBestOverloadProc(loopFunction);
-		auto initBestOverload = findBestOverloadProc(initFunction);
+		// check part of loop, break if control register are equal
+		correct &= ph.setLabel(loop.nextLabel, ph.getCurrPos());
+		ScriptRefData breakCond[] =
+		{
+			ScriptRefData { ScriptRef{ "lt" }, ArgInvalid },
+			curr,
+			limit,
+		};
+		correct &= parseFullConditionImpl(ph, loop.finalLabel, std::begin(breakCond), std::end(breakCond));
+
+
+		// increment part and getting current element of loop
+		correct &= loopArgs.tryPushBack(functionArgSep);
+		auto [loopBestProc, loopBestOverload] = getProcAndRegTypes(loopFunction, 1);
+		if (!correct || !loopBestOverload)
+		{
+			Log(LOG_ERROR) << "Error in processing step of 'loop'";
+			return false;
+		}
+
+		auto var = parseReg(begin[1].name, *loopBestOverload.begin());
+		correct &= !!var;
+		correct &= parseCustomProc(*loopBestProc, ph, std::begin(loopArgs), std::end(loopArgs));
 	}
 	else
 	{
@@ -2995,6 +3138,7 @@ ScriptParserBase::ScriptParserBase(ScriptGlobal* shared, const std::string& name
 
 	addType<ScriptInt>("int");
 	addType<ScriptText>("text");
+	addType<ScriptArgSeparator>("__");
 
 	auto labelName = addNameRef("label");
 	auto nullName = addNameRef("null");
@@ -3005,7 +3149,7 @@ ScriptParserBase::ScriptParserBase(ScriptGlobal* shared, const std::string& name
 	addSortHelper(_typeList, { labelName, ArgLabel, { } });
 	addSortHelper(_typeList, { nullName, ArgNull, { } });
 	addSortHelper(_refList, { nullName, ArgNull });
-	addSortHelper(_refList, { phName, ArgInvalid });
+	addSortHelper(_refList, { phName, (ArgEnum)(ArgInvalid + ArgSpecReg) });
 	addSortHelper(_refList, { seperatorName, ArgSep });
 	addSortHelper(_refList, { varName, ArgInvalid });
 
@@ -4557,7 +4701,7 @@ void dummyFunctionSeperator2(int& i, int& j, ScriptArgSeparator, int& k)
 {
 	i = 2;
 }
-void dummyFunctionSeperator2(int& i, int& j, int& k, ScriptArgSeparator)
+void dummyFunctionSeperator3(int& i, int& j, int& k, ScriptArgSeparator)
 {
 	i = 3;
 }
@@ -4584,7 +4728,7 @@ static auto dummyTestScriptOverloadSeperator = ([]
 	auto arg_x = help.addReg<int&>(ScriptRef{"x"});
 	auto arg_y = help.addReg<int&>(ScriptRef{"y"});
 	auto arg_z = help.addReg<int&>(ScriptRef{"z"});
-	auto arg_sep = help.getReferece("__");
+	auto arg_sep = help.getReferece(ScriptRef{"__"});
 
 	assert(arg_x);
 	assert(arg_y);
@@ -4598,48 +4742,53 @@ static auto dummyTestScriptOverloadSeperator = ([]
 		{
 			return -1;
 		}
-		assert(p->overloadArg.size() == 1);
+		for (auto arg : p->overloadArg)
+		{
+			assert(arg.size() == 1);
+		}
 		auto func = p->parserGet(0);
 
 		Uint8 dummy[64] = { };
 		ScriptWorkerBase wb;
-		ProgPos p;
+		ProgPos pos;
 
 		wb.ref<int>(arg_x.getValue<RegEnum>()) = -1;
-		func(wb, dummy, p);
+		func(wb, dummy, pos);
 		return wb.ref<int>(arg_x.getValue<RegEnum>());
-	}
+	};
 
 	auto r = findOperationAndArg(help, ScriptRef{"funcSep"});
-	assert(!r && "func 'funcSep'");
+	assert(!!r && "func 'funcSep'");
 
 	{
 		ScriptRefData args[] = { arg_x, arg_y, arg_z };
-		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		auto o = findBestOverloadProc(r.procList, std::begin(args), std::end(args));
 		assert(std::get<int>(o) && "args 'funcSep x y z'");
 		assert(callFunc(o, std::begin(args), std::end(args)) == 0);
 	}
 
 	{
 		ScriptRefData args[] = { arg_x, arg_sep, arg_y, arg_z };
-		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		auto o = findBestOverloadProc(r.procList, std::begin(args), std::end(args));
 		assert(std::get<int>(o) && "args 'funcSep x __ y z'");
 		assert(callFunc(o, std::begin(args), std::end(args)) == 1);
 	}
 
 	{
 		ScriptRefData args[] = { arg_x, arg_y, arg_sep, arg_z };
-		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		auto o = findBestOverloadProc(r.procList, std::begin(args), std::end(args));
 		assert(std::get<int>(o) && "args 'funcSep x y __ z'");
 		assert(callFunc(o, std::begin(args), std::end(args)) == 2);
 	}
 
 	{
 		ScriptRefData args[] = { arg_x, arg_y, arg_z, arg_sep };
-		auto o = findBestOverloadProc(r, std::begin(args), std::end(args));
+		auto o = findBestOverloadProc(r.procList, std::begin(args), std::end(args));
 		assert(std::get<int>(o) && "args 'funcSep x y z __'");
 		assert(callFunc(o, std::begin(args), std::end(args)) == 3);
 	}
+
+	return 0;
 })();
 
 
@@ -4732,8 +4881,8 @@ static auto dummyTestScriptArgList = ([]
 	ScriptArgList list1;
 	ScriptArgList list2;
 	ScriptArgList list3;
-	ScriptRefData arg_a = { ScriptRef{ "a" } };
-	ScriptRefData arg_b = { ScriptRef{ "b" } };
+	ScriptRefData arg_a = { ScriptRef{ "a" }, ArgInvalid };
+	ScriptRefData arg_b = { ScriptRef{ "b" }, ArgInvalid };
 
 	assert(list1.tryPushBack(arg_a));
 	assert(list1.tryPushBack(arg_b));
@@ -4746,11 +4895,12 @@ static auto dummyTestScriptArgList = ([]
 	assert(list3.size() == 8);
 	assert(list3.tryPushBack(list3));
 	assert(list3.size() == 16);
-	assert(list3.tryPushBack(list3));
-	assert(list3.size() == 32);
-	assert(list3.tryPushBack(list3));
-	assert(list3.size() == 64);
+	assert(!list3.tryPushBack(list3));
+	assert(list3.size() == 16);
 	assert(!list3.tryPushBack(arg_a));
+	assert(list3.size() == 16);
+
+	return 0;
 })();
 
 
