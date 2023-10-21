@@ -3562,6 +3562,93 @@ void getTileEditableScript(SavedBattleGame* sbg, Tile*& t, int x, int y, int z)
 	}
 }
 
+void getUnitsListInitScript(SavedBattleGame* sbg, ScriptArgSeparator, int& curr, int& limit)
+{
+	if (sbg)
+	{
+		curr = 0;
+		limit = sbg->getUnits()->size();
+	}
+	else
+	{
+		curr = 0;
+		limit = 0;
+	}
+}
+
+void getUnitsListLoopScript(SavedBattleGame* sbg, ScriptArgSeparator, int& curr, int& limit, ScriptArgSeparator, BattleUnit*& unit)
+{
+	if (sbg)
+	{
+		if ((size_t)curr < sbg->getUnits()->size())
+		{
+			unit = sbg->getUnits()->at(curr);
+		}
+		else
+		{
+			unit = nullptr;
+		}
+		++curr;
+	}
+	else
+	{
+		unit = nullptr;
+		curr = 0;
+		limit = 0;
+	}
+}
+
+void getUnitsListInitFactionScript(SavedBattleGame* sbg, int i, ScriptArgSeparator, int& curr, int& limit)
+{
+	if (sbg)
+	{
+		curr = 0;
+		limit = sbg->getUnits()->size();
+		for (auto* u : *sbg->getUnits())
+		{
+			if (u->getFaction() == i)
+			{
+				break;
+			}
+			++curr;
+		}
+	}
+	else
+	{
+		curr = 0;
+		limit = 0;
+	}
+}
+
+void getUnitsListLoopFactionScript(SavedBattleGame* sbg, int i, ScriptArgSeparator, int& curr, int& limit, ScriptArgSeparator, BattleUnit*& unit)
+{
+	if (sbg)
+	{
+		if ((size_t)curr < sbg->getUnits()->size())
+		{
+			unit = sbg->getUnits()->at(curr);
+		}
+		else
+		{
+			unit = nullptr;
+		}
+		++curr;
+		for (;(size_t)curr < sbg->getUnits()->size(); ++curr)
+		{
+			if (sbg->getUnits()->at(curr)->getFaction() == i)
+			{
+				break;
+			}
+		}
+	}
+	else
+	{
+		unit = nullptr;
+		curr = 0;
+		limit = 0;
+	}
+}
+
 void setAlienItemLevelScript(SavedBattleGame* sbg, int val)
 {
 	if (sbg)
@@ -3624,6 +3711,10 @@ void SavedBattleGame::ScriptRegister(ScriptParserBase* parser)
 	sbg.add<&SavedBattleGame::getAnimFrame>("getAnimFrame");
 	sbg.add<&getTileScript>("getTile", "Get tile on position x, y, z");
 	sbg.add<&getTileEditableScript>("getTile", "Get tile on position x, y, z");
+	sbg.add<&getUnitsListInitScript>("getUnits.init", BindBase::functionInvisible);
+	sbg.add<&getUnitsListLoopScript>("getUnits.list", "Get list of all units");
+	sbg.add<&getUnitsListInitFactionScript>("getUnits.init", BindBase::functionInvisible);
+	sbg.add<&getUnitsListLoopFactionScript>("getUnits.list", "Get list of units from faction");
 
 	sbg.add<&SavedBattleGame::getAlienItemLevel>("getAlienItemLevel");
 	sbg.add<&setAlienItemLevelScript>("setAlienItemLevel");
