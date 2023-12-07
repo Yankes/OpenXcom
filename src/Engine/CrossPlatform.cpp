@@ -1822,6 +1822,42 @@ static auto dummy = ([]
 
 	return 0;
 })();
+
+static auto dummyRawFile = ([]
+{
+	{
+		char text[] = "test";
+		RawFile raw(text, std::strlen(text), +[](void*){});
+
+		assert(raw.get() == 't');
+		assert(raw.get() == 'e');
+		assert(raw.get() == 's');
+		assert(raw.get() == 't');
+		assert(raw.get() == std::char_traits<char>::eof());
+	}
+
+	{
+		char text[] = "test123";
+		RawFile raw(text, std::strlen(text), +[](void*){});
+
+		char dummy1[10] = { };
+		assert(raw.read(dummy1, 4) && std::strcmp(dummy1, "test") == 0);
+
+		char dummy2[10] = { };
+		assert(raw.read(dummy2, 3) && std::strcmp(dummy2, "123") == 0);
+
+	}
+
+	{
+		char text[] = "test123";
+		RawFile raw(text, std::strlen(text), +[](void*){});
+
+		char dummy1[10] = { };
+		assert(!raw.read(dummy1, 10) && std::strcmp(dummy1, "test123") == 0);
+	}
+
+	return 0;
+})();
 #endif
 
 

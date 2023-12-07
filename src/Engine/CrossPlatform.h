@@ -27,6 +27,21 @@
 namespace OpenXcom
 {
 
+using RawFileDeleteFun = void(*)(void*);
+
+class RawFile : public std::istream, private std::streambuf
+{
+	std::unique_ptr<void, RawFileDeleteFun> _data;
+	size_t _size;
+
+public:
+	RawFile(void* data, std::size_t size, RawFileDeleteFun del) : _data{ data, del }, _size{ size }
+	{
+		this->setg((char*)data, (char*)data, (char*)data + size);
+		this->rdbuf(this);
+	}
+};
+
 /**
  * Generic purpose functions that need different
  * implementations for different platforms.
