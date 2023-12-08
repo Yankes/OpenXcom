@@ -139,7 +139,7 @@ struct OxceVersionDate
 		}
 	}
 
-	explicit operator bool()
+	explicit operator bool() const
 	{
 		return year && month && day;
 	}
@@ -1078,7 +1078,7 @@ bool Mod::checkForObsoleteErrorByYear(const std::string &parent, const YAML::Nod
 			r = false;
 		}
 	}
-	checkForSoftError(true, parent, node, "Obsolete (to removed after year " + targetYearText + ") operation " + error, level);
+	checkForSoftError(true, parent, node, "Obsolete (to removed after year " + std::to_string(year) + ") operation " + error, level);
 
 	return r;
 }
