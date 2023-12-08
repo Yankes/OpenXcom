@@ -356,6 +356,9 @@ public:
 		addTagValueType<ModScriptGlobal, &ModScriptGlobal::loadRuleList, &ModScriptGlobal::saveRuleList>("RuleList");
 		addConst("RuleList." + ModNameMaster, (int)0);
 		addConst("RuleList." + ModNameCurrent, (int)0);
+
+		auto v = OxceVersionDate(OPENXCOM_VERSION_GIT);
+		addConst("SCRIPT_VERSION_DATE", (int)(v.year * 10000 + v.month * 100 + v.day));
 	}
 	/// Finishing loading data.
 	void endLoad() override
