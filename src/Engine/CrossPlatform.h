@@ -27,18 +27,71 @@
 namespace OpenXcom
 {
 
-using RawFileDeleteFun = void(*)(void*);
+using RawDataDeleteFun = void(*)(void*);
 
-class RawFile : public std::istream, private std::streambuf
+class RawData
 {
-	std::unique_ptr<void, RawFileDeleteFun> _data;
-	size_t _size;
+	std::unique_ptr<void, RawDataDeleteFun> _data;
+	std::size_t _size;
 
 public:
-	RawFile(void* data, std::size_t size, RawFileDeleteFun del) : _data{ data, del }, _size{ size }
+
+	RawData(void* data, std::size_t size, RawDataDeleteFun del) : _data{ data, del }, _size{ size }
 	{
-		this->setg((char*)data, (char*)data, (char*)data + size);
+
+	}
+
+	RawData(RawData&& d) : _data{ std::move(d._data) }, _size{ std::exchange(d._size, 0u) }
+	{
+
+	}
+
+	std::size_t size() const { return _size; }
+
+	const void* data() const { return _data.get(); }
+	void* data() { return _data.get(); }
+};
+
+class StreamFile : public std::istream, private std::streambuf
+{
+	RawData _data;
+
+public:
+
+	StreamFile(RawData data) : _data{ std::move(data) }
+	{
+		this->setg((char*)_data.data(), (char*)_data.data(), (char*)_data.data() + _data.size());
 		this->rdbuf(this);
+	}
+
+	RawData extractRawData()
+	{
+		this->setg(nullptr, nullptr, nullptr);
+		return std::move(_data);
+	}
+
+protected:
+
+	/// https://stackoverflow.com/questions/35066207/how-to-implement-custom-stdstreambufs-seekoff
+	virtual  std::streambuf::pos_type seekoff(
+		std::streambuf::off_type off, std::ios_base::seekdir dir,
+		std::ios_base::openmode) override
+	{
+		if (dir == std::ios_base::cur)
+			gbump(off);
+		else if (dir == std::ios_base::end)
+			setg(eback(), egptr() + off, egptr());
+		else if (dir == std::ios_base::beg)
+			setg(eback(), eback() + off, egptr());
+		return gptr() - eback();
+	}
+
+	/// https://stackoverflow.com/a/46069245/1938348
+	virtual std::streambuf::pos_type seekpos(
+		std::streambuf::pos_type pos,
+		std::ios_base::openmode which) override
+	{
+		return seekoff(pos - std::streambuf::pos_type(std::streambuf::off_type(0)), std::ios_base::beg, which);
 	}
 };
 
