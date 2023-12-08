@@ -1047,9 +1047,7 @@ std::unique_ptr<std::istream> readFile(const std::string& filename) {
 		Log(LOG_ERROR) << err;
 		throw Exception(err);
 	}
-	std::string datastr(data, size);
-	SDL_free(data);
-	return std::unique_ptr<std::istream>(new std::istringstream(datastr));
+	return std::unique_ptr<std::istream>(new StreamFile(RawData{data, size, SDL_free}));
 }
 
 /**
@@ -1094,10 +1092,8 @@ std::unique_ptr<std::istream> getYamlSaveHeader(const std::string& filename) {
 		data = newdata;
 		offs = size;
 	}
-	std::string datastr(data, size);
-	SDL_free(data);
 	SDL_RWclose(rwops);
-	return std::unique_ptr<std::istream>(new std::istringstream(datastr));
+	return std::unique_ptr<std::istream>(new StreamFile(RawData{data, size, SDL_free}));
 }
 
 /**
