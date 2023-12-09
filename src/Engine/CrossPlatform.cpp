@@ -1858,10 +1858,8 @@ static auto dummyRawFile = ([]
 
 		raw.seekg(0, std::ios::end);
 		std::streamoff end = raw.tellg();
-		std::cout<<end<<std::endl;
 		raw.seekg(0, std::ios::beg);
 		std::streamoff begin = raw.tellg();
-		std::cout<<begin<<std::endl;
 
 		assert(end-begin == (int)std::strlen(text));
 	}
