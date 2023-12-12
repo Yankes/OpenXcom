@@ -66,14 +66,14 @@ Particle::Particle(Position voxelPos, Uint8 density, Uint8 color, Uint8 opacity)
  */
 bool Particle::animate()
 {
-	_subVoxelPos.z += (320-_density);
+//	_subVoxelPos.z += (320-_density);
 	_opacity--;
 
 	// approximation of old `_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);`
 	const int drift = SubVoxelAccuracy / 2;
-	_subVoxelPos.x += RNG::seedless(-drift, drift);
-	_subVoxelPos.y += RNG::seedless(-drift, drift);
-	_subVoxelPos.z += RNG::seedless(-drift, drift);
+//	_subVoxelPos.x += RNG::seedless(-drift, drift);
+//	_subVoxelPos.y += RNG::seedless(-drift, drift);
+//	_subVoxelPos.z += RNG::seedless(-drift, drift);
 
 	if ( _opacity == 0 )
 	{

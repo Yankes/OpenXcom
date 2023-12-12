@@ -582,12 +582,32 @@ bool Projectile::isReversed() const
 void Projectile::addVaporCloud()
 {
 	Position voxelPos = _trajectory.at(_position);
-	Position tilePos = voxelPos.toTile();
-	for (int i = 0; i != _vaporDensity; ++i)
+	Position voxelPosShift = voxelPos;
+	if (_position > 8)
 	{
-		Particle particle = Particle(voxelPos, RNG::seedless(48, 224), _vaporColor, RNG::seedless(32, 44));
+		auto s = (int)(std::sin(_distance/8) * 16);
+		auto c = (int)(std::cos(_distance/8) * 16);
+		auto diffPos = voxelPos - _trajectory.at(_position - 8);
+		auto leftDirection = Position(+diffPos.y, -diffPos.x, 0);
+		auto topDirection = Position(0, 0, 8);
+
+		voxelPosShift += (leftDirection * s + topDirection * c) / 16;
+
+	}
+	Position tilePos = voxelPos.toTile();
+	Position tilePosShift = voxelPosShift.toTile();
+	for (int i = 0; i != _vaporDensity / 2; ++i)
+	{
+		Particle particle = Particle(voxelPos, RNG::seedless(48, 224), _vaporColor - 1, RNG::seedless(13, 20));
 		Position tileOffset = particle.updateScreenPosition();
 		_save->getBattleGame()->getMap()->addVaporParticle(tilePos + tileOffset, particle);
+	}
+
+	for (int i = 0; i != _vaporDensity / 2; ++i)
+	{
+		Particle particle = Particle(voxelPosShift, RNG::seedless(48, 224), _vaporColor, RNG::seedless(32, 44));
+		Position tileOffset = particle.updateScreenPosition();
+		_save->getBattleGame()->getMap()->addVaporParticle(tilePosShift + tileOffset, particle);
 	}
 }
 
