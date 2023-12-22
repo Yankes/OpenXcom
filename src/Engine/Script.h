@@ -1469,7 +1469,7 @@ inline const T& ScriptValueData::getValue() const
 	{
 		throw Exception("Invalid cast of value");
 	}
-	return *std::launder(reinterpret_cast<const T*>(&data));
+	return *reinterpret_cast<const T*>(&data);
 }
 
 /**
