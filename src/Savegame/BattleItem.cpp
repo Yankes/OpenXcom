@@ -1502,6 +1502,7 @@ void setStimulantQuantityScript(BattleItem* bt, int i)
 void BattleItem::ScriptRegister(ScriptParserBase* parser)
 {
 	parser->registerPointerType<Mod>();
+	parser->registerPointerType<Tile>();
 	parser->registerPointerType<RuleItem>();
 	parser->registerPointerType<BattleUnit>();
 
