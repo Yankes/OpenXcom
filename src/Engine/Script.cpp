@@ -3880,11 +3880,12 @@ void ScriptParserEventsBase::load(const YAML::Node& scripts)
 			const auto newNode = getNode(i, "new");
 			const auto overrideNode = getNode(i, "override");
 			const auto updateNode = getNode(i, "update");
+			const auto ignoreNode = getNode(i, "ignore");
 
 			{
 				// check for duplicates
 				const std::tuple<std::string, YAML::Node, bool>* last = nullptr;
-				for (auto* p : { &deleteNode, &newNode, &updateNode, &overrideNode })
+				for (auto* p : { &deleteNode, &newNode, &updateNode, &overrideNode, &ignoreNode })
 				{
 					if (haveNode(*p))
 					{
@@ -3963,6 +3964,10 @@ void ScriptParserEventsBase::load(const YAML::Node& scripts)
 					{
 						throw Exception("Unknown script name '" + name  + "' for " + getDescriptionNode(overrideNode));
 					}
+				}
+				else if (haveNode(ignoreNode))
+				{
+					// nothing to see there...
 				}
 				else
 				{
