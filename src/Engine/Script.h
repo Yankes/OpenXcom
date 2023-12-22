@@ -527,8 +527,9 @@ struct TypeInfoImpl
 
 	enum
 	{
-		metaDestSize = std::is_pod<t3>::value ? sizeof(t3) : 0,
-		metaDestAlign = std::is_pod<t3>::value ? alignof(t3) : 0
+		metaIsSimple = std::is_trivially_copyable_v<t3> && std::is_nothrow_default_constructible_v<t3> && std::is_trivially_destructible_v<t3>,
+		metaDestSize = metaIsSimple ? sizeof(t3) : 0,
+		metaDestAlign = metaIsSimple ? alignof(t3) : 0
 	};
 
 	/// meta data of destination type (without pointer), invalid if type is not POD
@@ -1093,7 +1094,7 @@ struct ScriptTypeData
  */
 struct ScriptValueData
 {
-	ScriptRawMemory<sizeof(void*)> data;
+	ScriptRawMemory<2*sizeof(void*)> data;
 	ArgEnum type = ArgInvalid;
 	Uint8 size = 0;
 
@@ -1468,7 +1469,7 @@ inline const T& ScriptValueData::getValue() const
 	{
 		throw Exception("Invalid cast of value");
 	}
-	return *reinterpret_cast<const T*>(&data);
+	return *std::launder(reinterpret_cast<const T*>(&data));
 }
 
 /**

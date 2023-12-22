@@ -740,6 +740,28 @@ struct ArgSepDef
 //					ArgSelector class
 ////////////////////////////////////////////////////////////
 
+
+
+template<typename T>
+struct ArgSelector
+{
+	using type = Arg<ArgRegDef<T>, ArgValueDef<T>>;
+};
+
+template<typename T>
+struct ArgSelector<T&>
+{
+	using type = Arg<ArgRegDef<T&>>;
+};
+
+template<typename T>
+struct ArgSelector<const T&>
+{
+	using type = Arg<ArgRegDef<T>, ArgValueDef<T>>;
+};
+
+
+
 template<>
 struct ArgSelector<ScriptWorkerBase&>
 {
@@ -836,11 +858,13 @@ struct ArgSelector<ScriptFunc>
 	using type = Arg<ArgFuncDef>;
 };
 
+
 template<>
 struct ArgSelector<const Uint8*>
 {
 	using type = Arg<ArgRawDef<64>, ArgRawDef<32>, ArgRawDef<16>, ArgRawDef<8>, ArgRawDef<4>, ArgRawDef<0>>;
 };
+
 
 template<typename T>
 struct ArgSelector<T*>
@@ -865,6 +889,7 @@ struct ArgSelector<const T*&>
 {
 	using type = Arg<ArgRegDef<const T*&>>;
 };
+
 
 template<>
 struct ArgSelector<ScriptNull>
@@ -989,6 +1014,61 @@ struct BindMemberInvoke : BindMemberInvokeImpl<WarpValue<Rest>...>
 template<typename T, auto... Rest>
 using BindMemberFinalType = std::decay_t<decltype(BindMemberInvoke<Rest...>::f(std::declval<T>()))>;
 
+
+
+
+template<typename T>
+struct BindMemberOverrideUnsuportedTypeImpl
+{
+	using Type = T;
+};
+
+template<>
+struct BindMemberOverrideUnsuportedTypeImpl<bool>
+{
+	using Type = int;
+};
+
+template<>
+struct BindMemberOverrideUnsuportedTypeImpl<Uint8>
+{
+	using Type = int;
+};
+
+template<>
+struct BindMemberOverrideUnsuportedTypeImpl<Sint8>
+{
+	using Type = int;
+};
+
+template<>
+struct BindMemberOverrideUnsuportedTypeImpl<Uint16>
+{
+	using Type = int;
+};
+
+template<>
+struct BindMemberOverrideUnsuportedTypeImpl<Sint16>
+{
+	using Type = int;
+};
+
+template<typename T>
+using BindMemberOverrideUnsuportedType = typename BindMemberOverrideUnsuportedTypeImpl<T>::Type;
+
+
+
+
+template<typename T, typename... Args>
+struct BindConstructor
+{
+	static RetEnum func(T& t, Args... args)
+	{
+		t = T{ std::forward<Args>(args)... };
+		return RetContinue;
+	}
+};
+
 template<typename T>
 struct BindSet
 {
@@ -1029,18 +1109,38 @@ struct BindClear
 template<typename T, auto... X>
 struct BindPropGet
 {
-	static RetEnum func(const T* t, BindMemberFinalType<T, X...>& p)
+	static RetEnum func(const T* t, BindMemberOverrideUnsuportedType<BindMemberFinalType<T, X...>>& p)
 	{
-		if (t) p = BindMemberInvoke<X...>::f(t); else p = BindMemberFinalType<T, X...>{};
+		if (t) p = BindMemberInvoke<X...>::f(t); else p = {};
 		return RetContinue;
 	}
 };
 template<typename T, auto... X>
 struct BindPropSet
 {
-	static RetEnum func(T* t, BindMemberFinalType<T, X...> p)
+	static RetEnum func(T* t, BindMemberOverrideUnsuportedType<BindMemberFinalType<T, X...>> p)
 	{
 		if (t) BindMemberInvoke<X...>::f(t) = p;
+		return RetContinue;
+	}
+};
+
+template<typename T, auto... X>
+struct BindValuePropGet
+{
+	static RetEnum func(T t, BindMemberOverrideUnsuportedType<BindMemberFinalType<T, X...>>& p)
+	{
+		p = BindMemberInvoke<X...>::f(&t);
+		return RetContinue;
+	}
+};
+
+template<typename T, auto... X>
+struct BindValuePropSet
+{
+	static RetEnum func(T& t, BindMemberOverrideUnsuportedType<BindMemberFinalType<T, X...>> p)
+	{
+		BindMemberInvoke<X...>::f(&t) = p;
 		return RetContinue;
 	}
 };
@@ -1065,7 +1165,7 @@ struct BindPropCustomSet
 };
 
 template<typename T, typename P, P I>
-struct BindValue
+struct BindConst
 {
 	static RetEnum func(T* t, P& p)
 	{
@@ -1073,6 +1173,9 @@ struct BindValue
 		return RetContinue;
 	}
 };
+
+
+
 
 template<typename T, std::string (*X)(const T*)>
 struct BindDebugDisplay
@@ -1084,6 +1187,20 @@ struct BindDebugDisplay
 		return RetContinue;
 	}
 };
+
+template<typename T, std::string (*X)(const T*)>
+struct BindValueDebugDisplay
+{
+	static RetEnum func(ScriptWorkerBase& swb, T t)
+	{
+		auto f = std::bind(X, &t);
+		swb.log_buffer_add(&f);
+		return RetContinue;
+	}
+};
+
+
+
 
 template<typename T, T X>
 struct BindFuncImpl;
@@ -1170,6 +1287,92 @@ struct BindFuncImpl<void(T::*)(Args...), X>
 
 template<auto F>
 struct BindFunc : BindFuncImpl<decltype(F), F> //Work araound ICC 19.0.1 bug
+{
+
+};
+
+
+
+
+template<typename T, T X>
+struct BindValueFuncImpl;
+
+template<typename... Args, void(*X)(Args...)>
+struct BindValueFuncImpl<void(*)(Args...), X>
+{
+	static RetEnum func(Args... a)
+	{
+		X(std::forward<Args>(a)...);
+		return RetContinue;
+	}
+};
+
+template<typename T, typename... Args, bool(T::*X)(Args...)>
+struct BindValueFuncImpl<bool(T::*)(Args...), X>
+{
+	static RetEnum func(T& t, int& r, Args... a)
+	{
+		r = (t.*X)(std::forward<Args>(a)...);
+		return RetContinue;
+	}
+};
+
+template<typename T, typename... Args, bool(T::*X)(Args...) const>
+struct BindValueFuncImpl<bool(T::*)(Args...) const, X>
+{
+	static RetEnum func(T t, int& r, Args... a)
+	{
+		r = (t.*X)(std::forward<Args>(a)...);
+		return RetContinue;
+	}
+};
+
+template<typename T, typename R, typename... Args, R(T::*X)(Args...)>
+struct BindValueFuncImpl<R(T::*)(Args...), X>
+{
+	static RetEnum func(T& t, R& r, Args... a)
+	{
+		r = (t.*X)(std::forward<Args>(a)...);
+		return RetContinue;
+	}
+};
+
+template<typename T, typename R, typename... Args, R(T::*X)(Args...) const>
+struct BindValueFuncImpl<R(T::*)(Args...) const, X>
+{
+	static RetEnum func(T t, R& r, Args... a)
+	{
+		r = (t.*X)(std::forward<Args>(a)...);
+		return RetContinue;
+	}
+};
+
+template<typename T, typename P, typename... Args, P*(T::*X)(Args...)>
+struct BindValueFuncImpl<P*(T::*)(Args...), X>
+{
+	/// Value should not return any pointers, this would allow dangling pointers
+	static RetEnum func(T& t, P*& r, Args... a) = delete;
+};
+
+template<typename T, typename P, typename... Args, P*(T::*X)(Args...) const>
+struct BindValueFuncImpl<P*(T::*)(Args...) const, X>
+{
+	/// Value should not return any pointers, this would allow dangling pointers
+	static RetEnum func(T t, const P*& r, Args... a) = delete;
+};
+
+template<typename T, typename... Args, void(T::*X)(Args...)>
+struct BindValueFuncImpl<void(T::*)(Args...), X>
+{
+	static RetEnum func(T& t, Args... a)
+	{
+		(t.*X)(std::forward<Args>(a)...);
+		return RetContinue;
+	}
+};
+
+template<auto F>
+struct BindValueFunc : BindValueFuncImpl<decltype(F), F> //Work araound ICC 19.0.1 bug
 {
 
 };
@@ -1263,17 +1466,17 @@ struct Bind : BindBase
 		addCustomFunc<X>(getName(name), description);
 	}
 
-	template<int T::*X>
+	template<auto MemPtr0>
 	void addField(const std::string& get)
 	{
-		addCustomFunc<helper::BindPropGet<T, X>>(getName(get), "Get int field of " + prefix);
+		addCustomFunc<helper::BindPropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0)>>(getName(get), "Get field of " + prefix);
 	}
 
-	template<int T::*X>
+	template<auto MemPtr0>
 	void addField(const std::string& get, const std::string& set)
 	{
-		addCustomFunc<helper::BindPropGet<T, X>>(getName(get), "Get int field of " + prefix);
-		addCustomFunc<helper::BindPropSet<T, X>>(getName(set), "Set int field of " + prefix);
+		addCustomFunc<helper::BindPropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0)>>(getName(get), "Get field of " + prefix);
+		addCustomFunc<helper::BindPropSet<T, MACRO_CLANG_AUTO_HACK(MemPtr0)>>(getName(set), "Set field of " + prefix);
 	}
 
 	template<auto MemPtr0, auto MemPtr1, auto... MemPtrR>
@@ -1337,7 +1540,7 @@ struct Bind : BindBase
 	template<int X>
 	void addFake(const std::string& get)
 	{
-		addCustomFunc<helper::BindValue<T, int, X>>(getName(get), "Get int field of " + prefix);
+		addCustomFunc<helper::BindConst<T, int, X>>(getName(get), "Get int field of " + prefix);
 	}
 
 	template<typename P, P* (T::*X)(), const P* (T::*Y)() const>
@@ -1368,6 +1571,102 @@ struct Bind : BindBase
 	void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
 	{
 		addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(X)>>(getName(func), description);
+	}
+};
+
+template<typename T>
+struct BindValue : BindBase
+{
+	using Type = T;
+
+	std::string prefix;
+
+	BindValue(ScriptParserBase* p) : BindValue{ p, T::ScriptName }
+	{
+
+	}
+
+	BindValue(ScriptParserBase* p, ExtensionBinding e) : BindValue{ p, T::ScriptName, e }
+	{
+
+	}
+
+	BindValue(ScriptParserBase* p, std::string r) : BindBase{ p }, prefix{ std::move(r) }
+	{
+		parser->addParser<helper::FuncGroup<helper::BindSet<T>>>("set", BindBase::functionInvisible);
+		parser->addParser<helper::FuncGroup<helper::BindSwap<T>>>("swap", BindBase::functionInvisible);
+		parser->addParser<helper::FuncGroup<helper::BindClear<T>>>("clear", BindBase::functionInvisible);
+
+		parser->addParser<helper::FuncGroup<helper::BindEq<T>>>("test_eq", BindBase::functionInvisible);
+	}
+
+	BindValue(ScriptParserBase* p, std::string r, ExtensionBinding) : BindBase{ p }, prefix{ std::move(r) }
+	{
+		// no default operations defined!
+	}
+
+	std::string getName(const std::string& s)
+	{
+		return prefix + "." + s;
+	}
+
+	template<typename X>
+	void addFunc(const std::string& name)
+	{
+		addCustomFunc<X>(getName(name));
+	}
+	template<typename X>
+	void addFunc(const std::string& name, const std::string& description)
+	{
+		addCustomFunc<X>(getName(name), description);
+	}
+
+	template<auto MemPtr0>
+	void addField(const std::string& get)
+	{
+		addCustomFunc<helper::BindValuePropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0)>>(getName(get), "Get field of " + prefix);
+	}
+
+	template<auto MemPtr0>
+	void addField(const std::string& get, const std::string& set)
+	{
+		addCustomFunc<helper::BindValuePropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0)>>(getName(get), "Get field of " + prefix);
+		addCustomFunc<helper::BindValuePropSet<T, MACRO_CLANG_AUTO_HACK(MemPtr0)>>(getName(set), "Set field of " + prefix);
+	}
+
+	template<auto MemPtr0, auto MemPtr1, auto... MemPtrR>
+	void addField(const std::string& get)
+	{
+		addCustomFunc<helper::BindValuePropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0), MACRO_CLANG_AUTO_HACK(MemPtr1), MACRO_CLANG_AUTO_HACK(MemPtrR)...>>(getName(get), "Get inner field of " + prefix);
+	}
+	template<auto MemPtr0, auto MemPtr1, auto... MemPtrR>
+	void addField(const std::string& get, const std::string& set)
+	{
+		addCustomFunc<helper::BindValuePropGet<T, MACRO_CLANG_AUTO_HACK(MemPtr0), MACRO_CLANG_AUTO_HACK(MemPtr1), MACRO_CLANG_AUTO_HACK(MemPtrR)...>>(getName(get), "Get inner field of " + prefix);
+		addCustomFunc<helper::BindValuePropSet<T, MACRO_CLANG_AUTO_HACK(MemPtr0), MACRO_CLANG_AUTO_HACK(MemPtr1), MACRO_CLANG_AUTO_HACK(MemPtrR)...>>(getName(set), "Set inner field of " + prefix);
+	}
+
+	template<std::string (*X)(const T*)>
+	void addDebugValueDisplay()
+	{
+		addCustomFunc<helper::BindValueDebugDisplay<T, X>>("debug_impl", BindBase::functionInvisible);
+	}
+
+	template<auto X>
+	void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
+	{
+		addCustomFunc<helper::BindValueFunc<MACRO_CLANG_AUTO_HACK(X)>>(getName(func), description);
+	}
+	template<typename TX, TX X>
+	void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
+	{
+		addCustomFunc<helper::BindValueFunc<MACRO_CLANG_AUTO_HACK(X)>>(getName(func), description);
+	}
+
+	template<typename... Args>
+	void addConstructor(const std::string& description = BindBase::functionWithoutDescription)
+	{
+		addCustomFunc<helper::BindConstructor<T, Args...>>(getName("set"), description);
 	}
 };
 
