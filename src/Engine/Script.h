@@ -94,7 +94,7 @@ using ScriptNull = std::nullptr_t;
 /**
  * Script numeric type, alias to int.
  */
-using ScriptInt = int;
+using ScriptInt = Sint32;
 
 /**
  * Script const text, always zero terminated.
