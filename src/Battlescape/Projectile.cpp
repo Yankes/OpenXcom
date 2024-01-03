@@ -583,6 +583,8 @@ void Projectile::addVaporCloud()
 {
 	Position voxelPos = _trajectory.at(_position);
 	Position voxelPosShift = voxelPos;
+	Position voxelPosVel;
+	Position voxelPosAcc;
 	if (_position > 8)
 	{
 		auto s = (int)(std::sin(_distance/8) * 16);
@@ -592,20 +594,83 @@ void Projectile::addVaporCloud()
 		auto topDirection = Position(0, 0, 8);
 
 		voxelPosShift += (leftDirection * s + topDirection * c) / 16;
-
+		voxelPosVel = (leftDirection * c - topDirection * s) * 16;
+		voxelPosAcc = (leftDirection * s + topDirection * c) * -1;
 	}
 	Position tilePos = voxelPos.toTile();
 	Position tilePosShift = voxelPosShift.toTile();
 	for (int i = 0; i != _vaporDensity / 2; ++i)
 	{
-		Particle particle = Particle(voxelPos, RNG::seedless(48, 224), _vaporColor - 1, RNG::seedless(13, 20));
+		auto density = RNG::seedless(48, 224);
+		// approximation of old `int offset = RNG::seedless(0, 4) - 2;`
+		const int offset = Particle::SubVoxelAccuracy * 3 / 2;
+		Position subVoxelOffset;
+		Position subVoxelVelocity;
+		Position subVoxelAcceleration;
+		subVoxelOffset.x += RNG::seedless(-offset, +offset);
+		subVoxelOffset.y += RNG::seedless(-offset, +offset);
+		subVoxelOffset.z += RNG::seedless(-offset, +offset);
+		subVoxelVelocity.z = (320-density);
+		subVoxelAcceleration.z = -Particle::SubVoxelAccuracy / 10;
+
+		// approximation of old `_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);`
+		auto drift = Particle::SubVoxelAccuracy / 2;
+
+		Uint8 size = 0;
+		//size is initialized at 0
+		if (density < 100)
+		{
+			size = 3;
+		}
+		else if (density < 125)
+		{
+			size = 2;
+		}
+		else if (density < 150)
+		{
+			size = 1;
+		}
+
+		Particle particle = Particle(voxelPos, subVoxelOffset, subVoxelVelocity, subVoxelAcceleration, drift, _vaporColor - 1, RNG::seedless(13, 20), size);
 		Position tileOffset = particle.updateScreenPosition();
 		_save->getBattleGame()->getMap()->addVaporParticle(tilePos + tileOffset, particle);
 	}
 
 	for (int i = 0; i != _vaporDensity / 2; ++i)
 	{
-		Particle particle = Particle(voxelPosShift, RNG::seedless(48, 224), _vaporColor, RNG::seedless(32, 44));
+		auto density = RNG::seedless(48, 224);
+		// approximation of old `int offset = RNG::seedless(0, 4) - 2;`
+		const int offset = Particle::SubVoxelAccuracy * 3 / 2;
+		Position subVoxelOffset;
+		Position subVoxelVelocity;
+		Position subVoxelAcceleration;
+		subVoxelOffset.x += RNG::seedless(-offset, +offset);
+		subVoxelOffset.y += RNG::seedless(-offset, +offset);
+		subVoxelOffset.z += RNG::seedless(-offset, +offset);
+		subVoxelVelocity.z = (320-density);
+		subVoxelVelocity += voxelPosVel;
+		subVoxelAcceleration.z = -Particle::SubVoxelAccuracy / 10;
+		subVoxelAcceleration += voxelPosAcc;
+
+		// approximation of old `_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);`
+		auto drift = Particle::SubVoxelAccuracy / 2;
+
+		Uint8 size = 0;
+		//size is initialized at 0
+		if (density < 100)
+		{
+			size = 3;
+		}
+		else if (density < 125)
+		{
+			size = 2;
+		}
+		else if (density < 150)
+		{
+			size = 1;
+		}
+
+		Particle particle = Particle(voxelPosShift, subVoxelOffset, subVoxelVelocity, subVoxelAcceleration, drift, _vaporColor, RNG::seedless(32, 44), size);
 		Position tileOffset = particle.updateScreenPosition();
 		_save->getBattleGame()->getMap()->addVaporParticle(tilePosShift + tileOffset, particle);
 	}
