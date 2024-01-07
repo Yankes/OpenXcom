@@ -1208,6 +1208,7 @@ class ScriptParserBase
 	ScriptRef _regOutName[ScriptMaxOut];
 	std::string _name;
 	std::string _defaultScript;
+	std::string _description;
 	std::vector<std::vector<char>> _strings;
 	std::vector<ScriptTypeData> _typeList;
 	std::vector<ScriptProcData> _procList;
@@ -1280,6 +1281,8 @@ protected:
 	bool haveTypeBase(ArgEnum type);
 	/// Set default script for type.
 	void setDefault(const std::string& s) { _defaultScript = s; }
+	/// Set description for script.
+	void setDescription(const std::string& s) { _description = s; }
 	/// Set mode where return does not accept any value.
 	void setEmptyReturn() { _emptyReturn = true; }
 

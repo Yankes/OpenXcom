@@ -3709,6 +3709,12 @@ void ScriptParserBase::logScriptMetadata(bool haveEvents, const std::string& gro
 			refLog.get(LOG_DEBUG) << "Have global events\n";
 			refLog.get(LOG_DEBUG) << "\n";
 		}
+		if (!_description.empty())
+		{
+			refLog.get(LOG_DEBUG) << "Description:\n";
+			refLog.get(LOG_DEBUG) << _description << "\n";
+			refLog.get(LOG_DEBUG) << "\n";
+		}
 		if (!_defaultScript.empty())
 		{
 			refLog.get(LOG_DEBUG) << "Script default implementation:\n";
