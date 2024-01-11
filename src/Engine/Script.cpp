@@ -175,6 +175,15 @@ static inline RetEnum wavegen_tri_h(int& reg, const int& period, const int& size
 }
 
 [[gnu::always_inline]]
+static inline RetEnum wavegen_sin_h(int& reg, const int& period, const int& size)
+{
+	if (period <= 0)
+		return RetError;
+	reg = size * std::sin(2.0 * M_PI *  reg / period);
+	return RetContinue;
+}
+
+[[gnu::always_inline]]
 static inline RetEnum call_func_h(ScriptWorkerBase& c, ScriptFunc func, const Uint8* d, ProgPos& p)
 {
 	auto t = p;
@@ -245,6 +254,7 @@ static inline RetEnum bit_popcount_h(int& reg)
 	IMPL(wavegen_rect,	MACRO_QUOTE({ return wavegen_rect_h(Reg0, Period1, Size2, Max3);				}),		(int& Reg0, int Period1, int Size2, int Max3),		"Square wave function, arg1 - argument and result, arg2 - period, arg3 - length of square, arg4 - height of square") \
 	IMPL(wavegen_saw,	MACRO_QUOTE({ return wavegen_saw_h(Reg0, Period1, Size2, Max3);					}),		(int& Reg0, int Period1, int Size2, int Max3),		"Saw wave function, arg1 - argument and result, arg2 - period, arg3 - size of saw, arg4 - cap value") \
 	IMPL(wavegen_tri,	MACRO_QUOTE({ return wavegen_tri_h(Reg0, Period1, Size2, Max3);					}),		(int& Reg0, int Period1, int Size2, int Max3),		"Triangle wave function, arg1 - argument and result, arg2 - period, arg3 - size of triangle, arg4 - cap value") \
+	IMPL(wavegen_sin,	MACRO_QUOTE({ return wavegen_sin_h(Reg0, Period1, Size2);						}),		(int& Reg0, int Period1, int Size2),				"Sin wave function, arg1 - argument and result, arg2 - period, arg3 - size of amplitude") \
 	\
 	IMPL(get_color,		MACRO_QUOTE({ Reg0 = Data1 >> 4;							return RetContinue; }),		(int& Reg0, int Data1),		"Get color part to arg1 of pixel color in arg2") \
 	IMPL(set_color,		MACRO_QUOTE({ Reg0 = (Reg0 & 0xF) | (Data1 << 4);			return RetContinue; }),		(int& Reg0, int Data1),		"Set color part to pixel color in arg1") \
