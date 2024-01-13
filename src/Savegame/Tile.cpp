@@ -1207,13 +1207,27 @@ void subPositionScript(Position& a, Position v)
 	a -= v;
 }
 
-void mulPositionScript(Position& a, Position v)
+void mulByPositionScript(Position& a, Position v)
 {
 	a *= v;
 }
-void mulIntScript(Position& a, int v)
+
+void mulByIntScript(Position& a, int v)
 {
 	a *= v;
+}
+
+void mulDivByIntScript(Position& a, int v, int d)
+{
+	if (d)
+	{
+		// to avoid overflow on `Sint16` we multiply manually
+		a = { a.x * v / d, a.y * v / d, a.z * v / d };
+	}
+	else
+	{
+		a = {};
+	}
 }
 
 
@@ -1287,8 +1301,9 @@ void Tile::ScriptRegister(ScriptParserBase* parser)
 		rs.addField<&Position::y>("getY", "setY");
 		rs.addField<&Position::z>("getZ", "setZ");
 
-		rs.addFreeFunction<&mulIntScript>("mul");
-		rs.addFreeFunction<&mulPositionScript>("mul");
+		rs.addFreeFunction<&mulByIntScript>("mul");
+		rs.addFreeFunction<&mulDivByIntScript>("muldiv");
+		rs.addFreeFunction<&mulByPositionScript>("mul");
 		rs.addFreeFunction<&addPositionScript>("add");
 		rs.addFreeFunction<&subPositionScript>("sub");
 
