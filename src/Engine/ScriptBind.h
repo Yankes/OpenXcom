@@ -1537,6 +1537,12 @@ struct Bind : BindBase
 		addCustomFunc<helper::BindDebugDisplay<T, X>>("debug_impl", BindBase::functionInvisible);
 	}
 
+	template<auto X>
+	void addFreeFunction(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
+	{
+		addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(X)>>(func, description);
+	}
+
 	template<int X>
 	void addFake(const std::string& get)
 	{
@@ -1653,6 +1659,12 @@ struct BindValue : BindBase
 	}
 
 	template<auto X>
+	void addFreeFunction(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
+	{
+		addCustomFunc<helper::BindValueFunc<MACRO_CLANG_AUTO_HACK(X)>>(func, description);
+	}
+
+	template<auto X>
 	void add(const std::string& func, const std::string& description = BindBase::functionWithoutDescription)
 	{
 		addCustomFunc<helper::BindValueFunc<MACRO_CLANG_AUTO_HACK(X)>>(getName(func), description);
@@ -1666,7 +1678,7 @@ struct BindValue : BindBase
 	template<typename... Args>
 	void addConstructor(const std::string& description = BindBase::functionWithoutDescription)
 	{
-		addCustomFunc<helper::BindConstructor<T, Args...>>(getName("set"), description);
+		addCustomFunc<helper::BindConstructor<T, Args...>>("set", description);
 	}
 };
 
