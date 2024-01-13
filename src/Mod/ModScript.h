@@ -52,6 +52,7 @@ class MapScript;
 class RuleVideo;
 
 class Mod;
+class Position;
 class Tile;
 class BattleUnit;
 class BattleUnitVisibility;
@@ -182,6 +183,11 @@ class ModScript
 	struct SelectItemParser : ScriptParserEvents<Output, const BattleItem*, const SavedBattleGame*, int, int, int>
 	{
 		SelectItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
+	};
+
+	struct VaporParticleItemParser : ScriptParser<ScriptOutputArgs<int&, Position&, Position&, Position&, int&, int&, int&, int>, const BattleItem*, const BattleItem*, int, int, int, Position, Position, Position, RNG::RandomState*>
+	{
+		VaporParticleItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod);
 	};
 
 	struct TryPsiAttackItemParser : ScriptParserEvents<ScriptOutputArgs<int&>, const BattleItem*, const BattleUnit*, const BattleUnit*, const RuleSkill*, int, int, int, RNG::RandomState*, int, int, const SavedBattleGame*>
@@ -330,6 +336,7 @@ public:
 
 	using RecolorItemSprite = MACRO_NAMED_SCRIPT("recolorItemSprite", RecolorItemParser);
 	using SelectItemSprite = MACRO_NAMED_SCRIPT("selectItemSprite", SelectItemParser);
+	using VaporParticleItem = MACRO_NAMED_SCRIPT("vaporParticleItem", VaporParticleItemParser);
 
 	using ReactionWeaponAction = MACRO_NAMED_SCRIPT("reactionWeaponAction", ReactionUnitParser);
 
@@ -438,6 +445,7 @@ public:
 	using BattleItemScripts = ScriptGroup<Mod,
 		RecolorItemSprite,
 		SelectItemSprite,
+		VaporParticleItem,
 
 		ReactionWeaponAction,
 

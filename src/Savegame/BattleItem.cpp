@@ -31,6 +31,7 @@
 #include "../Engine/Script.h"
 #include "../Engine/ScriptBind.h"
 #include "../Engine/RNG.h"
+#include "../Battlescape/Particle.h"
 #include "../fmath.h"
 
 namespace OpenXcom
@@ -1616,6 +1617,51 @@ ModScript::SelectItemParser::SelectItemParser(ScriptGlobal* shared, const std::s
 
 	setDefault("add sprite_index sprite_offset; return sprite_index;");
 }
+
+ModScript::VaporParticleItemParser::VaporParticleItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParser{ shared, name,
+	"vapor_color",
+	"subvoxel_offset",
+	"subvoxel_velocity",
+	"subvoxel_acceleration",
+	"subvoxel_drift",
+	"particle_density",
+	"particle_lifetime",
+	"particle_number",
+
+	"weapon", "ammo", "particle_number_max", "subvoxel_trajectory_distance", "subvoxel_trajectory_distance_max", "subvoxel_trajectory_forward", "subvoxel_trajectory_right", "subvoxel_trajectory_up", "random" }
+{
+	BindBase b { this };
+
+	b.addCustomPtr<const Mod>("rules", mod);
+	b.addCustomConst("subvoxel_scale", Particle::SubVoxelAccuracy);
+
+	setEmptyReturn();
+	setDescription("alter default behavior of vapor particle");
+	setDefault(
+		"var int temp;\n"
+		"var int randPosMax;\n"
+		"var int randNegMax;\n"
+
+		"set randPosMax subvoxel_scale;\n"
+		"muldiv randPosMax 3 2;\n"
+		"sub randNegMax randPosMax;\n"
+
+
+		"random.randomRange temp randNegMax randPosMax;\n"
+		"subvoxel_offset.setX temp;\n"
+		"random.randomRange temp randNegMax randPosMax;\n"
+		"subvoxel_offset.setY temp;\n"
+		"random.randomRange temp randNegMax randPosMax;\n"
+		"subvoxel_offset.setZ temp;\n"
+
+		"set temp 320;\n"
+		"sub temp particle_density;\n"
+		"subvoxel_velocity.setZ temp;\n"
+
+		"return;"
+	);
+}
+
 
 ModScript::CreateItemParser::CreateItemParser(ScriptGlobal* shared, const std::string& name, Mod* mod) : ScriptParserEvents{ shared, name, "item", "unit", "battle_game", "turn", }
 {

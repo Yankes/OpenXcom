@@ -1189,11 +1189,35 @@ void makeDiscoveredScript(Tile *t, int i)
 	}
 }
 
-
 void getUnitScript(const Tile *t, const BattleUnit*& ret)
 {
 	ret = t ? t->getUnit() : nullptr;
 }
+
+
+
+
+void addPositionScript(Position& a, Position v)
+{
+	a += v;
+}
+
+void subPositionScript(Position& a, Position v)
+{
+	a -= v;
+}
+
+void mulPositionScript(Position& a, Position v)
+{
+	a *= v;
+}
+void mulIntScript(Position& a, int v)
+{
+	a *= v;
+}
+
+
+
 
 std::string debugDisplayScript(const Position* t)
 {
@@ -1263,6 +1287,10 @@ void Tile::ScriptRegister(ScriptParserBase* parser)
 		rs.addField<&Position::y>("getY", "setY");
 		rs.addField<&Position::z>("getZ", "setZ");
 
+		rs.addFreeFunction<&mulIntScript>("mul");
+		rs.addFreeFunction<&mulPositionScript>("mul");
+		rs.addFreeFunction<&addPositionScript>("add");
+		rs.addFreeFunction<&subPositionScript>("sub");
 
 		rs.addDebugValueDisplay<&debugDisplayScript>();
 	}
