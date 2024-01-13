@@ -45,7 +45,7 @@ namespace OpenXcom
  * @param targetVoxel Position the projectile is targeting.
  * @param ammo the ammo that produced this projectile, where applicable.
  */
-Projectile::Projectile(Mod *mod, SavedBattleGame *save, BattleAction action, Position origin, Position targetVoxel, BattleItem *ammo) : _mod(mod), _save(save), _action(action), _origin(origin), _targetVoxel(targetVoxel), _position(0), _distance(0.0f), _bulletSprite(-1), _reversed(false), _vaporColor(-1), _vaporDensity(-1), _vaporProbability(5)
+Projectile::Projectile(Mod *mod, SavedBattleGame *save, BattleAction action, Position origin, Position targetVoxel, BattleItem *ammo) : _mod(mod), _save(save), _action(action), _ammo(ammo), _origin(origin), _targetVoxel(targetVoxel), _position(0), _distance(0.0f), _bulletSprite(-1), _reversed(false), _vaporColor(-1), _vaporDensity(-1), _vaporProbability(5)
 {
 	// this is the number of pixels the sprite will move between frames
 	_speed = Options::battleFireSpeed;
@@ -54,13 +54,13 @@ Projectile::Projectile(Mod *mod, SavedBattleGame *save, BattleAction action, Pos
 		if (_action.type != BA_THROW)
 		{
 			// try to get all the required info from the ammo, if present
-			if (ammo)
+			if (_ammo)
 			{
-				_bulletSprite = ammo->getRules()->getBulletSprite();
-				_vaporColor = ammo->getRules()->getVaporColor(_save->getDepth());
-				_vaporDensity = ammo->getRules()->getVaporDensity(_save->getDepth());
-				_vaporProbability = ammo->getRules()->getVaporProbability(_save->getDepth());
-				_speed = std::max(1, _speed + ammo->getRules()->getBulletSpeed());
+				_bulletSprite = _ammo->getRules()->getBulletSprite();
+				_vaporColor = _ammo->getRules()->getVaporColor(_save->getDepth());
+				_vaporDensity = _ammo->getRules()->getVaporDensity(_save->getDepth());
+				_vaporProbability = _ammo->getRules()->getVaporProbability(_save->getDepth());
+				_speed = std::max(1, _speed + _ammo->getRules()->getBulletSpeed());
 			}
 
 			// no ammo, or the ammo didn't contain the info we wanted, see what the weapon has on offer.
@@ -446,6 +446,15 @@ void Projectile::applyAccuracy(Position origin, Position *target, double accurac
  */
 bool Projectile::move()
 {
+	if (_position == 0)
+	{
+		_distanceMax = 0;
+		for (std::size_t i = 0; i < _trajectory.size(); ++i)
+		{
+			_distanceMax += TileEngine::trajectoryStepSize(_trajectory, i);
+		}
+	}
+
 	for (int i = 0; i < _speed; ++i)
 	{
 		_position++;
@@ -457,9 +466,9 @@ bool Projectile::move()
 
 		_distance += TileEngine::trajectoryStepSize(_trajectory, _position);
 
-		if (_vaporColor != -1 && _action.type != BA_THROW && RNG::percent(_vaporProbability))
+		if (_vaporColor != -1 && _action.type != BA_THROW)
 		{
-			addVaporCloud();
+			addVaporCloud(i);
 		}
 	}
 	return true;
@@ -579,42 +588,86 @@ bool Projectile::isReversed() const
 /**
  * adds a cloud of vapor at the projectile's current position.
  */
-void Projectile::addVaporCloud()
+void Projectile::addVaporCloud(int segmentOffset)
 {
-	Position voxelPos = _trajectory.at(_position);
-	Position voxelPosShift = voxelPos;
-	Position voxelPosVel;
-	Position voxelPosAcc;
-	if (_position > 8)
+	RNG::RandomState rng = RNG::globalRandomState().subSequence();
+	if (rng.percent(_vaporProbability) == false)
 	{
-		auto s = (int)(std::sin(_distance/8) * 16);
-		auto c = (int)(std::cos(_distance/8) * 16);
-		auto diffPos = voxelPos - _trajectory.at(_position - 8);
-		auto leftDirection = Position(+diffPos.y, -diffPos.x, 0);
-		auto topDirection = Position(0, 0, 8);
-
-		voxelPosShift += (leftDirection * s + topDirection * c) / 16;
-		voxelPosVel = (leftDirection * c - topDirection * s) * 16;
-		voxelPosAcc = (leftDirection * s + topDirection * c) * -1;
+		return;
 	}
-	Position tilePos = voxelPos.toTile();
-	Position tilePosShift = voxelPosShift.toTile();
-	for (int i = 0; i != _vaporDensity / 2; ++i)
-	{
-		auto density = RNG::seedless(48, 224);
-		// approximation of old `int offset = RNG::seedless(0, 4) - 2;`
-		const int offset = Particle::SubVoxelAccuracy * 3 / 2;
-		Position subVoxelOffset;
-		Position subVoxelVelocity;
-		Position subVoxelAcceleration;
-		subVoxelOffset.x += RNG::seedless(-offset, +offset);
-		subVoxelOffset.y += RNG::seedless(-offset, +offset);
-		subVoxelOffset.z += RNG::seedless(-offset, +offset);
-		subVoxelVelocity.z = (320-density);
-		subVoxelAcceleration.z = -Particle::SubVoxelAccuracy / 10;
 
-		// approximation of old `_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);`
-		auto drift = Particle::SubVoxelAccuracy / 2;
+	Position subvoxelForwardDirection;
+	Position subvoxelRightDirection;
+	Position subvoxelUpDirection;
+
+	auto voxelPos = getPosition();
+	auto subvoxelPosFrom = getPosition(-4) * Particle::SubVoxelAccuracy;
+	auto subvoxelPosTo = getPosition(+4) * Particle::SubVoxelAccuracy;
+	auto subvoxelVector = subvoxelPosTo - subvoxelPosFrom;
+
+	if (subvoxelVector == Position())
+	{
+		// strange trajectory, use fixed directions
+		subvoxelForwardDirection.x = Particle::SubVoxelAccuracy;
+		subvoxelRightDirection.y = Particle::SubVoxelAccuracy;
+		subvoxelUpDirection.z = Particle::SubVoxelAccuracy;
+	}
+	else if (std::abs(subvoxelVector.x) < 2 &&std::abs(subvoxelVector.y) < 2)
+	{
+		// straight up trajectory
+		subvoxelForwardDirection.z = Particle::SubVoxelAccuracy;
+		subvoxelRightDirection.y = Particle::SubVoxelAccuracy;
+		subvoxelUpDirection.x = - Particle::SubVoxelAccuracy;
+	}
+	else
+	{
+		// normalize vectors
+		subvoxelForwardDirection = VectNormalize(subvoxelVector, Particle::SubVoxelAccuracy);
+
+		subvoxelUpDirection.z = Particle::SubVoxelAccuracy;
+
+		subvoxelRightDirection = VectNormalize(VectCrossProduct(subvoxelUpDirection, subvoxelForwardDirection, Particle::SubVoxelAccuracy), Particle::SubVoxelAccuracy);
+
+		subvoxelUpDirection = VectCrossProduct(subvoxelForwardDirection, subvoxelRightDirection, Particle::SubVoxelAccuracy);
+	}
+
+	ModScript::VaporParticleItem::Worker worker {
+		_action.weapon,
+		_ammo,
+		_vaporDensity,
+		(int)(_distance * Particle::SubVoxelAccuracy),
+		(int)(_distanceMax * Particle::SubVoxelAccuracy),
+		subvoxelForwardDirection,
+		subvoxelRightDirection,
+		subvoxelUpDirection,
+		&rng
+	};
+
+	auto tilePos = voxelPos.toTile();
+	for (int i = 0; i != _vaporDensity; ++i)
+	{
+		ModScript::VaporParticleItem::Output arg = {
+			_vaporColor, // "vapor_color",
+			Position{ }, // "subvoxel_offset",
+			Position{ }, // "subvoxel_velocity",
+			Position{ }, // "subvoxel_acceleration",
+			Particle::SubVoxelAccuracy / 2, // "subvoxel_drift",
+			rng.generate(48, 224), // "particle_density",
+			rng.generate(32, 44), // "particle_lifetime",
+//			100 * segmentOffset / _speed,
+			i, // "particle_number",
+		};
+
+		worker.execute(_action.weapon->getRules()->getScript<ModScript::VaporParticleItem>(), arg);
+//		if (_ammo && _action.weapon != _ammo) worker.execute(_ammo->getRules()->getScript<ModScript::VaporParticleItem>(), arg);
+
+		auto varporColor = std::get<0>(arg.data);
+		auto subVoxelOffset = std::get<1>(arg.data);
+		auto subVoxelVelocity = std::get<2>(arg.data);
+		auto subVoxelAcceleration = std::get<3>(arg.data);
+		auto drift = std::get<4>(arg.data);
+		auto density = std::get<5>(arg.data);
+		auto particleLifetime = std::get<6>(arg.data);
 
 		Uint8 size = 0;
 		//size is initialized at 0
@@ -631,48 +684,10 @@ void Projectile::addVaporCloud()
 			size = 1;
 		}
 
-		Particle particle = Particle(voxelPos, subVoxelOffset, subVoxelVelocity, subVoxelAcceleration, drift, _vaporColor - 1, RNG::seedless(13, 20), size);
+		Particle particle = Particle(voxelPos, subVoxelOffset, subVoxelVelocity, subVoxelAcceleration, drift, varporColor, particleLifetime, size);
 		Position tileOffset = particle.updateScreenPosition();
+//		if (rng.percent(100 - (100 * segmentOffset / _speed))) tileOffset += particle.updateScreenPosition();
 		_save->getBattleGame()->getMap()->addVaporParticle(tilePos + tileOffset, particle);
-	}
-
-	for (int i = 0; i != _vaporDensity / 2; ++i)
-	{
-		auto density = RNG::seedless(48, 224);
-		// approximation of old `int offset = RNG::seedless(0, 4) - 2;`
-		const int offset = Particle::SubVoxelAccuracy * 3 / 2;
-		Position subVoxelOffset;
-		Position subVoxelVelocity;
-		Position subVoxelAcceleration;
-		subVoxelOffset.x += RNG::seedless(-offset, +offset);
-		subVoxelOffset.y += RNG::seedless(-offset, +offset);
-		subVoxelOffset.z += RNG::seedless(-offset, +offset);
-		subVoxelVelocity.z = (320-density);
-		subVoxelVelocity += voxelPosVel;
-		subVoxelAcceleration.z = -Particle::SubVoxelAccuracy / 10;
-		subVoxelAcceleration += voxelPosAcc;
-
-		// approximation of old `_xOffset += (RNG::seedless(0,1)*2 -1)* (0.25 + (float)RNG::seedless(0,9)/30);`
-		auto drift = Particle::SubVoxelAccuracy / 2;
-
-		Uint8 size = 0;
-		//size is initialized at 0
-		if (density < 100)
-		{
-			size = 3;
-		}
-		else if (density < 125)
-		{
-			size = 2;
-		}
-		else if (density < 150)
-		{
-			size = 1;
-		}
-
-		Particle particle = Particle(voxelPosShift, subVoxelOffset, subVoxelVelocity, subVoxelAcceleration, drift, _vaporColor, RNG::seedless(32, 44), size);
-		Position tileOffset = particle.updateScreenPosition();
-		_save->getBattleGame()->getMap()->addVaporParticle(tilePosShift + tileOffset, particle);
 	}
 }
 
