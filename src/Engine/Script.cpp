@@ -651,6 +651,7 @@ enum TokenEnum
 	TokenSymbol,
 	TokenNumber,
 	TokenText,
+	TokenSubscript,
 };
 
 /**
@@ -1045,6 +1046,8 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 				if (i == '_' || i == '.')	r[i] |= CC_charRest;
 
 				if (i == '"')				r[i] |= CC_quote;
+
+				if (i == '[' || i == ']')	r[i] |= 0; //used but not have set CC
 			}
 			return r;
 		}
@@ -1256,9 +1259,12 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 			}
 		}
 	}
-	//symbol like `abcd` or `p12345`
+	//symbol like `abcd` or `p12345` or `abc[123]` or `abc[x.y].z`
 	else if (first.is(CC_charRest))
 	{
+		int numSquareBrackets = 0;
+		int numNormalChars = 1;
+
 		type = TokenSymbol;
 		while (const auto next = readCharacter())
 		{
@@ -1268,13 +1274,58 @@ SelectedToken ScriptRefTokens::getNextToken(TokenEnum excepted)
 				backCharacter();
 				break;
 			}
+			else if (next.c == '[')
+			{
+				// case like `a[1][2]` without any other symbol before next set of brackets
+				if (numNormalChars == 0)
+				{
+					type = TokenInvalid;
+					break;
+				}
+				// case line nested brackets `a[b[1]]`
+				if (numSquareBrackets > 0)
+				{
+					type = TokenInvalid;
+					break;
+				}
+
+				++numSquareBrackets;
+				numNormalChars = 0;
+				type = TokenSubscript;
+			}
+			else if (next.c == ']')
+			{
+				// case like unbalanced brackets `a]`
+				if (numSquareBrackets <= 0)
+				{
+					type = TokenInvalid;
+					break;
+				}
+				// case like empty brackets `a[]`
+				if (numNormalChars == 0)
+				{
+					type = TokenInvalid;
+					break;
+				}
+
+				numNormalChars = 0;
+				--numSquareBrackets;
+			}
 			else if (!next.is(CC_charRest | CC_digit))
 			{
 				type = TokenInvalid;
 				break;
 			}
+			else
+			{
+				++numNormalChars;
+			}
 		}
 
+		if (numSquareBrackets > 0)
+		{
+			type = TokenInvalid;
+		}
 	}
 	auto end = _begin;
 	return SelectedToken{ type, ScriptRef{ begin, end }, _linePos };
@@ -5068,6 +5119,26 @@ static auto dummyTestScriptRefTokens = ([]
 		}
 	}
 
+	{
+		ScriptRefTokens srt{"abc[10] dfg[vc] w[a.a].b"};
+		{
+			SelectedToken next = srt.getNextToken();
+			assert(next == ScriptRef{"abc[10]"} && next.getType() == TokenSubscript);
+		}
+		{
+			SelectedToken next = srt.getNextToken();
+			assert(next == ScriptRef{"dfg[vc]"} && next.getType() == TokenSubscript);
+		}
+		{
+			SelectedToken next = srt.getNextToken();
+			assert(next == ScriptRef{"w[a.a].b"} && next.getType() == TokenSubscript);
+		}
+		{
+			SelectedToken next = srt.getNextToken();
+			assert(next.getType() == TokenNone);
+		}
+	}
+
 	auto getType = [](ScriptRef ref, TokenEnum next = TokenNone)
 	{
 		ScriptRefTokens srt{ref.begin(), ref.end()};
@@ -5088,10 +5159,20 @@ static auto dummyTestScriptRefTokens = ([]
 	assert(getType(ScriptRef{" a"}) == TokenSymbol);
 	assert(getType(ScriptRef{" \na"}) == TokenSymbol);
 	assert(getType(ScriptRef{"a111"}) == TokenSymbol);
+	assert(getType(ScriptRef{"ab[b]"}) == TokenSubscript);
 
 
 	assert(getType(ScriptRef{"0x"}) == TokenInvalid);
 	assert(getType(ScriptRef{"0xk"}) == TokenInvalid);
+	assert(getType(ScriptRef{"["}) == TokenInvalid);
+	assert(getType(ScriptRef{"]"}) == TokenInvalid);
+	assert(getType(ScriptRef{"a]"}) == TokenInvalid);
+	assert(getType(ScriptRef{"]a"}) == TokenInvalid);
+	assert(getType(ScriptRef{"a["}) == TokenInvalid);
+	assert(getType(ScriptRef{"a[]"}) == TokenInvalid);
+	assert(getType(ScriptRef{"a[b][c]"}) == TokenInvalid);
+	assert(getType(ScriptRef{"a[b[c]]"}) == TokenInvalid);
+	assert(getType(ScriptRef{"2[2]"}) == TokenInvalid);
 
 	return 0;
 })();
