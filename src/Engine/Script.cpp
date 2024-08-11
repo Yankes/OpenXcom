@@ -721,6 +721,11 @@ public:
 					// look like `abc.def`
 					type = std::max(type, ArgUnknowSegment);
 				}
+				else if (c == '[' || c == ']')
+				{
+					// look like `abc[def]` or more complex `abc.def[ghi]`
+					type = std::max(type, ArgUnknowExpression);
+				}
 			}
 
 			return ScriptRefData{ *this, type };

@@ -192,6 +192,7 @@ enum ArgEnum : ArgEnumBase
 	ArgPlaceholder,
 	ArgUnknowSimple,
 	ArgUnknowSegment,
+	ArgUnknowExpression,
 	ArgInvalidMax,
 
 	ArgNull = ArgSpecSize * 1,
