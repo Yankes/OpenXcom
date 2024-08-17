@@ -730,6 +730,10 @@ public:
 
 			return ScriptRefData{ *this, type };
 		}
+		else if (getType() == TokenSubscript)
+		{
+			return ScriptRefData{ *this, ArgUnknowExpression };
+		}
 		else if (getType() == TokenText)
 		{
 			return ScriptRefData{ *this, ArgText, static_cast<const ScriptRef&>(*this) };
