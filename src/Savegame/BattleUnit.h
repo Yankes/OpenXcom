@@ -151,6 +151,7 @@ private:
 	std::vector<int> _loftempsSet;
 	Unit *_unitRules;
 	int _rankInt;
+	int _rankIntUnified = 0;
 	int _turretType;
 	int _breathFrame;
 	bool _breathing;
@@ -676,6 +677,8 @@ public:
 	void setRankInt(int rank);
 	/// get the rank integer
 	int getRankInt() const;
+	/// get the rank unified integer
+	int getRankIntUnified() const { return _rankIntUnified; };
 	/// derive a rank integer based on rank string (for xcom soldiers ONLY)
 	void deriveRank();
 	/// this function checks if a tile is visible, using maths.

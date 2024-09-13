@@ -229,7 +229,7 @@ void BattleUnit::updateArmorFromSoldier(const Mod *mod, Soldier *soldier, Armor 
 	}
 
 	int look = soldier->getGender() + 2 * soldier->getLook() + 8 * soldier->getLookVariant();
-	setRecolor(look, look, _rankInt);
+	setRecolor(look, look, _rankIntUnified);
 
 	prepareUnitSounds();
 	prepareUnitResponseSounds(mod);
@@ -459,6 +459,34 @@ BattleUnit::BattleUnit(const Mod *mod, Unit *unit, UnitFaction faction, int id, 
 
 	_statistics = new BattleUnitStatistics();
 
+	int _rankIntUnified = 0;
+	if (_originalFaction == FACTION_HOSTILE)
+	{
+		const int max = 7;
+		const char* rankList[max] =
+		{
+			"STR_LIVE_SOLDIER",
+			"STR_LIVE_ENGINEER",
+			"STR_LIVE_MEDIC",
+			"STR_LIVE_NAVIGATOR",
+			"STR_LIVE_LEADER",
+			"STR_LIVE_COMMANDER",
+			"STR_LIVE_TERRORIST",
+		};
+		for (int i = 0; i < max; ++i)
+		{
+			if (_rank.compare(rankList[i]) == 0)
+			{
+				_rankIntUnified = i;
+				break;
+			}
+		}
+	}
+	else if (_originalFaction == FACTION_NEUTRAL)
+	{
+		_rankIntUnified = RNG::seedless(0, 7);
+	}
+
 	updateArmorFromNonSoldier(mod, _armor, depth, false, sc);
 
 	if (_specab == SPECAB_NONE)
@@ -542,35 +570,7 @@ void BattleUnit::updateArmorFromNonSoldier(const Mod* mod, Armor* newArmor, int 
 		_stunlevel = 0;
 	}
 
-	int generalRank = 0;
-	if (_originalFaction == FACTION_HOSTILE)
-	{
-		const int max = 7;
-		const char* rankList[max] =
-		{
-			"STR_LIVE_SOLDIER",
-			"STR_LIVE_ENGINEER",
-			"STR_LIVE_MEDIC",
-			"STR_LIVE_NAVIGATOR",
-			"STR_LIVE_LEADER",
-			"STR_LIVE_COMMANDER",
-			"STR_LIVE_TERRORIST",
-		};
-		for (int i = 0; i < max; ++i)
-		{
-			if (_rank.compare(rankList[i]) == 0)
-			{
-				generalRank = i;
-				break;
-			}
-		}
-	}
-	else if (_originalFaction == FACTION_NEUTRAL)
-	{
-		generalRank = RNG::seedless(0, 7);
-	}
-
-	setRecolor(RNG::seedless(0, 127), RNG::seedless(0, 127), generalRank);
+	setRecolor(RNG::seedless(0, 127), RNG::seedless(0, 127), _rankIntUnified);
 
 	prepareUnitSounds();
 	prepareUnitResponseSounds(mod);
@@ -635,6 +635,7 @@ void BattleUnit::load(const YAML::Node &node, const Mod *mod, const ScriptGlobal
 	_killedBy = (UnitFaction)node["killedBy"].as<int>(_killedBy);
 	_moraleRestored = node["moraleRestored"].as<int>(_moraleRestored);
 	_rankInt = node["rankInt"].as<int>(_rankInt);
+	_rankIntUnified = node["rankIntUnified"].as<int>(_rankIntUnified);
 	_kills = node["kills"].as<int>(_kills);
 	_dontReselect = node["dontReselect"].as<bool>(_dontReselect);
 	_charging = 0;
@@ -744,6 +745,7 @@ YAML::Node BattleUnit::save(const ScriptGlobal *shared) const
 	node["turnsLeftSpottedForSnipers"] = _turnsLeftSpottedForSnipers;
 	node["turnsSinceStunned"] = _turnsSinceStunned;
 	node["rankInt"] = _rankInt;
+	node["rankIntUnified"] = _rankIntUnified;
 	node["moraleRestored"] = _moraleRestored;
 	if (getAIModule())
 	{
@@ -4774,6 +4776,7 @@ void BattleUnit::deriveRank()
 		default:             _rankInt = 0; break;
 		}
 	}
+	_rankIntUnified = _rankInt;
 }
 
 /**
