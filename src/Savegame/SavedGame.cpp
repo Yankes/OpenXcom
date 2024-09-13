@@ -3565,6 +3565,8 @@ void SavedGame::ScriptRegister(ScriptParserBase* parser)
 	sgg.add<&getRandomScript>("getRandomState");
 
 	sgg.add<&difficultyLevelScript>("difficultyLevel", "Get difficulty level");
+	sgg.add<&SavedGame::getMonthsPassed>("getMonthsPassed", "Number of months passed from start");
+	sgg.add<&SavedGame::getDaysPassed>("getDaysPassed", "Number of days passed from start");
 
 	sgg.add<&isResearchedScript>("isResearched");
 
