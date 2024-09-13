@@ -18,6 +18,7 @@
  */
 #include "RuleCraftWeapon.h"
 #include "Mod.h"
+#include "RuleItem.h"
 #include "../Engine/Logger.h"
 
 namespace OpenXcom

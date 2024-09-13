@@ -30,6 +30,7 @@
 #include "../Interface/Window.h"
 #include "../Mod/Mod.h"
 #include "../Mod/RuleResearch.h"
+#include "../Mod/RuleItem.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
 #include "../Savegame/ItemContainer.h"

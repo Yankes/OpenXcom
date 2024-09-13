@@ -25,15 +25,12 @@
 #include <array>
 #include <SDL.h>
 #include <yaml-cpp/yaml.h>
+#include "../Engine/Logger.h"
 #include "../Engine/Options.h"
 #include "../Engine/FileMap.h"
 #include "../Engine/Collections.h"
 #include "../Savegame/GameTime.h"
-#include "../Savegame/Soldier.h"
-#include "RuleDamageType.h"
-#include "RuleAlienMission.h"
 #include "RuleBaseFacilityFunctions.h"
-#include "RuleItem.h"
 
 namespace OpenXcom
 {
@@ -106,6 +103,9 @@ class ScriptGlobal;
 struct StatAdjustment;
 
 enum GameDifficulty : int;
+enum MissionObjective : Uint8;
+enum ItemDamageType : Uint8;
+enum SoldierRank : char;
 
 /**
  * Mod data used when loading resources
@@ -245,7 +245,7 @@ private:
 	int _escortRange, _drawEnemyRadarCircles;
 	bool _escortsJoinFightAgainstHK, _hunterKillerFastRetarget;
 	int _crewEmergencyEvacuationSurvivalChance, _pilotsEmergencyEvacuationSurvivalChance;
-	std::array<int, (size_t)(RANK_COMMANDER + 1)> _soldiersPerRank;
+	std::array<int, 6> _soldiersPerRank;
 	int _pilotAccuracyZeroPoint, _pilotAccuracyRange, _pilotReactionsZeroPoint, _pilotReactionsRange;
 	int _pilotBraveryThresholds[3];
 	int _performanceBonusFactor;

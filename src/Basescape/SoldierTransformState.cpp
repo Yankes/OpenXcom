@@ -33,6 +33,7 @@
 #include "../Mod/RuleSoldierTransformation.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/SavedGame.h"
+#include "../Savegame/Soldier.h"
 #include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom

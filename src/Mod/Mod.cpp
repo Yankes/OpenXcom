@@ -403,6 +403,7 @@ public:
 	ScriptValues<Mod>& getScriptValues() { return _scriptValues; }
 };
 
+
 /**
  * Creates an empty mod.
  */
@@ -439,6 +440,8 @@ Mod::Mod() :
 	_researchListOrder(0),  _manufactureListOrder(0), _soldierBonusListOrder(0), _transformationListOrder(0), _ufopaediaListOrder(0), _invListOrder(0), _soldierListOrder(0),
 	_modCurrent(0), _statePalette(0)
 {
+	static_assert(std::tuple_size_v<decltype(_soldiersPerRank)> == RANK_COMMANDER + 1, "Wrong array size");
+
 	_muteMusic = new Music();
 	_muteSound = new Sound();
 	_globe = new RuleGlobe();

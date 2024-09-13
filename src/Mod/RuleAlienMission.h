@@ -21,6 +21,7 @@
 #include <map>
 #include <string>
 #include <yaml-cpp/yaml.h>
+#include <SDL_stdinc.h>
 
 namespace OpenXcom
 {
@@ -112,7 +113,7 @@ struct MissionWave
 	int interruptPercentage;
 };
 
-enum MissionObjective { OBJECTIVE_SCORE, OBJECTIVE_INFILTRATION, OBJECTIVE_BASE, OBJECTIVE_SITE, OBJECTIVE_RETALIATION, OBJECTIVE_SUPPLY, OBJECTIVE_INSTANT_RETALIATION };
+enum MissionObjective : Uint8 { OBJECTIVE_SCORE, OBJECTIVE_INFILTRATION, OBJECTIVE_BASE, OBJECTIVE_SITE, OBJECTIVE_RETALIATION, OBJECTIVE_SUPPLY, OBJECTIVE_INSTANT_RETALIATION };
 
 /**
  * Stores fixed information about a mission type.

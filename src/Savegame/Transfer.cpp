@@ -23,6 +23,7 @@
 #include "ItemContainer.h"
 #include "../Engine/Language.h"
 #include "../Mod/Mod.h"
+#include "../Mod/RuleItem.h"
 #include "../Engine/Logger.h"
 
 namespace OpenXcom

@@ -20,6 +20,7 @@
 #include "ProductionCompleteState.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
+#include "../Mod/RuleItem.h"
 #include "../Mod/RuleManufacture.h"
 #include "../Engine/LocalizedText.h"
 #include "../Interface/TextButton.h"

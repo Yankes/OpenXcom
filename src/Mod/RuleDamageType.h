@@ -18,13 +18,14 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <yaml-cpp/yaml.h>
+#include <SDL_stdinc.h>
 #include "../Engine/Functions.h"
 
 namespace OpenXcom
 {
 
-enum ItemDamageType { DT_NONE, DT_AP, DT_IN, DT_HE, DT_LASER, DT_PLASMA, DT_STUN, DT_MELEE, DT_ACID, DT_SMOKE, DT_10, DT_11, DT_12, DT_13, DT_14, DT_15, DT_16, DT_17, DT_18, DT_19, DAMAGE_TYPES };
-enum ItemDamageRandomType
+enum ItemDamageType : Uint8 { DT_NONE, DT_AP, DT_IN, DT_HE, DT_LASER, DT_PLASMA, DT_STUN, DT_MELEE, DT_ACID, DT_SMOKE, DT_10, DT_11, DT_12, DT_13, DT_14, DT_15, DT_16, DT_17, DT_18, DT_19, DAMAGE_TYPES };
+enum ItemDamageRandomType : Uint8
 {
 	DRT_DEFAULT = 0,
 	DRT_UFO = 1,
