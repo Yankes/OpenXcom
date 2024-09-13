@@ -112,7 +112,7 @@ BattleUnit::BattleUnit(const Mod *mod, Soldier *soldier, int depth, const RuleSt
 
 	_statistics = new BattleUnitStatistics();
 
-	deriveRank();
+	deriveSoldierRank();
 
 	updateArmorFromSoldier(mod, soldier, soldier->getArmor(), depth, false, sc);
 }
@@ -229,7 +229,7 @@ void BattleUnit::updateArmorFromSoldier(const Mod *mod, Soldier *soldier, Armor 
 	}
 
 	int look = soldier->getGender() + 2 * soldier->getLook() + 8 * soldier->getLookVariant();
-	setRecolor(look, look, _rankInt);
+	setRecolor(look, look, _rankIntUnified);
 
 	prepareUnitSounds();
 	prepareUnitResponseSounds(mod);
@@ -459,6 +459,15 @@ BattleUnit::BattleUnit(const Mod *mod, Unit *unit, UnitFaction faction, int id, 
 
 	_statistics = new BattleUnitStatistics();
 
+	if (_originalFaction == FACTION_HOSTILE)
+	{
+		deriveHostileRank();
+	}
+	else if (_originalFaction == FACTION_NEUTRAL)
+	{
+		deriveNeutralRank();
+	}
+
 	updateArmorFromNonSoldier(mod, _armor, depth, false, sc);
 
 	if (_specab == SPECAB_NONE)
@@ -542,35 +551,7 @@ void BattleUnit::updateArmorFromNonSoldier(const Mod* mod, Armor* newArmor, int 
 		_stunlevel = 0;
 	}
 
-	int generalRank = 0;
-	if (_originalFaction == FACTION_HOSTILE)
-	{
-		const int max = 7;
-		const char* rankList[max] =
-		{
-			"STR_LIVE_SOLDIER",
-			"STR_LIVE_ENGINEER",
-			"STR_LIVE_MEDIC",
-			"STR_LIVE_NAVIGATOR",
-			"STR_LIVE_LEADER",
-			"STR_LIVE_COMMANDER",
-			"STR_LIVE_TERRORIST",
-		};
-		for (int i = 0; i < max; ++i)
-		{
-			if (_rank.compare(rankList[i]) == 0)
-			{
-				generalRank = i;
-				break;
-			}
-		}
-	}
-	else if (_originalFaction == FACTION_NEUTRAL)
-	{
-		generalRank = RNG::seedless(0, 7);
-	}
-
-	setRecolor(RNG::seedless(0, 127), RNG::seedless(0, 127), generalRank);
+	setRecolor(RNG::seedless(0, 127), RNG::seedless(0, 127), _rankIntUnified);
 
 	prepareUnitSounds();
 	prepareUnitResponseSounds(mod);
@@ -636,6 +617,7 @@ void BattleUnit::load(const YAML::YamlNodeReader& node, const Mod *mod, const Sc
 	reader.tryRead("turnsLeftSpottedForSnipers", _turnsLeftSpottedForSnipers);
 	reader.tryRead("turnsSinceStunned", _turnsSinceStunned);
 	reader.tryRead("rankInt", _rankInt);
+	reader.tryRead("rankIntUnified", _rankIntUnified);
 	reader.tryRead("moraleRestored", _moraleRestored);
 	reader.tryRead("killedBy", _killedBy);
 	reader.tryRead("kills", _kills);
@@ -743,6 +725,7 @@ void BattleUnit::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) c
 	writer.write("turnsLeftSpottedForSnipers", _turnsLeftSpottedForSnipers);
 	writer.write("turnsSinceStunned", _turnsSinceStunned);
 	writer.write("rankInt", _rankInt);
+	writer.write("rankIntUnified", _rankIntUnified);
 	writer.write("moraleRestored", _moraleRestored);
 	if (getAIModule())
 		getAIModule()->save(writer["AI"]);
@@ -4741,7 +4724,7 @@ int BattleUnit::getRankInt() const
  * Derive the numeric unit rank from the string rank
  * (for soldier units).
  */
-void BattleUnit::deriveRank()
+void BattleUnit::deriveSoldierRank()
 {
 	if (_geoscapeSoldier)
 	{
@@ -4756,6 +4739,41 @@ void BattleUnit::deriveRank()
 		default:             _rankInt = 0; break;
 		}
 	}
+	_rankIntUnified = _rankInt;
+}
+
+/**
+ * derive a rank integer based on rank string (for Alien)
+ */
+void BattleUnit::deriveHostileRank()
+{
+	const int max = 7;
+	const char* rankList[max] =
+	{
+		"STR_LIVE_SOLDIER",
+		"STR_LIVE_ENGINEER",
+		"STR_LIVE_MEDIC",
+		"STR_LIVE_NAVIGATOR",
+		"STR_LIVE_LEADER",
+		"STR_LIVE_COMMANDER",
+		"STR_LIVE_TERRORIST",
+	};
+	for (int i = 0; i < max; ++i)
+	{
+		if (_rank.compare(rankList[i]) == 0)
+		{
+			_rankIntUnified = i;
+			break;
+		}
+	}
+}
+
+/**
+ * derive a rank integer based on rank string (for Civilians)
+ */
+void BattleUnit::deriveNeutralRank()
+{
+	_rankIntUnified = RNG::seedless(0, 7);
 }
 
 /**
@@ -6267,6 +6285,7 @@ void BattleUnit::ScriptRegister(ScriptParserBase* parser)
 
 	bu.addField<&BattleUnit::_id>("getId");
 	bu.addField<&BattleUnit::_rankInt>("getRank");
+	bu.addField<&BattleUnit::_rankIntUnified>("getRankUnified");
 	bu.add<&getGenderScript>("getGender");
 	bu.add<&getLookScript>("getLook");
 	bu.add<&getLookVariantScript>("getLookVariant");

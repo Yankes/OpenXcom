@@ -71,6 +71,11 @@ float currentRank(const BattleUnit *unit)
 	return unit->getRankInt();
 }
 
+float currentRankUnified(const BattleUnit *unit)
+{
+	return unit->getRankIntUnified();
+}
+
 float currentTimeUnits(const BattleUnit *unit)
 {
 	return unit->getTimeUnits();
@@ -267,6 +272,7 @@ BonusStatData statDataMap[] =
 	{ "firingReactionsScaled", create2<&UnitStats::firing, &UnitStats::reactions, 10000>() },
 
 	{ "rank", create<&currentRank>() },
+	{ "rankUnified", create<&currentRankUnified>() },
 	{ "fatalWounds", create<&currentFatalWounds>() },
 
 	{ "healthCurrent", create<&currentHealth>() },
