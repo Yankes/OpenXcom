@@ -4784,11 +4784,20 @@ void dummyFunctionClass(const DummyClass* c)
 
 }
 
+struct TestEnv
+{
+	ScriptGlobal g = { };
+	ScriptParserTest f = { &g };
+	ScriptContainerBase tempScript = { };
+	ParserWriter help = { 0, tempScript, f };
+};
+
+
 [[maybe_unused]]
 static auto dummyTestScriptFunctionParser = ([]
 {
-	ScriptGlobal g;
-	ScriptParserTest f(&g);
+	TestEnv env;
+	ScriptParserTest& f = env.f;
 
 	f.addType<DummyClass*>("DummyClass");
 
@@ -4798,12 +4807,7 @@ static auto dummyTestScriptFunctionParser = ([]
 	bind.add<&dummyFunctionClass>("test3");
 
 
-	ScriptContainerBase tempScript;
-	ParserWriter help(
-		0,
-		tempScript,
-		f
-	);
+	ParserWriter& help = env.help;
 	help.addReg<DummyClass*&>(ScriptRef{"foo"});
 	help.addReg<DummyClass*&>(ScriptRef{"bar.a"});
 	help.addReg<DummyClass*&>(ScriptRef{"bar.b"});
@@ -4951,8 +4955,8 @@ void dummyFunctionSeperator3(int& i, int& j, int& k, ScriptArgSeparator)
 [[maybe_unused]]
 static auto dummyTestScriptOverloadSeperator = ([]
 {
-	ScriptGlobal g;
-	ScriptParserTest f(&g);
+	TestEnv env;
+	ScriptParserTest& f = env.f;
 
 	Bind<DummyClass> bind{ &f };
 	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionSeperator0)>>("funcSep");
@@ -4961,12 +4965,7 @@ static auto dummyTestScriptOverloadSeperator = ([]
 	bind.addCustomFunc<helper::BindFunc<MACRO_CLANG_AUTO_HACK(&dummyFunctionSeperator3)>>("funcSep");
 
 
-	ScriptContainerBase tempScript;
-	ParserWriter help(
-		0,
-		tempScript,
-		f
-	);
+	ParserWriter& help = env.help;
 	auto arg_x = help.addReg<int&>(ScriptRef{"x"});
 	auto arg_y = help.addReg<int&>(ScriptRef{"y"});
 	auto arg_z = help.addReg<int&>(ScriptRef{"z"});
