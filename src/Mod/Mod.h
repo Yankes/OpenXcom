@@ -245,7 +245,12 @@ private:
 	int _escortRange, _drawEnemyRadarCircles;
 	bool _escortsJoinFightAgainstHK, _hunterKillerFastRetarget;
 	int _crewEmergencyEvacuationSurvivalChance, _pilotsEmergencyEvacuationSurvivalChance;
+
+	std::map<std::string, int> _ranksAliens;
+	std::map<std::string, int> _ranksSoldiers;
+	std::map<std::string, int> _ranksCivilian;
 	std::array<int, 6> _soldiersPerRank;
+
 	int _pilotAccuracyZeroPoint, _pilotAccuracyRange, _pilotReactionsZeroPoint, _pilotReactionsRange;
 	int _pilotBraveryThresholds[3];
 	int _performanceBonusFactor;

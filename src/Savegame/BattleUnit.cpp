@@ -112,7 +112,7 @@ BattleUnit::BattleUnit(const Mod *mod, Soldier *soldier, int depth, const RuleSt
 
 	_statistics = new BattleUnitStatistics();
 
-	deriveRank();
+	deriveSoldierRank();
 
 	updateArmorFromSoldier(mod, soldier, soldier->getArmor(), depth, false, sc);
 }
@@ -459,32 +459,13 @@ BattleUnit::BattleUnit(const Mod *mod, Unit *unit, UnitFaction faction, int id, 
 
 	_statistics = new BattleUnitStatistics();
 
-	int _rankIntUnified = 0;
 	if (_originalFaction == FACTION_HOSTILE)
 	{
-		const int max = 7;
-		const char* rankList[max] =
-		{
-			"STR_LIVE_SOLDIER",
-			"STR_LIVE_ENGINEER",
-			"STR_LIVE_MEDIC",
-			"STR_LIVE_NAVIGATOR",
-			"STR_LIVE_LEADER",
-			"STR_LIVE_COMMANDER",
-			"STR_LIVE_TERRORIST",
-		};
-		for (int i = 0; i < max; ++i)
-		{
-			if (_rank.compare(rankList[i]) == 0)
-			{
-				_rankIntUnified = i;
-				break;
-			}
-		}
+		deriveHostileRank();
 	}
 	else if (_originalFaction == FACTION_NEUTRAL)
 	{
-		_rankIntUnified = RNG::seedless(0, 7);
+		deriveNeutralRank();
 	}
 
 	updateArmorFromNonSoldier(mod, _armor, depth, false, sc);
@@ -4761,7 +4742,7 @@ int BattleUnit::getRankInt() const
  * Derive the numeric unit rank from the string rank
  * (for soldier units).
  */
-void BattleUnit::deriveRank()
+void BattleUnit::deriveSoldierRank()
 {
 	if (_geoscapeSoldier)
 	{
@@ -4777,6 +4758,40 @@ void BattleUnit::deriveRank()
 		}
 	}
 	_rankIntUnified = _rankInt;
+}
+
+/**
+ * derive a rank integer based on rank string (for Alien)
+ */
+void BattleUnit::deriveHostileRank()
+{
+	const int max = 7;
+	const char* rankList[max] =
+	{
+		"STR_LIVE_SOLDIER",
+		"STR_LIVE_ENGINEER",
+		"STR_LIVE_MEDIC",
+		"STR_LIVE_NAVIGATOR",
+		"STR_LIVE_LEADER",
+		"STR_LIVE_COMMANDER",
+		"STR_LIVE_TERRORIST",
+	};
+	for (int i = 0; i < max; ++i)
+	{
+		if (_rank.compare(rankList[i]) == 0)
+		{
+			_rankIntUnified = i;
+			break;
+		}
+	}
+}
+
+/**
+ * derive a rank integer based on rank string (for Civilians)
+ */
+void BattleUnit::deriveNeutralRank()
+{
+	_rankIntUnified = RNG::seedless(0, 7);
 }
 
 /**
@@ -6288,6 +6303,7 @@ void BattleUnit::ScriptRegister(ScriptParserBase* parser)
 
 	bu.addField<&BattleUnit::_id>("getId");
 	bu.addField<&BattleUnit::_rankInt>("getRank");
+	bu.addField<&BattleUnit::_rankIntUnified>("getRankUnified");
 	bu.add<&getGenderScript>("getGender");
 	bu.add<&getLookScript>("getLook");
 	bu.add<&getLookVariantScript>("getLookVariant");
