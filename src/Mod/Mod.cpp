@@ -2115,7 +2115,10 @@ static void throwModOnErrorHelper(const std::string& modId, const std::string& e
  */
 void Mod::loadAll()
 {
+	auto startTicks = SDL_GetTicks();
 	ModScript parser{ _scriptGlobal, this };
+	Log(LOG_INFO) << SDL_GetTicks() - startTicks;
+
 	const auto& mods = FileMap::getRulesets();
 
 	Log(LOG_INFO) << "Loading begins...";
