@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <list>
 #include "../Engine/Yaml.h"
 #include "../Mod/RuleBaseFacilityFunctions.h"
 

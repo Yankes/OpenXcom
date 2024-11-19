@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <istream>
+#include <memory>
 #include <unordered_set>
 #include "../Engine/Yaml.h"
 #include "../Engine/CrossPlatform.h"

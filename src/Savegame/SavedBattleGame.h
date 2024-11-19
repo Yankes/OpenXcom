@@ -19,6 +19,7 @@
  */
 #include <vector>
 #include <string>
+#include <list>
 #include "../Engine/Yaml.h"
 #include "Tile.h"
 #include "../Mod/AlienDeployment.h"
