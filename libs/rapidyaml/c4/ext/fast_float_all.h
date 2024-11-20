@@ -17,9 +17,9 @@
 // MIT License Notice
 //
 //    MIT License
-//    
+//
 //    Copyright (c) 2021 The fast_float authors
-//    
+//
 //    Permission is hereby granted, free of charge, to any
 //    person obtaining a copy of this software and associated
 //    documentation files (the "Software"), to deal in the
@@ -29,11 +29,11 @@
 //    the Software, and to permit persons to whom the Software
 //    is furnished to do so, subject to the following
 //    conditions:
-//    
+//
 //    The above copyright notice and this permission notice
 //    shall be included in all copies or substantial portions
 //    of the Software.
-//    
+//
 //    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
 //    ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
 //    TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
@@ -417,7 +417,7 @@ value128 full_multiplication(uint64_t a, uint64_t b) {
   answer.high = __umulh(a, b);
   answer.low = a * b;
 #elif defined(FASTFLOAT_32BIT) || (defined(_WIN64) && !defined(__clang__))
-  answer.low = _umul128(a, b, &answer.high); // _umul128 not available on ARM64
+  answer.low = _umul128(a, b, (unsigned __int64 *)&answer.high); // _umul128 not available on ARM64
 #elif defined(FASTFLOAT_64BIT) && defined(__SIZEOF_INT128__)
   __uint128_t r = ((__uint128_t)a) * b;
   answer.low = uint64_t(r);
@@ -820,7 +820,7 @@ struct int_luts {
   static constexpr uint64_t min_safe_u64[] = {
     9223372036854775808ull, 12157665459056928801ull, 4611686018427387904, 7450580596923828125, 4738381338321616896,
     3909821048582988049, 9223372036854775808ull, 12157665459056928801ull, 10000000000000000000ull, 5559917313492231481,
-    2218611106740436992, 8650415919381337933, 2177953337809371136, 6568408355712890625, 1152921504606846976, 
+    2218611106740436992, 8650415919381337933, 2177953337809371136, 6568408355712890625, 1152921504606846976,
     2862423051509815793, 6746640616477458432, 15181127029874798299ull, 1638400000000000000, 3243919932521508681,
     6221821273427820544, 11592836324538749809ull, 876488338465357824, 1490116119384765625, 2481152873203736576,
     4052555153018976267, 6502111422497947648, 10260628712958602189ull, 15943230000000000000ull, 787662783788549761,
@@ -845,7 +845,7 @@ fastfloat_really_inline
 constexpr size_t max_digits_u64(int base) { return int_luts<>::maxdigits_u64[base - 2]; }
 
 // If a u64 is exactly max_digits_u64() in length, this is
-// the value below which it has definitely overflowed. 
+// the value below which it has definitely overflowed.
 fastfloat_really_inline
 constexpr uint64_t min_safe_u64(int base) { return int_luts<>::min_safe_u64[base - 2]; }
 
@@ -1064,7 +1064,7 @@ fastfloat_really_inline FASTFLOAT_CONSTEXPR20
 bool simd_parse_if_eight_digits_unrolled(const char16_t* chars, uint64_t& i) noexcept {
   if (cpp20_and_in_constexpr()) {
     return false;
-  }   
+  }
 #ifdef FASTFLOAT_SSE2
 FASTFLOAT_SIMD_DISABLE_WARNINGS
   const __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(chars));
@@ -1083,7 +1083,7 @@ FASTFLOAT_SIMD_RESTORE_WARNINGS
 #elif defined(FASTFLOAT_NEON)
 FASTFLOAT_SIMD_DISABLE_WARNINGS
   const uint16x8_t data = vld1q_u16(reinterpret_cast<const uint16_t*>(chars));
-  
+
   // (x - '0') <= 9
   // http://0x80.pl/articles/simd-parsing-int-sequences.html
   const uint16x8_t t0 = vsubq_u16(data, vmovq_n_u16('0'));
@@ -1175,7 +1175,7 @@ parsed_number_string_t<UC> parse_number_string(UC const *p, UC const * pend, par
     if (fmt & FASTFLOAT_JSONFMT) {
       if (!is_integer(*p)) { // a sign must be followed by an integer
         return answer;
-      }    
+      }
     } else {
       if (!is_integer(*p) && (*p != decimal_point)) { // a sign must be followed by an integer or the dot
         return answer;
@@ -1226,7 +1226,7 @@ parsed_number_string_t<UC> parse_number_string(UC const *p, UC const * pend, par
     if (has_decimal_point && exponent == 0) {
       return answer;
     }
-  } 
+  }
   else if (digit_count == 0) { // we must have encountered at least one integer!
     return answer;
   }
@@ -1327,7 +1327,7 @@ template <typename T, typename UC>
 fastfloat_really_inline FASTFLOAT_CONSTEXPR20
 from_chars_result_t<UC> parse_int_string(UC const* p, UC const* pend, T& value, int base) {
   from_chars_result_t<UC> answer;
-  
+
   UC const* const first = p;
 
   bool negative = (*p == UC('-'));
@@ -1347,7 +1347,7 @@ from_chars_result_t<UC> parse_int_string(UC const* p, UC const* pend, T& value, 
   UC const* const start_num = p;
 
   while (p!= pend && *p == UC('0')) {
-    ++p; 
+    ++p;
   }
 
   const bool has_leading_zeros = p > start_num;
@@ -1364,9 +1364,9 @@ from_chars_result_t<UC> parse_int_string(UC const* p, UC const* pend, T& value, 
       break;
     }
     i = uint64_t(base) * i + digit; // might overflow, check this later
-    p++; 
+    p++;
   }
-  
+
   size_t digit_count = size_t(p - start_digits);
 
   if (digit_count == 0) {
@@ -1379,7 +1379,7 @@ from_chars_result_t<UC> parse_int_string(UC const* p, UC const* pend, T& value, 
       answer.ec = std::errc::invalid_argument;
       answer.ptr = first;
     }
-    return answer; 
+    return answer;
   }
 
   answer.ptr = p;
@@ -1407,7 +1407,7 @@ from_chars_result_t<UC> parse_int_string(UC const* p, UC const* pend, T& value, 
   if (negative) {
 #ifdef FASTFLOAT_VISUAL_STUDIO
 #pragma warning(push)
-#pragma warning(disable: 4146) 
+#pragma warning(disable: 4146)
 #endif
     // this weird workaround is required because:
     // - converting unsigned to signed when its value is greater than signed max is UB pre-C++23.
@@ -3508,7 +3508,7 @@ struct from_chars_caller<std::float32_t>
   FASTFLOAT_CONSTEXPR20
   static from_chars_result_t<UC> call(UC const * first, UC const * last,
                                       std::float32_t &value, parse_options_t<UC> options) noexcept{
-    // if std::float32_t is defined, and we are in C++23 mode; macro set for float32; 
+    // if std::float32_t is defined, and we are in C++23 mode; macro set for float32;
     // set value to float due to equivalence between float and float32_t
     float val;
     auto ret = from_chars_advanced(first, last, val, options);
