@@ -2645,8 +2645,10 @@ bool parseDummy(const ScriptProcData& spd, ParserWriter& ph, const ScriptRefData
 template<typename R>
 void addSortHelper(std::vector<R>& vec, R value)
 {
-	vec.push_back(value);
-	std::sort(vec.begin(), vec.end(), [](const R& a, const R& b) { return ScriptRef::compare(a.name, b.name) < 0; });
+	// skip some early allocations that will be overridden right after
+	if (vec.capacity() == 0)
+		vec.reserve(100);
+	vec.insert(std::partition_point(vec.begin(), vec.end(), [&](const R& a) { return ScriptRef::compare(a.name, value.name) <= 0; }), value);
 }
 
 template<bool upper, typename R>
