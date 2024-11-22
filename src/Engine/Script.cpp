@@ -694,16 +694,12 @@ public:
 	{
 		if (getType() == TokenNumber)
 		{
-			auto str = toString();
-			int value = 0;
-			size_t offset = 0;
-			std::stringstream ss(str);
-			if (str[0] == '-' || str[0] == '+')
-				offset = 1;
-			if (str.size() > 2 + offset && str[offset] == '0' && (str[offset + 1] == 'x' || str[offset + 1] == 'X'))
-				ss >> std::hex;
-			if ((ss >> value))
-				return ScriptRefData{ *this, ArgInt, value };
+			c4::csubstr str(this->begin(), this->end());
+			if (str.begins_with('+'))
+				str = str.sub(1);
+			int val;
+			if (c4::from_chars(str, &val))
+				return ScriptRefData{*this, ArgInt, val};
 		}
 		else if (getType() == TokenSymbol)
 		{
