@@ -3533,27 +3533,16 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 {
 	T *rule = 0;
 
-	auto getNode = [&](const YAML::YamlNodeReader& i, const std::string& nodeName)
+	auto getDescriptionNode = [&](const YAML::YamlNodeReader& r)
 	{
-		auto n = i[ryml::to_csubstr(nodeName)];
-		return std::make_tuple(nodeName, std::move(n), !!n);
+		return ryml::formatrs<std::string>("'{}' at line {}", r.readKey<ryml::csubstr>(), r.getLocationInFile().line);
 	};
-	auto haveNode = [&](const std::tuple<std::string, YAML::YamlNodeReader, bool>& nn)
+	auto getNameFromNode = [&](const YAML::YamlNodeReader& r)
 	{
-		return std::get<bool>(nn);
-	};
-	auto getDescriptionNode = [&](const std::tuple<std::string, YAML::YamlNodeReader, bool>& nn)
-	{
-		size_t line = std::get<YAML::YamlNodeReader>(nn).getLocationInFile().line;
-		return std::string("'") + std::get<std::string>(nn) + "' at line " + std::to_string(line);
-	};
-	auto getNameFromNode = [&](const std::tuple<std::string, YAML::YamlNodeReader, bool>& nn)
-	{
-		auto name = std::get<YAML::YamlNodeReader>(nn).readVal<std::string>();
+		std::string name = r.readVal<std::string>();
 		if (isEmptyRuleName(name))
 		{
-			size_t line = std::get<YAML::YamlNodeReader>(nn).getLocationInFile().line;
-			throw Exception("Invalid value for main node '" + std::get<std::string>(nn) + "' at line " + std::to_string(line));
+			throw Exception(ryml::formatrs<std::string>("Invalid value for {}", getDescriptionNode(r)));
 		}
 		return name;
 	};
@@ -3566,33 +3555,20 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 		track.erase(static_cast<const void*>(t));
 	};
 
-	const auto defaultNode = getNode(reader, key);
-	const auto deleteNode = getNode(reader, YamlRuleNodeDelete);
-	const auto newNode = getNode(reader, YamlRuleNodeNew);
-	const auto overrideNode = getNode(reader, YamlRuleNodeOverride);
-	const auto updateNode = getNode(reader, YamlRuleNodeUpdate);
-	const auto ignoreNode = getNode(reader, YamlRuleNodeIgnore);
+	const auto& defaultNode = reader[ryml::to_csubstr(key)];
+	const auto& deleteNode = reader[ryml::to_csubstr(YamlRuleNodeDelete)];
+	const auto& newNode = reader[ryml::to_csubstr(YamlRuleNodeNew)];
+	const auto& overrideNode = reader[ryml::to_csubstr(YamlRuleNodeOverride)];
+	const auto& updateNode = reader[ryml::to_csubstr(YamlRuleNodeUpdate)];
+	const auto& ignoreNode = reader[ryml::to_csubstr(YamlRuleNodeIgnore)];
 
+	// check for duplicates
+	if ((!!defaultNode + !!deleteNode + !!newNode + !!overrideNode + !!updateNode + !!ignoreNode) > 1)
 	{
-		// check for duplicates
-		const std::tuple<std::string, YAML::YamlNodeReader, bool>* last = nullptr;
-		for (auto* p : { &defaultNode, &deleteNode, &newNode, &updateNode, &overrideNode, &ignoreNode })
-		{
-			if (haveNode(*p))
-			{
-				if (last)
-				{
-					throw Exception("Conflict of main node " + getDescriptionNode(*last) + " and " + getDescriptionNode(*p));
-				}
-				else
-				{
-					last = p;
-				}
-			}
-		}
+		throw Exception(ryml::formatrs<std::string>("Rule at line {} can only have one of: {} / new / update / override / delete / ignore", reader.getLocationInFile().line, key));
 	}
 
-	if (haveNode(defaultNode))
+	if (defaultNode)
 	{
 		std::string type = getNameFromNode(defaultNode);
 
@@ -3617,7 +3593,7 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 		refNodeTestDeepth(reader, type, 0);
 		addTracking(_ruleLastUpdateTracking, rule);
 	}
-	else if (haveNode(deleteNode))
+	else if (deleteNode)
 	{
 		std::string type = getNameFromNode(deleteNode);
 
@@ -3638,7 +3614,7 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 			}
 		}
 	}
-	else if (haveNode(newNode))
+	else if (newNode)
 	{
 		std::string type = getNameFromNode(newNode);
 
@@ -3662,7 +3638,7 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 			addTracking(_ruleLastUpdateTracking, rule);
 		}
 	}
-	else if (haveNode(overrideNode))
+	else if (overrideNode)
 	{
 		std::string type = getNameFromNode(overrideNode);
 
@@ -3677,10 +3653,10 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 		}
 		else
 		{
-			checkForSoftError(true, type, "Rule named '" + type  + "' do not exist for " + getDescriptionNode(overrideNode), LOG_ERROR);
+			checkForSoftError(true, type, "Rule named '" + type  + "' does not exist for " + getDescriptionNode(overrideNode), LOG_ERROR);
 		}
 	}
-	else if (haveNode(updateNode))
+	else if (updateNode)
 	{
 		std::string type = getNameFromNode(updateNode);
 
@@ -3695,10 +3671,10 @@ T *Mod::loadRule(const YAML::YamlNodeReader& reader, std::map<std::string, T*> *
 		}
 		else
 		{
-			Log(LOG_INFO) << "Rule named '" << type  << "' do not exist for " << getDescriptionNode(updateNode);
+			Log(LOG_INFO) << "Rule named '" << type  << "' does not exist for " << getDescriptionNode(updateNode);
 		}
 	}
-	else if (haveNode(ignoreNode))
+	else if (ignoreNode)
 	{
 		// nothing to see there...
 	}
