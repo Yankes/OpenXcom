@@ -1367,8 +1367,8 @@ struct BindListLoopImpl<bool (*)(T*, V* v, Args...), Func, X...>
 		if (t)
 		{
 			auto& obj = BindMemberInvoke<X...>::f(t);
-			size_t limit = std::size(obj);
-			if ((size_t)curr < limit)
+			size_t l = std::size(obj);
+			if ((size_t)curr < l)
 			{
 				r = obj[curr];
 			}
@@ -1377,7 +1377,7 @@ struct BindListLoopImpl<bool (*)(T*, V* v, Args...), Func, X...>
 				r = nullptr;
 			}
 			++curr;
-			for (;(size_t)curr < limit; ++curr)
+			for (;(size_t)curr < l; ++curr)
 			{
 				if (Func(t, obj[curr], std::forward<Args>(args)...))
 				{
