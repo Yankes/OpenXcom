@@ -4849,7 +4849,7 @@ void sortIndex(std::vector<std::string>& index, std::map<std::string, RuleType*>
 	for (const auto& pair : map)
 		tempVector.push_back(&pair);
 	std::sort(tempVector.begin(), tempVector.end(), comparator);
-	for (int i = 0; i < index.size(); ++i)
+	for (size_t i = 0; i < index.size(); ++i)
 		index[i].assign(tempVector[i]->first);
 }
 

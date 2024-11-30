@@ -231,10 +231,10 @@ void SavedBattleGame::load(const YAML::YamlNodeReader& node, Mod *mod, SavedGame
 			calculateModuleMap();
 		}
 	}
-	for (const auto& node : reader["nodes"].children())
+	for (const auto& nodeConfig : reader["nodes"].children())
 	{
 		Node *n = new Node();
-		n->load(node);
+		n->load(nodeConfig);
 		_nodes.push_back(n);
 	}
 
