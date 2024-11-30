@@ -190,9 +190,9 @@ public:
 class YamlRootNodeReader : public YamlNodeReader
 {
 private:
-	std::unique_ptr<ryml::Tree> _tree;
-	std::unique_ptr<ryml::Parser> _parser;
 	std::unique_ptr<ryml::EventHandlerTree> _eventHandler;
+	std::unique_ptr<ryml::Parser> _parser;
+	std::unique_ptr<ryml::Tree> _tree;
 	std::string _fileName;
 
 	ryml::Location getLocationInFile(const ryml::ConstNodeRef& node) const;
@@ -273,9 +273,9 @@ public:
 class YamlRootNodeWriter : public YamlNodeWriter
 {
 private:
-	std::unique_ptr<ryml::Tree> _tree;
-	std::unique_ptr<ryml::Parser> _parser;
 	std::unique_ptr<ryml::EventHandlerTree> _eventHandler;
+	std::unique_ptr<ryml::Parser> _parser;
+	std::unique_ptr<ryml::Tree> _tree;
 
 public:
 	YamlRootNodeWriter();
