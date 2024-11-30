@@ -249,9 +249,9 @@ void SavedBattleGame::load(const YAML::YamlNodeReader& node, Mod *mod, SavedGame
 	unitIndex.reserve(_units.capacity());
 	itemIndex.reserve(_items.capacity() + _recoverConditional.capacity() + _recoverGuaranteed.capacity());
 
-	auto findUnitById = [&](const YAML::YamlNodeReader& reader) -> BattleUnit*
+	auto findUnitById = [&](const YAML::YamlNodeReader& r) -> BattleUnit*
 	{
-		int id = reader.readVal(-1);
+		int id = r.readVal(-1);
 		if (id == -1 || !unitIndex.count(id))
 			return nullptr;
 		return unitIndex.at(id);
@@ -558,14 +558,14 @@ void SavedBattleGame::save(YAML::YamlNodeWriter writer) const
 
 	size_t tileDataSize = Tile::serializationKey.totalBytes * _mapsize_z * _mapsize_y * _mapsize_x;
 	Uint8* tileData = (Uint8*) calloc(tileDataSize, 1);
-	Uint8* w = tileData;
+	Uint8* ptr = tileData;
 
 	for (int i = 0; i < _mapsize_z * _mapsize_y * _mapsize_x; ++i)
 	{
 		if (!_tiles[i].isVoid())
 		{
-			serializeInt(&w, Tile::serializationKey.index, i);
-			_tiles[i].saveBinary(&w);
+			serializeInt(&ptr, Tile::serializationKey.index, i);
+			_tiles[i].saveBinary(&ptr);
 		}
 		else
 		{

@@ -69,6 +69,8 @@ class YamlRootNodeWriter;
 struct YamlString
 {
 	std::string yaml;
+
+	YamlString() = default;
 	YamlString(std::string yamlString);
 };
 

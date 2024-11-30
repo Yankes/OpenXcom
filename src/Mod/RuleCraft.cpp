@@ -157,7 +157,7 @@ void RuleCraft::load(const YAML::YamlNodeReader& node, Mod *mod, const ModScript
 	if (const auto& types = reader["weaponTypes"])
 	{
 		size_t max = std::min(types.childrenCount(), (size_t)WeaponMax);
-		for (int i = 0; i < max; ++i)
+		for (size_t i = 0; i < max; ++i)
 		{
 			const auto& type = types[i];
 			if (type.hasVal())
