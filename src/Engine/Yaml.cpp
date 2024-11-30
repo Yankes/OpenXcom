@@ -51,7 +51,7 @@ C4_NORETURN void YamlErrorHandler::on_error(const char* msg, size_t len, ryml::L
 	std::string full_msg = c4::formatrs<std::string>(
 		"File:{} Line:{} Column:{} ERROR: {}",
 		loc.name, loc.line, loc.col, ryml::csubstr(msg, len));*/
-	throw Exception(msg); // This function must not return
+	throw Exception({msg, len}); // This function must not return
 }
 static void* s_allocate(size_t len, void* /*hint*/, void* this_)
 {
