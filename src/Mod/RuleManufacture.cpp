@@ -65,7 +65,7 @@ void RuleManufacture::load(const YAML::YamlNodeReader& node, Mod* mod)
 	reader.tryRead("spawnedPersonName", _spawnedPersonName);
 	if (reader["spawnedSoldier"])
 	{
-		_spawnedSoldier = reader["spawnedSoldier"].emitDescendants();
+		_spawnedSoldier.yaml = reader["spawnedSoldier"].emitDescendants().yaml + _spawnedSoldier.yaml;
 	}
 	reader.tryRead("transferTimes", _transferTimes);
 	reader.tryRead("listOrder", _listOrder);

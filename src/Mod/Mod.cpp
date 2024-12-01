@@ -3073,8 +3073,8 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		if (base)
 		{
 			if (isMapHelper(base))
-			{
-				destRef = base.emitDescendants();
+			{	//rapidyaml supports duplicate keys (the first key has priority)
+				destRef.yaml = base.emitDescendants().yaml + destRef.yaml;
 			}
 			else
 			{
