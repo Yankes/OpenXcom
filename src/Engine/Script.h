@@ -1100,7 +1100,7 @@ struct ScriptTypeData
  */
 struct ScriptValueData
 {
-	ScriptRawMemory<2*sizeof(void*)> data;
+	ScriptRawMemory<2*sizeof(void*)> data = { };
 	ArgEnum type = ArgInvalid;
 	Uint8 size = 0;
 
