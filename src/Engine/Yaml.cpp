@@ -209,6 +209,11 @@ const YamlString YamlNodeReader::emit() const
 
 const YamlString YamlNodeReader::emitDescendants() const
 {
+	return emitDescendants(YamlNodeReader());
+}
+
+const YamlString YamlNodeReader::emitDescendants(const YamlNodeReader& defaultValuesReader) const
+{
 	YAML::YamlRootNodeWriter writer;
 	if (isMap())
 		writer.setAsMap();
@@ -217,6 +222,10 @@ const YamlString YamlNodeReader::emitDescendants() const
 	else
 		return YamlString(std::string());
 	writer._tree->duplicate_children(_root->_tree.get(), _node.id(), writer._node.id(), ryml::NONE);
+	if (defaultValuesReader)
+		for (const ryml::ConstNodeRef& child : defaultValuesReader._node.cchildren())
+			if (writer._node.find_child(child.key()).invalid())
+				writer._tree.get()->duplicate(child.tree(), child.id(), writer._node.id(), writer._node.last_child().id());
 	return writer.emit();
 }
 

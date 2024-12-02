@@ -3074,7 +3074,7 @@ void Mod::loadFile(const FileMap::FileRecord &filerec, ModScript &parsers)
 		{
 			if (isMapHelper(base))
 			{
-				destRef = base.emitDescendants();
+				destRef = base.emitDescendants(YAML::YamlRootNodeReader(destRef, "(starting base template)"));
 			}
 			else
 			{

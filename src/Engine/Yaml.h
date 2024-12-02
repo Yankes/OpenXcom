@@ -173,6 +173,9 @@ public:
 	const YamlString emit() const;
 	/// Serializes the node's descendants to a YamlString
 	const YamlString emitDescendants() const;
+	/// Serializes the node's descendants, plus default values, to a YamlString
+	const YamlString emitDescendants(const YamlNodeReader& defaultValuesReader) const;
+
 	/// Returns an object that contains data on where the current node is located in the original yaml
 	ryml::Location getLocationInFile() const;
 
