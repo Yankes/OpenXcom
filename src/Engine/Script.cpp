@@ -4327,7 +4327,7 @@ void ScriptValuesBase::saveBase(YAML::YamlNodeWriter& writer, const ScriptGlobal
 {
 	bool hasTags = false; // We have to know whether the object has any tags before creating a "tags" child node in the yaml
 	for (size_t i = values.size(); i > 0 &&!hasTags; --i) // It's usually the last one
-		if (int v = getBase(i))
+		if (getBase(i))
 			hasTags = true;
 	if (!hasTags)
 		return;
