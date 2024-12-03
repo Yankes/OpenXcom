@@ -54,7 +54,7 @@ void RuleEvent::load(const YAML::YamlNodeReader& node)
 	reader.tryRead("spawnedPersonName", _spawnedPersonName);
 	if (reader["spawnedSoldier"])
 	{
-		_spawnedSoldier.yaml = reader["spawnedSoldier"].emitDescendants().yaml + _spawnedSoldier.yaml;
+		_spawnedSoldier = reader["spawnedSoldier"].emitDescendants();
 	}
 	reader.tryRead("everyMultiItemList", _everyMultiItemList);
 	reader.tryRead("everyItemList", _everyItemList);

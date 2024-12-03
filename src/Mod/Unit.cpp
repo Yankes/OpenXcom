@@ -70,7 +70,7 @@ void Unit::load(const YAML::YamlNodeReader& node, Mod *mod)
 	mod->loadNameNull(_type, _liveAlienName, reader["liveAlien"]);
 	if (reader["spawnedSoldier"])
 	{
-		_spawnedSoldier.yaml = reader["spawnedSoldier"].emitDescendants().yaml + _spawnedSoldier.yaml;
+		_spawnedSoldier = reader["spawnedSoldier"].emitDescendants();
 	}
 	reader.tryRead("race", _race);
 	reader.tryRead("showFullNameInAlienInventory", _showFullNameInAlienInventory);
