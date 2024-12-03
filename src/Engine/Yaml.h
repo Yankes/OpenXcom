@@ -535,7 +535,7 @@ template <class K, class V, class Less, class Alloc>
 void write(c4::yml::NodeRef* n, std::map<K, V, Less, Alloc> const& m)
 {
 	*n |= c4::yml::MAP;
-	for (NodeRef p : m)
+	for (auto const& C4_RESTRICT p : m)
 	{
 		auto ch = n->append_child();
 		ch << c4::yml::key(p.first);
