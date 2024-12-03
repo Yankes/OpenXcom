@@ -697,7 +697,7 @@ public:
 			c4::csubstr str(this->begin(), this->end());
 			if (str.begins_with('+'))
 				str = str.sub(1);
-			int val;
+			int val = 0;
 			if (c4::from_chars(str, &val))
 				return ScriptRefData{*this, ArgInt, val};
 		}
