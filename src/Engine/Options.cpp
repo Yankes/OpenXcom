@@ -1286,7 +1286,7 @@ bool save(const std::string &filename)
 		std::sort(sortedInfo.begin(), sortedInfo.end(), [](const OptionInfo& a, const OptionInfo& b) { return a.id() < b.id(); });
 		for (const auto& optionInfo : sortedInfo)
 		{
-			optionInfo.save(optionsWriter.alias());
+			optionInfo.save(optionsWriter);
 		}
 		yaml = writer.emit().yaml;
 	}

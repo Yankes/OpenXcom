@@ -197,7 +197,7 @@ void BattleItem::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) c
 	if (_XCOMProperty)
 		writer.write("XCOMProperty", _XCOMProperty);
 
-	_scriptValues.save(writer.alias(), shared);
+	_scriptValues.save(writer, shared);
 }
 
 /**

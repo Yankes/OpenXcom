@@ -59,7 +59,7 @@ void MovingTarget::load(const YAML::YamlNodeReader& reader)
 void MovingTarget::save(YAML::YamlNodeWriter writer) const
 {
 	writer.setAsMap();
-	Target::save(writer.alias());
+	Target::save(writer);
 	if (_dest)
 		_dest->saveId(writer["dest"]);
 	writer.write("speedLon", serializeDouble(_speedLon));

@@ -337,7 +337,7 @@ void Soldier::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) cons
 	if (!_transformationBonuses.empty())
 		writer.write("transformationBonuses", _transformationBonuses);
 
-	_scriptValues.save(writer.alias(), shared);
+	_scriptValues.save(writer, shared);
 }
 
 /**

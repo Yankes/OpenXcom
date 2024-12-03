@@ -339,7 +339,7 @@ void Craft::initFixedWeapons(const Mod* mod)
 void Craft::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) const
 {
 	writer.setAsMap();
-	MovingTarget::save(writer.alias());
+	MovingTarget::save(writer);
 	writer.write("type", _rules->getType());
 	writer.write("fuel", _fuel);
 	if (_excessFuel != 0)
@@ -352,7 +352,7 @@ void Craft::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) const
 			auto cwWriter = vectorWriter.write();
 			cwWriter.setAsMap();
 			if (w)
-				w->save(cwWriter.alias());
+				w->save(cwWriter);
 			else
 				cwWriter.write("type", "0");
 		});
@@ -384,7 +384,7 @@ void Craft::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) const
 	if (_skinIndex != 0)
 		writer.write("skinIndex", _skinIndex);
 
-	_scriptValues.save(writer.alias(), shared);
+	_scriptValues.save(writer, shared);
 }
 
 /**

@@ -253,7 +253,7 @@ void Ufo::finishLoading(const YAML::YamlNodeReader& reader, SavedGame &save)
 void Ufo::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared, bool newBattle) const
 {
 	writer.setAsMap();
-	MovingTarget::save(writer.alias());
+	MovingTarget::save(writer);
 	writer.write("type", _rules->getType());
 	writer.write("uniqueId", _uniqueId);
 	writer.write("missionWaveNumber", _missionWaveNumber);
@@ -299,7 +299,7 @@ void Ufo::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared, bool new
 	writer.write("fireCountdown", _fireCountdown);
 	writer.write("escapeCountdown", _escapeCountdown);
 
-	_scriptValues.save(writer.alias(), shared);
+	_scriptValues.save(writer, shared);
 }
 
 /**
@@ -309,7 +309,7 @@ void Ufo::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared, bool new
 void Ufo::saveId(YAML::YamlNodeWriter writer) const
 {
 	writer.setAsMap();
-	MovingTarget::saveId(writer.alias());
+	MovingTarget::saveId(writer);
 	// this is needed, because _id is NOT unique until the UFO is detected
 	// and UFOs can be referenced by other entities even before they are detected
 	// (e.g. when they escort other UFOs)

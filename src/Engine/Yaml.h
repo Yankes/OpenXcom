@@ -96,15 +96,15 @@ protected:
 
 public:
 	YamlNodeReader(); // vector demands a default constructor despite it never being used
+	YamlNodeReader(const YamlNodeReader& other);
+	YamlNodeReader(YamlNodeReader&& other) noexcept;
+	YamlNodeReader(const YamlRootNodeReader&) = delete; // no slicing allowed
+
 	YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node);
 	YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node, bool useIndex);
-	YamlNodeReader(YamlNodeReader&&) = default;
-	YamlNodeReader(const YamlRootNodeReader&) = delete; // no slicing allowed
 
 	/// Returns a copy of the current mapping container with O(1) access to the children. O(n) is spent building the index.
 	YamlNodeReader useIndex() const;
-	/// Explicit copy of node
-	YamlNodeReader alias() const;
 
 	/// Deserializes the value of the found child into the outputValue. If the node is invalid or the key doesn't exist, outputValue is set to defaultValue.
 	template <typename OutputType> // Name conflicts if renamed to "read"
@@ -200,13 +200,16 @@ private:
 
 	ryml::Location getLocationInFile(const ryml::ConstNodeRef& node) const;
 
-	void Parse(ryml::csubstr yaml, std::string fileName, bool withNodeLocations);
+	void Parse(ryml::csubstr yaml, std::string fileName, bool withNodeLocations, bool resolveReferences);
 
 public:
-	YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader = false);
-	YamlRootNodeReader(const RawData& data, std::string fileNameForError);
-	YamlRootNodeReader(const YamlString& yamlString, std::string description);
+	YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader = false, bool resolveReferences = true);
+	YamlRootNodeReader(const RawData& data, std::string fileNameForError, bool resolveReferences = true);
+	YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences = true);
 	YamlRootNodeReader(YamlRootNodeReader&&) = delete;
+
+	/// Returns base class to avoid slicing
+	YamlNodeReader sansRoot() const;
 
 	friend YamlNodeReader;
 	friend YamlRootNodeWriter;
@@ -221,13 +224,10 @@ protected:
 
 public:
 	YamlNodeWriter(const YamlRootNodeWriter* root, ryml::NodeRef node);
-	YamlNodeWriter(YamlNodeWriter&&) = default;
 	YamlNodeWriter(YamlRootNodeWriter&&) = delete; // no slicing allowed
 
 	/// Converts writer to a reader
 	YamlNodeReader toReader();
-	/// Explicit copy of node
-	YamlNodeWriter alias();
 
 	/// Adds a container child to the current sequence container
 	YamlNodeWriter write();
@@ -283,6 +283,8 @@ private:
 public:
 	YamlRootNodeWriter();
 	YamlRootNodeWriter(size_t bufferCapacity);
+	/// Returns base class to avoid slicing
+	YamlNodeWriter sansRoot();
 	YamlRootNodeWriter(YamlRootNodeWriter&&) = delete;
 
 	friend YamlNodeReader;

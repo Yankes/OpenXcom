@@ -61,7 +61,7 @@ void AlienBase::load(const YAML::YamlNodeReader& reader)
 void AlienBase::save(YAML::YamlNodeWriter writer) const
 {
 	writer.setAsMap();
-	Target::save(writer.alias());
+	Target::save(writer);
 
 	writer.write("pactCountry", _pactCountry);
 	writer.write("race", _race);

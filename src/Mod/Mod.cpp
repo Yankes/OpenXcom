@@ -2439,7 +2439,12 @@ void Mod::loadMod(const std::vector<FileMap::FileRecord> &rulesetFiles, ModScrip
 		}
 		catch (YAML::Exception &e)
 		{
-			throw Exception(filerec.fullpath + ": " + std::string(e.what()));
+			//convert YAML::Exception to OpenXcom::Exception
+			//if the exception message already contains full file path, then don't add it again
+			if (std::string_view(e.what()).find(filerec.fullpath) != std::string::npos)
+				throw Exception(e.what());
+			else
+				throw Exception(filerec.fullpath + ": " + std::string(e.what()));
 		}
 	}
 

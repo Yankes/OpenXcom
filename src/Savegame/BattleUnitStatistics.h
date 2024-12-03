@@ -63,8 +63,9 @@ struct BattleUnitKills
 	/// Load
 	void load(const YAML::YamlNodeReader& reader)
 	{
-		reader.tryRead("name", name);
-		reader.tryRead("type", type);
+		reader.tryRead("type", type); // The ones killed are usually hostiles, so read this first
+		if (type.empty())
+			reader.tryRead("name", name); // Can't have both type and name at the same time
 		reader.tryRead("rank", rank);
 		reader.tryRead("race", race);
 		reader.tryRead("weapon", weapon);

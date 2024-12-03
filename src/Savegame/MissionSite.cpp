@@ -65,7 +65,7 @@ void MissionSite::load(const YAML::YamlNodeReader& reader)
 void MissionSite::save(YAML::YamlNodeWriter writer) const
 {
 	writer.setAsMap();
-	Target::save(writer.alias());
+	Target::save(writer);
 
 	writer.write("type", _rules->getType());
 	writer.write("deployment", _deployment->getType());

@@ -357,7 +357,7 @@ bool Base::isOverlappingOrOverflowing()
 void Base::save(YAML::YamlNodeWriter writer) const
 {
 	writer.setAsMap();
-	Target::save(writer.alias());
+	Target::save(writer);
 	writer.write("facilities", _facilities,
 		[](YAML::YamlNodeWriter& vectorWriter, BaseFacility* f)
 		{ f->save(vectorWriter.write()); });

@@ -374,7 +374,7 @@ SaveInfo SavedGame::getSaveInfo(const std::string &file, Language *lang)
 void SavedGame::load(const std::string &filename, Mod *mod, Language *lang)
 {
 	std::string filepath = Options::getMasterUserFolder() + filename;
-	YAML::YamlRootNodeReader documents(filepath, false);
+	YAML::YamlRootNodeReader documents(filepath, false, false);
 
 	// Get brief save info
 	const auto& header = documents[0];
@@ -868,11 +868,11 @@ void SavedGame::save(const std::string &filename, Mod *mod) const
 	auto optionsWriter = writer["options"];
 	optionsWriter.setAsMap();
 	for (const auto& optionInfo : Options::getOptionInfo())
-		optionInfo.save(optionsWriter.alias());
+		optionInfo.save(optionsWriter);
 
 	if (_battleGame)
 		_battleGame->save(writer["battleGame"]);
-	_scriptValues.save(writer.alias(), mod->getScriptGlobal());
+	_scriptValues.save(writer.sansRoot(), mod->getScriptGlobal());
 
 	// concatenate header + separator + body
 	// per yaml standard, "bare documents" in a yaml "stream" can be separated by either a "document end" or "directives end" marker line

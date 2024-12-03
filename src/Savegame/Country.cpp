@@ -85,7 +85,7 @@ void Country::save(YAML::YamlNodeWriter writer, const ScriptGlobal* shared) cons
 	if (_newPact)
 		writer.write("newPact", _newPact);
 
-	_scriptValues.save(writer.alias(), shared);
+	_scriptValues.save(writer, shared);
 }
 
 /**

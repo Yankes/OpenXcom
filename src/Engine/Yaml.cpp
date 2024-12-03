@@ -79,6 +79,17 @@ YamlNodeReader::YamlNodeReader()
 {
 }
 
+YamlNodeReader::YamlNodeReader(const YamlNodeReader& other)
+	: _index(other._index ? std::make_unique<std::unordered_map<ryml::csubstr, ryml::id_type>>(*other._index) : nullptr),
+	  _node(other._node), _root(other._root), _invalid(other._invalid)
+{
+}
+
+YamlNodeReader::YamlNodeReader(YamlNodeReader&& other) noexcept
+	: _index(std::move(other._index)), _node(other._node), _root(other._root), _invalid(other._invalid)
+{
+}
+
 YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node)
 	: _node(node), _root(root), _invalid(node.invalid()), _index(nullptr)
 {
@@ -93,17 +104,12 @@ YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::Const
 	_index.reset(new std::unordered_map<ryml::csubstr, ryml::id_type>());
 	_index->reserve(_node.num_children());
 	for (const ryml::ConstNodeRef& childNode : _node.children())
-		(*_index)[childNode.key()] = childNode.id();
+		(*_index).emplace(childNode.key(), childNode.id());
 }
 
 YamlNodeReader YamlNodeReader::useIndex() const
 {
 	return YamlNodeReader(_root, _node, true);
-}
-
-YamlNodeReader YamlNodeReader::alias() const
-{
-	return YamlNodeReader(_root, _node);
 }
 
 std::vector<char> YamlNodeReader::readValBase64() const
@@ -257,26 +263,26 @@ void YamlNodeReader::throwTypeError(const ryml::ConstNodeRef& node, const ryml::
 	throw Exception(c4::formatrs<std::string>("{}:{}:{} ERROR: Could not deserialize value to type <{}>!", loc.name, loc.line, loc.col, ryml::csubstr(type.data(), type.size() - (type.back() == 0))));
 }
 
-YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
 {
 	RawData data = onlyInfoHeader ? CrossPlatform::getYamlSaveHeaderRaw(fullFilePath) : CrossPlatform::readFileRaw(fullFilePath);
 	ryml::csubstr str = ryml::csubstr((char*)data.data(), data.size());
 	if (onlyInfoHeader)
 		str = ryml::csubstr((char*)data.data(), str.find("\n---") + 1);
-	Parse(str, fullFilePath, true);
+	Parse(str, fullFilePath, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const RawData& data, std::string fileNameForError) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const RawData& data, std::string fileNameForError, bool resolveReferences) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
 {
-	Parse(ryml::csubstr((char*)data.data(), data.size()), fileNameForError, true);
+	Parse(ryml::csubstr((char*)data.data(), data.size()), fileNameForError, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
 {
-	Parse(ryml::to_csubstr(yamlString.yaml), description, false);
+	Parse(ryml::to_csubstr(yamlString.yaml), description, false, resolveReferences);
 }
 
-void YamlRootNodeReader::Parse(ryml::csubstr yaml, std::string fileNameForError, bool withNodeLocations)
+void YamlRootNodeReader::Parse(ryml::csubstr yaml, std::string fileNameForError, bool withNodeLocations, bool resoleReferences)
 {
 	if (yaml.len > 3 && yaml.first(3) == "\xEF\xBB\xBF") // skip UTF-8 BOM
 		yaml = yaml.offs(3, 0);
@@ -285,10 +291,16 @@ void YamlRootNodeReader::Parse(ryml::csubstr yaml, std::string fileNameForError,
 	_fileName = fileNameForError;
 	_tree->reserve(yaml.len / 16);
 	ryml::parse_in_arena(_parser.get(), ryml::to_csubstr(_fileName), yaml, _tree.get());
-	_tree->resolve();
+	if (resoleReferences)
+		_tree->resolve();
 	_node = _tree->crootref();
 	_root = this;
 	_invalid = _node.invalid();
+}
+
+YamlNodeReader YamlRootNodeReader::sansRoot() const
+{
+	return YamlNodeReader(this, _node);
 }
 
 ryml::Location YamlRootNodeReader::getLocationInFile(const ryml::ConstNodeRef& node) const
@@ -312,11 +324,6 @@ YamlNodeWriter::YamlNodeWriter(const YamlRootNodeWriter* root, ryml::NodeRef nod
 YamlNodeReader YamlNodeWriter::toReader()
 {
 	return YamlNodeReader(nullptr, _node);
-}
-
-YamlNodeWriter YamlNodeWriter::alias()
-{
-	return YamlNodeWriter(_root, _node);
 }
 
 YamlNodeWriter YamlNodeWriter::write()
@@ -388,6 +395,11 @@ YamlRootNodeWriter::YamlRootNodeWriter() : YamlNodeWriter(this, {}), _eventHandl
 YamlRootNodeWriter::YamlRootNodeWriter(size_t bufferCapacity) : YamlNodeWriter(this, {}), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree(0, bufferCapacity))
 {
 	_node = _tree->rootref();
+}
+
+YamlNodeWriter YamlRootNodeWriter::sansRoot()
+{
+	return YamlNodeWriter(this, _node);
 }
 
 } // namespace YAML end

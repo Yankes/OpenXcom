@@ -630,7 +630,7 @@ void BattleUnit::load(const YAML::YamlNodeReader& node, const Mod *mod, const Sc
 	reader.tryRead("expMana", _exp.mana);
 	reader.tryRead("expMelee", _exp.melee);
 	reader.tryRead("currStats", _stats);
-	reader.tryRead("turrentType", _turretType);
+	reader.tryRead("turretType", _turretType);
 	reader.tryRead("visible", _visible);
 	reader.tryRead("turnsSinceSpotted", _turnsSinceSpotted);
 	reader.tryRead("turnsLeftSpottedForSnipers", _turnsLeftSpottedForSnipers);
@@ -815,13 +815,13 @@ void BattleUnit::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) c
 		moveCostWriter.setAsMap();
 		moveCostWriter.setFlowStyle();
 		if (_moveCostBase != _armor->getMoveCostBase())
-			_moveCostBase.save(moveCostWriter.alias(), "basePercent");
+			_moveCostBase.save(moveCostWriter, "basePercent");
 		if (_moveCostBaseFly != _armor->getMoveCostBaseFly())
-			_moveCostBaseFly.save(moveCostWriter.alias(), "baseFlyPercent");
+			_moveCostBaseFly.save(moveCostWriter, "baseFlyPercent");
 		if (_moveCostBaseClimb != _armor->getMoveCostBaseClimb())
-			_moveCostBaseClimb.save(moveCostWriter.alias(), "baseClimbPercent");
+			_moveCostBaseClimb.save(moveCostWriter, "baseClimbPercent");
 		if (_moveCostBaseNormal != _armor->getMoveCostBaseNormal())
-			_moveCostBaseNormal.save(moveCostWriter.alias(), "baseNormalPercent");
+			_moveCostBaseNormal.save(moveCostWriter, "baseNormalPercent");
 	}
 	if (_vip)
 		writer.write("vip", _vip);
@@ -830,7 +830,7 @@ void BattleUnit::save(YAML::YamlNodeWriter writer, const ScriptGlobal *shared) c
 	if (!_meleeAttackedBy.empty())
 		writer.write("meleeAttackedBy", _meleeAttackedBy);
 
-	_scriptValues.save(writer.alias(), shared);
+	_scriptValues.save(writer, shared);
 }
 
 /**

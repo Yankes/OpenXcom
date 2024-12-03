@@ -614,7 +614,7 @@ void SavedBattleGame::save(YAML::YamlNodeWriter writer) const
 	writer.write("togglePersonalLight", _togglePersonalLight);
 	writer.write("toggleNightVision", _toggleNightVision);
 	writer.write("toggleBrightness", _toggleBrightness);
-	_scriptValues.save(writer.alias(), _rule->getScriptGlobal());
+	_scriptValues.save(writer, _rule->getScriptGlobal());
 }
 
 /**
