@@ -75,36 +75,25 @@ void setGlobalErrorHandler()
 YamlString::YamlString(std::string yamlString) : yaml(yamlString) {}
 
 YamlNodeReader::YamlNodeReader()
-	: _node(ryml::ConstNodeRef(nullptr, ryml::NONE)), _root(nullptr), _invalid(true), _index(nullptr)
-{
-}
-
-YamlNodeReader::YamlNodeReader(const YamlNodeReader& other)
-	: _index(other._index ? std::make_unique<std::unordered_map<ryml::csubstr, ryml::id_type>>(*other._index) : nullptr),
-	  _node(other._node), _root(other._root), _invalid(other._invalid)
-{
-}
-
-YamlNodeReader::YamlNodeReader(YamlNodeReader&& other) noexcept
-	: _index(std::move(other._index)), _node(other._node), _root(other._root), _invalid(other._invalid)
+	: _node(ryml::ConstNodeRef(nullptr, ryml::NONE)), _root(nullptr), _invalid(true)
 {
 }
 
 YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node)
-	: _node(node), _root(root), _invalid(node.invalid()), _index(nullptr)
+	: _node(node), _root(root), _invalid(node.invalid())
 {
 }
 
 YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node, bool useIndex)
-	: _node(node), _root(root), _invalid(node.invalid()), _index(nullptr)
+	: _node(node), _root(root), _invalid(node.invalid())
 {
 	if (!useIndex)
 		return;
 	// build and use an index to avoid [] operator's O(n) complexity
-	_index.reset(new std::unordered_map<ryml::csubstr, ryml::id_type>());
+	_index.emplace();
 	_index->reserve(_node.num_children());
 	for (const ryml::ConstNodeRef& childNode : _node.children())
-		(*_index).emplace(childNode.key(), childNode.id());
+		_index->emplace(childNode.key(), childNode.id());
 }
 
 YamlNodeReader YamlNodeReader::useIndex() const
@@ -263,7 +252,7 @@ void YamlNodeReader::throwTypeError(const ryml::ConstNodeRef& node, const ryml::
 	throw Exception(c4::formatrs<std::string>("{}:{}:{} ERROR: Could not deserialize value to type <{}>!", loc.name, loc.line, loc.col, ryml::csubstr(type.data(), type.size() - (type.back() == 0))));
 }
 
-YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
 {
 	RawData data = onlyInfoHeader ? CrossPlatform::getYamlSaveHeaderRaw(fullFilePath) : CrossPlatform::readFileRaw(fullFilePath);
 	ryml::csubstr str = ryml::csubstr((char*)data.data(), data.size());
@@ -272,12 +261,12 @@ YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHe
 	Parse(str, fullFilePath, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const RawData& data, std::string fileNameForError, bool resolveReferences) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const RawData& data, std::string fileNameForError, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
 {
 	Parse(ryml::csubstr((char*)data.data(), data.size()), fileNameForError, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences) : YamlNodeReader(), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
 {
 	Parse(ryml::to_csubstr(yamlString.yaml), description, false, resolveReferences);
 }
@@ -298,7 +287,7 @@ void YamlRootNodeReader::Parse(ryml::csubstr yaml, std::string fileNameForError,
 	_invalid = _node.invalid();
 }
 
-YamlNodeReader YamlRootNodeReader::sansRoot() const
+YamlNodeReader YamlRootNodeReader::toBase() const
 {
 	return YamlNodeReader(this, _node);
 }
@@ -387,17 +376,17 @@ YamlString YamlNodeWriter::emit()
 	return YamlString(ryml::emitrs_yaml<std::string>(_node));
 }
 
-YamlRootNodeWriter::YamlRootNodeWriter() : YamlNodeWriter(this, {}), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree())
+YamlRootNodeWriter::YamlRootNodeWriter() : YamlNodeWriter(this, {}), _tree(new ryml::Tree())
 {
 	_node = _tree->rootref();
 }
 
-YamlRootNodeWriter::YamlRootNodeWriter(size_t bufferCapacity) : YamlNodeWriter(this, {}), _eventHandler(nullptr), _parser(nullptr), _tree(new ryml::Tree(0, bufferCapacity))
+YamlRootNodeWriter::YamlRootNodeWriter(size_t bufferCapacity) : YamlNodeWriter(this, {}), _tree(new ryml::Tree(0, bufferCapacity))
 {
 	_node = _tree->rootref();
 }
 
-YamlNodeWriter YamlRootNodeWriter::sansRoot()
+YamlNodeWriter YamlRootNodeWriter::toBase()
 {
 	return YamlNodeWriter(this, _node);
 }

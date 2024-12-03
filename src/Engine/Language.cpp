@@ -187,7 +187,7 @@ void Language::getList(std::vector<std::string> &ids, std::vector<std::string> &
 void Language::loadFile(const FileMap::FileRecord *frec)
 {
 	const YAML::YamlRootNodeReader& reader = frec->getYAML();
-	YAML::YamlNodeReader langMap = reader[0].isMap() ? reader[0] : reader.sansRoot();
+	YAML::YamlNodeReader langMap = reader[0].isMap() ? reader[0] : reader.toBase();
 
 	for (const auto& langReader : langMap.children())
 	{

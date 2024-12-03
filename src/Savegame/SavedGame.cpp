@@ -872,7 +872,7 @@ void SavedGame::save(const std::string &filename, Mod *mod) const
 
 	if (_battleGame)
 		_battleGame->save(writer["battleGame"]);
-	_scriptValues.save(writer.sansRoot(), mod->getScriptGlobal());
+	_scriptValues.save(writer.toBase(), mod->getScriptGlobal());
 
 	// concatenate header + separator + body
 	// per yaml standard, "bare documents" in a yaml "stream" can be separated by either a "document end" or "directives end" marker line

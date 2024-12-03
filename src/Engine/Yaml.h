@@ -44,6 +44,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <optional>
 #include <c4/format.hpp>
 #include <c4/type_name.hpp>
 #include "../Engine/CrossPlatform.h"
@@ -88,7 +89,7 @@ protected:
 	ryml::ConstNodeRef _node;
 	const YamlRootNodeReader* _root;
 	bool _invalid;
-	std::unique_ptr<std::unordered_map<ryml::csubstr, ryml::id_type>> _index;
+	std::optional<std::unordered_map<ryml::csubstr, ryml::id_type>> _index;
 
 	ryml::ConstNodeRef getChildNode(const ryml::csubstr& key) const;
 	/// Throws an error when failed to parse a node's value into the expected type
@@ -96,8 +97,8 @@ protected:
 
 public:
 	YamlNodeReader(); // vector demands a default constructor despite it never being used
-	YamlNodeReader(const YamlNodeReader& other);
-	YamlNodeReader(YamlNodeReader&& other) noexcept;
+	YamlNodeReader(const YamlNodeReader& other) = default;
+	YamlNodeReader(YamlNodeReader&& other) noexcept = default;
 	YamlNodeReader(const YamlRootNodeReader&) = delete; // no slicing allowed
 
 	YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node);
@@ -209,7 +210,7 @@ public:
 	YamlRootNodeReader(YamlRootNodeReader&&) = delete;
 
 	/// Returns base class to avoid slicing
-	YamlNodeReader sansRoot() const;
+	YamlNodeReader toBase() const;
 
 	friend YamlNodeReader;
 	friend YamlRootNodeWriter;
@@ -224,6 +225,8 @@ protected:
 
 public:
 	YamlNodeWriter(const YamlRootNodeWriter* root, ryml::NodeRef node);
+	YamlNodeWriter(const YamlNodeWriter& other) = default;
+	YamlNodeWriter(YamlNodeWriter&& other) noexcept = default;
 	YamlNodeWriter(YamlRootNodeWriter&&) = delete; // no slicing allowed
 
 	/// Converts writer to a reader
@@ -283,14 +286,16 @@ private:
 public:
 	YamlRootNodeWriter();
 	YamlRootNodeWriter(size_t bufferCapacity);
-	/// Returns base class to avoid slicing
-	YamlNodeWriter sansRoot();
 	YamlRootNodeWriter(YamlRootNodeWriter&&) = delete;
+
+	/// Returns base class to avoid slicing
+	YamlNodeWriter toBase();
 
 	friend YamlNodeReader;
 	friend YamlNodeWriter;
 	friend YamlRootNodeReader;
 };
+
 
 /* Template implementations below  */
 
