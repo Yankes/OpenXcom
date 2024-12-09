@@ -1,6 +1,5 @@
-#pragma once
 /*
- * Copyright 2010-2016 OpenXcom Developers.
+ * Copyright 2010-2024 OpenXcom Developers.
  *
  * This file is part of OpenXcom.
  *
@@ -17,26 +16,28 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../Engine/Yaml.h"
-#include <vector>
-#include <string>
+# include "Position.h"
 
 namespace OpenXcom
 {
 
-class SoundDefinition
+// helper overloads for (de)serialization
+bool read(ryml::ConstNodeRef const& n, Position* val)
 {
-private:
-	std::string _type;
-	std::string _catFile;
-	std::vector<int> _soundList;
-public:
-	SoundDefinition(const std::string &type);
-	~SoundDefinition();
-	void load(const YAML::YamlNodeReader& reader);
-	const std::vector<int> &getSoundList() const;
-	std::string getCATFile() const;
-
-};
+	YAML::YamlNodeReader reader(nullptr, n);
+	val->x = reader[0].readVal<Sint16>();
+	val->y = reader[1].readVal<Sint16>();
+	val->z = reader[2].readVal<Sint16>();
+	return true;
+}
+void write(ryml::NodeRef* n, Position const& val)
+{
+	YAML::YamlNodeWriter writer(nullptr, *n);
+	writer.setAsSeq();
+	writer.setFlowStyle();
+	writer.write(val.x);
+	writer.write(val.y);
+	writer.write(val.z);
+}
 
 }
