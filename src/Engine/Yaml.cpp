@@ -515,6 +515,50 @@ bool read(ryml::ConstNodeRef const& n, std::string* str)
 	return true;
 }
 
+// for backwards compatibility, tuple should be serialized as sequences with n elements.
+template <class... T>
+bool read(ryml::ConstNodeRef const& n, std::tuple<T...>* tuple)
+{
+	if (!n.is_seq()) return false;
+
+	auto f = n.first_child();
+
+	std::apply(
+		[&](auto&& first, auto &&... args)
+		{
+
+			f >> first;
+
+			(
+				(f = f.next_sibling(), f >> args), ...
+			);
+		},
+		*tuple
+	);
+
+	return n.last_child() == f;
+}
+
+
+// array.
+template <typename T, std::size_t I>
+bool read(ryml::ConstNodeRef const& n, std::array<T, I>* array)
+{
+	if (!n.is_seq()) return false;
+
+	auto f = n.first_child();
+
+	f >> array->at(0);
+
+	for (size_t i = 1; i < std::size(*array); ++i)
+	{
+		f = f.next_sibling();
+		f >> (*array)[i];
+	}
+
+	return n.last_child() == f;
+}
+
 }
 
 namespace c4::yml
