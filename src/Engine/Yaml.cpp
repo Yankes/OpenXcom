@@ -18,9 +18,10 @@
  */
 
 #include "Yaml.h"
-#include "../Engine/CrossPlatform.h"
+#include "CrossPlatform.h"
 #include <string>
 #include <c4/format.hpp>
+#include <SDL_stdinc.h>
 
 namespace OpenXcom
 {

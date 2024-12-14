@@ -20,10 +20,17 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "../Engine/Yaml.h"
 
 namespace OpenXcom
 {
+
+namespace YAML
+{
+
+class YamlNodeReader;
+class YamlNodeWriter;
+
+}
 
 /**
  * String with normalized version number,

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <SDL_mixer.h>
 #include "../Engine/Adlib/adlplayer.h"
+#include "../Engine/Yaml.h"
 #include "../Engine/Logger.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"

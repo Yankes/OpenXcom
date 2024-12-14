@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <SDL_gfxPrimitives.h>
 #include <SDL_image.h>
+#include <SDL.h>
 #include "../lodepng.h"
 #include "Palette.h"
 #include "Exception.h"

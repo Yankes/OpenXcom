@@ -18,6 +18,7 @@
  */
 #include "AlienInventoryState.h"
 #include "AlienInventory.h"
+#include "../Engine/Yaml.h"
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Engine/LocalizedText.h"

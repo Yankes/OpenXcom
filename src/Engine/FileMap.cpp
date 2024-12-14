@@ -43,6 +43,7 @@
 #include <unordered_set>
 
 #include "FileMap.h"
+#include "Yaml.h"
 #include "Unicode.h"
 #include "Logger.h"
 #include "CrossPlatform.h"

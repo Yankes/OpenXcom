@@ -24,13 +24,20 @@
 #include <istream>
 #include <memory>
 #include <unordered_set>
-#include "../Engine/Yaml.h"
 #include "../Engine/CrossPlatform.h"
 #include <SDL_rwops.h>
 #include "ModInfo.h"
 
 namespace OpenXcom
 {
+
+namespace YAML
+{
+
+class YamlRootNodeReader;
+
+}
+
 
 /**
  * Maps canonical names to file paths and maintains the virtual file system

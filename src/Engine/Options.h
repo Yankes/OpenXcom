@@ -19,6 +19,8 @@
  */
 #include <string>
 #include <vector>
+#include <SDL_keysym.h>
+#include <SDL_video.h>
 #include "OptionInfo.h"
 #include "ModInfo.h"
 #include "Language.h"

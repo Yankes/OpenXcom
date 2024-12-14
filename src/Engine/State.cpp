@@ -19,6 +19,7 @@
 #include "State.h"
 #include <climits>
 #include "InteractiveSurface.h"
+#include "Yaml.h"
 #include "Game.h"
 #include "Screen.h"
 #include "Surface.h"

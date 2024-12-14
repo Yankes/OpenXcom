@@ -17,13 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../Engine/Yaml.h"
 #include <string>
 #include <map>
-#include <SDL.h>
+#include <SDL_keysym.h>
 
 namespace OpenXcom
 {
+
+namespace YAML
+{
+
+class YamlNodeReader;
+class YamlNodeWriter;
+
+}
 
 enum OptionType { OPTION_BOOL, OPTION_INT, OPTION_STRING, OPTION_KEY };
 enum OptionOwner { OPTION_OXC, OPTION_OXCE, OPTION_OTHER, OPTION_OWNER_MAX };

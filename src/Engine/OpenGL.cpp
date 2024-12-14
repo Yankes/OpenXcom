@@ -10,9 +10,9 @@
 
 #ifndef __NO_OPENGL
 
+#include "Yaml.h"
 #include "OpenGL.h"
 #include <SDL.h>
-#include "../Engine/Yaml.h"
 
 #include "Logger.h"
 #include "Surface.h"

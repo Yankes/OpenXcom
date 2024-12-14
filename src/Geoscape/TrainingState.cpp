@@ -18,6 +18,7 @@
  */
 #include <sstream>
 #include "TrainingState.h"
+#include "../Engine/Yaml.h"
 #include "../Engine/Game.h"
 #include "../Engine/Screen.h"
 #include "../Engine/Action.h"

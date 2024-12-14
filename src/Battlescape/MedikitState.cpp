@@ -18,6 +18,7 @@
  */
 #include "MedikitState.h"
 #include "MedikitView.h"
+#include "../Engine/Yaml.h"
 #include "../Engine/InteractiveSurface.h"
 #include "../Engine/Game.h"
 #include "../Engine/Action.h"

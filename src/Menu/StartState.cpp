@@ -18,6 +18,7 @@
  */
 #include "StartState.h"
 #include "../version.h"
+#include "../Engine/Yaml.h"
 #include "../Engine/Logger.h"
 #include "../Engine/Game.h"
 #include "../Engine/Screen.h"

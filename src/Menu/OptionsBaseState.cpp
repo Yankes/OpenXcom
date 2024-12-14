@@ -18,6 +18,7 @@
  */
 #include "OptionsBaseState.h"
 #include <SDL.h>
+#include "../Engine/Yaml.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
 #include "../Engine/Screen.h"

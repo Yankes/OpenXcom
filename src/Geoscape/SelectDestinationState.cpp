@@ -18,6 +18,7 @@
  */
 #include "SelectDestinationState.h"
 #include <cmath>
+#include "../Engine/Yaml.h"
 #include "../Engine/Game.h"
 #include "../Engine/Screen.h"
 #include "../Engine/Action.h"

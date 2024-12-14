@@ -20,6 +20,7 @@
 #include <exception>
 #include <cassert>
 #include "version.h"
+#include "Engine/Yaml.h"
 #include "Engine/Exception.h"
 #include "Engine/Logger.h"
 #include "Engine/CrossPlatform.h"

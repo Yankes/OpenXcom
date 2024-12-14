@@ -18,12 +18,22 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <istream>
-#include <SDL.h>
 #include <string>
 #include <vector>
 #include <array>
 #include <memory>
 #include <utility>
+
+/// SDL forward declarations
+extern "C"
+{
+struct SDL_RWops;
+typedef SDL_RWops SDL_RWops;
+
+union SDL_Event;
+typedef SDL_Event SDL_Event;
+}
+
 
 namespace OpenXcom
 {

@@ -22,6 +22,7 @@
 #include <cmath>
 #include <sstream>
 #include <SDL_mixer.h>
+#include "Yaml.h"
 #include "State.h"
 #include "Screen.h"
 #include "Sound.h"

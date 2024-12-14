@@ -23,6 +23,7 @@
 #include <sstream>
 #include <algorithm>
 #include <locale>
+#include "../Engine/Yaml.h"
 #include "../Engine/CrossPlatform.h"
 #include "../Engine/Screen.h"
 #include "../Engine/Action.h"

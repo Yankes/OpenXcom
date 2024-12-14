@@ -16,13 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "Screen.h"
 #include <algorithm>
 #include <sstream>
 #include <cmath>
 #include <iomanip>
 #include <climits>
 #include <cstdio>
+#include "Screen.h"
 #include "../lodepng.h"
 #include "Exception.h"
 #include "Surface.h"
@@ -34,7 +34,6 @@
 #include "Zoom.h"
 #include "Timer.h"
 #include <SDL.h>
-#include <algorithm>
 
 namespace OpenXcom
 {

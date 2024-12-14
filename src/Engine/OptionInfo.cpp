@@ -17,9 +17,10 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <algorithm>
+#include <sstream>
 #include "OptionInfo.h"
 #include "Exception.h"
-#include <sstream>
+#include "Yaml.h"
 
 namespace OpenXcom
 {
