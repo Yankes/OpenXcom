@@ -418,6 +418,50 @@ bool read(ryml::ConstNodeRef const& n, std::string* str)
 	return true;
 }
 
+// for backwards compatibility, tuple should be serialized as sequences with n elements.
+template <class... T>
+bool read(ryml::ConstNodeRef const& n, std::tuple<T...>* tuple)
+{
+	if (!n.is_seq()) return false;
+
+	auto f = n.first_child();
+
+	std::apply(
+		[&](auto&& first, auto &&... args)
+		{
+
+			f >> first;
+
+			(
+				(f = f.next_sibling(), f >> args), ...
+			);
+		},
+		*tuple
+	);
+
+	return n.last_child() == f;
+}
+
+
+// array.
+template <typename T, std::size_t I>
+bool read(ryml::ConstNodeRef const& n, std::array<T, I>* array)
+{
+	if (!n.is_seq()) return false;
+
+	auto f = n.first_child();
+
+	f >> array->at(0);
+
+	for (size_t i = 1; i < std::size(*array); ++i)
+	{
+		f = f.next_sibling();
+		f >> (*array)[i];
+	}
+
+	return n.last_child() == f;
+}
+
 }
 
 namespace c4::yml
@@ -428,3 +472,184 @@ void write(ryml::NodeRef* n, bool const& v)
 	n->set_val_serialized(c4::fmt::boolalpha(v));
 }
 }
+
+
+#ifdef OXCE_AUTO_TEST
+
+#include <cassert>
+
+static auto dummyHackInitYaml = ([]
+{
+	OpenXcom::YAML::setGlobalErrorHandler(); //hack, main should do it but this code is called before main
+	return 0;
+})();
+
+static auto dummyTestRead = ([]
+{
+	auto createRootReader = [](std::string s)
+	{
+		return OpenXcom::YAML::YamlRootNodeReader(OpenXcom::YAML::YamlString{s}, "dummy");
+	};
+	auto throw_exception = [](auto&& func)
+	{
+		try
+		{
+			func();
+			return false;
+		}
+		catch (...)
+		{
+			return true;
+		}
+	};
+	auto no_exception = [](auto&& func)
+	{
+		try
+		{
+			return func();
+		}
+		catch (...)
+		{
+			return false;
+		}
+	};
+#define assert_exception(A) assert(throw_exception([&]{ (A); }));
+#define assert_noexcept(A) assert(no_exception([&]{ return (A); }));
+
+
+	// pair tests
+	{
+		auto reader = createRootReader("foo2: [1, 2]");
+		std::pair<int, int> p;
+
+		assert_noexcept(!reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+		std::pair<int, int> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(p.first == 1);
+		assert(p.second == 2);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 3]");
+		std::pair<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1]");
+		std::pair<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: 2");
+		std::pair<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+
+	// tuple tests
+	{
+		auto reader = createRootReader("foo2: [1, 2]");
+		std::tuple<int, int> p;
+
+		assert_noexcept(!reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 32]");
+		std::tuple<int, int, int> p;
+
+		assert(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+		assert(std::get<2>(p) == 32);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+		std::tuple<int, int> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+	}
+
+	{
+		auto reader = createRootReader("foo: [13]");
+		std::tuple<int> p;
+
+		assert(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 13);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1]");
+		std::tuple<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 3]");
+		std::tuple<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+
+	// array
+	{
+		auto reader = createRootReader("foo2: [1, 2]");
+		std::array<int, 2> p;
+
+		assert(!reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+		std::array<int, 2> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 42, 13]");
+		std::array<int, 4> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+		assert(std::get<2>(p) == 42);
+		assert(std::get<3>(p) == 13);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 3]");
+		std::array<int, 2> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1]");
+		std::array<int, 2> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+
+	return 0;
+})();
+
+#endif
