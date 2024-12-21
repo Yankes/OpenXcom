@@ -83,7 +83,7 @@ YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::Const
 YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node, bool useIndex)
 	: _node(node), _root(root), _invalid(node.invalid())
 {
-	if (!useIndex || !node.has_children())
+	if (_invalid || !useIndex)
 		return;
 	// build and use an index to avoid [] operator's O(n) complexity
 	_index.emplace();
@@ -92,7 +92,7 @@ YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::Const
 	{
 		throwNodeError("multi-document yaml file with splits '---'");
 	}
-	if (!_node.is_map())
+	if (_node.is_seq() || (_node.has_val() && !_node.val_is_null()))
 	{
 		throwNodeError("node that is not map");
 	}
