@@ -416,7 +416,7 @@ struct BattleUnitStatistics
 		if (!writer.toReader()[0])
 		{
 			writer.unsetAsMap();
-			writer.setValue(YAML::Null);
+			writer.setValueNull();
 		}
 	}
 

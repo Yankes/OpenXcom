@@ -63,8 +63,6 @@ class YamlRootNodeReader;
 class YamlRootNodeWriter;
 
 
-inline const std::string Null = "~"; // "~" or "null" or "Null" or "NULL"; serializing null is the same as serializing a string
-
 void setGlobalErrorHandler();
 
 
@@ -274,9 +272,12 @@ public:
 	void write(ryml::csubstr key, const std::vector<InputType>& inputVector, Func callback);
 	/// Adds a scalar value child to the current mapping container, serializing the provided binary data
 	YamlNodeWriter writeBase64(ryml::csubstr key, char* data, size_t size);
+
 	/// Adds a value to the current node.
 	template <typename InputType>
 	void setValue(const InputType& inputValue);
+	/// Set node value to null
+	void setValueNull();
 
 	/// Marks the current node as a mapping container
 	void setAsMap();

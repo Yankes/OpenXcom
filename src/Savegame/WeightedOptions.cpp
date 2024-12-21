@@ -97,7 +97,7 @@ void WeightedOptions::save(YAML::YamlNodeWriter writer) const
 {
 	if (_choices.empty()) // for compatibility reasons, we output null instead of empty map
 	{
-		writer.setValue(YAML::Null);
+		writer.setValueNull();
 		return;
 	}
 	writer.setAsMap();

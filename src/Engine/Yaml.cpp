@@ -381,6 +381,11 @@ YamlNodeWriter YamlNodeWriter::writeBase64(ryml::csubstr key, char* data, size_t
 	return YamlNodeWriter(_root, _node.append_child({ryml::KEY, key}) << c4::fmt::base64(ryml::csubstr(data, size)));
 }
 
+void YamlNodeWriter::setValueNull()
+{
+	_node.set_val("~");
+}
+
 void YamlNodeWriter::setAsMap()
 {
 	_node |= ryml::MAP;
