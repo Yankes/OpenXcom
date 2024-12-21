@@ -83,18 +83,18 @@ YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::Const
 YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node, bool useIndex)
 	: _node(node), _root(root), _invalid(node.invalid())
 {
-	if (!useIndex)
+	if (!useIndex || !node.has_children())
 		return;
 	// build and use an index to avoid [] operator's O(n) complexity
 	_index.emplace();
 
 	if (_node.is_stream())
 	{
-		throwNodeError("Trying indexing multi-document yaml file with splits '---'");
+		throwNodeError("multi-document yaml file with splits '---'");
 	}
 	if (!_node.is_map())
 	{
-		throwNodeError("Trying indexing node that is not map");
+		throwNodeError("node that is not map");
 	}
 
 	_index->reserve(_node.num_children());
@@ -491,3 +491,222 @@ void write(ryml::NodeRef* n, bool const& v)
 }
 
 }
+
+
+#ifdef OXCE_AUTO_TEST
+
+#include <cassert>
+
+static auto createRootReader(std::string s)
+{
+	return OpenXcom::YAML::YamlRootNodeReader(OpenXcom::YAML::YamlString{s}, "dummy");
+};
+template<typename T>
+static auto throw_exception(T&& func)
+{
+	try
+	{
+		func();
+		return false;
+	}
+	catch (...)
+	{
+		return true;
+	}
+};
+template<typename T>
+static auto no_exception(T&& func)
+{
+	try
+	{
+		return func();
+	}
+	catch (...)
+	{
+		return false;
+	}
+};
+#define assert_exception(A) assert(throw_exception([&]{ (A); }));
+#define assert_noexcept(A) assert(no_exception([&]{ return (A); }));
+
+static auto dummyHackInitYaml = ([]
+{
+	OpenXcom::YAML::setGlobalErrorHandler(); //hack, main should do it but this code is called before main
+	return 0;
+})();
+
+static auto dummyTestMultiDocYaml = ([]
+{
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+
+		assert_noexcept(reader["foo"].isValid());
+		assert_noexcept(!reader["bar"].isValid());
+		assert_noexcept(reader.useIndex()["foo"].isValid());
+		assert_noexcept(!reader.useIndex()["bar"].isValid());
+	}
+
+	{
+		auto reader = createRootReader("---\nfoo: [1, 2]");
+
+		assert_noexcept(reader["foo"].isValid());
+		assert_noexcept(!reader["bar"].isValid());
+		assert_noexcept(reader.useIndex()["foo"].isValid());
+		assert_noexcept(!reader.useIndex()["bar"].isValid());
+	}
+
+	{
+		auto reader = createRootReader("---\nfoo: [1, 2]\n---\nbar: 3");
+
+		assert_noexcept(!reader["foo"].isValid());
+		assert_noexcept(!reader["bar"].isValid());
+		assert_exception(reader.useIndex()["foo"].isValid());
+
+		assert_noexcept(reader[0]["foo"].isValid());
+		assert_noexcept(reader[1]["bar"].isValid());
+	}
+
+	return 0;
+})();
+
+
+static auto dummyTestRead = ([]
+{
+
+
+	// pair tests
+	{
+		auto reader = createRootReader("foo2: [1, 2]");
+		std::pair<int, int> p;
+
+		assert_noexcept(!reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+		std::pair<int, int> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(p.first == 1);
+		assert(p.second == 2);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 3]");
+		std::pair<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1]");
+		std::pair<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: 2");
+		std::pair<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+
+	// tuple tests
+	{
+		auto reader = createRootReader("foo2: [1, 2]");
+		std::tuple<int, int> p;
+
+		assert_noexcept(!reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 32]");
+		std::tuple<int, int, int> p;
+
+		assert(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+		assert(std::get<2>(p) == 32);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+		std::tuple<int, int> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+	}
+
+	{
+		auto reader = createRootReader("foo: [13]");
+		std::tuple<int> p;
+
+		assert(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 13);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1]");
+		std::tuple<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 3]");
+		std::tuple<int, int> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+
+	// array
+	{
+		auto reader = createRootReader("foo2: [1, 2]");
+		std::array<int, 2> p;
+
+		assert(!reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2]");
+		std::array<int, 2> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 42, 13]");
+		std::array<int, 4> p;
+
+		assert_noexcept(reader.tryRead("foo", p));
+		assert(std::get<0>(p) == 1);
+		assert(std::get<1>(p) == 2);
+		assert(std::get<2>(p) == 42);
+		assert(std::get<3>(p) == 13);
+	}
+
+	{
+		auto reader = createRootReader("foo: [1, 2, 3]");
+		std::array<int, 2> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+	{
+		auto reader = createRootReader("foo: [1]");
+		std::array<int, 2> p;
+
+		assert_exception(reader.tryRead("foo", p));
+	}
+
+
+	return 0;
+})();
+
+#endif
