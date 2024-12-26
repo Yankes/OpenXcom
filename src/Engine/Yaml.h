@@ -223,8 +223,8 @@ private:
 	void Parse(ryml::csubstr yaml, std::string fileName, bool withNodeLocations, bool resolveReferences);
 
 public:
-	YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader = false, bool resolveReferences = true);
-	YamlRootNodeReader(const RawData& data, std::string fileNameForError, bool resolveReferences = true);
+	YamlRootNodeReader(const std::string& fullFilePath, bool onlyInfoHeader = false, bool resolveReferences = true);
+	YamlRootNodeReader(const RawData& data, const std::string& fileNameForError, bool resolveReferences = true);
 	YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences = true);
 	YamlRootNodeReader(YamlRootNodeReader&&) = delete;
 
@@ -508,7 +508,7 @@ typename std::enable_if<std::is_enum<EnumType>::value, size_t>::type inline to_c
 
 
 ////////////////////////////////////////////////////////////
-//		Functions for overriding types form other lib
+//		Functions for types defined in other libraries
 ////////////////////////////////////////////////////////////
 
 
@@ -525,15 +525,12 @@ bool read(ryml::ConstNodeRef const& n, std::pair<T1, T2>* pair)
 {
 	if (!n.is_seq()) return false;
 
-	auto f = n.first_child();
+	auto child = n.first_child();
+	child >> pair->first;
+	child = child.next_sibling();
+	child >> pair->second;
 
-	f >> pair->first;
-
-	f = f.next_sibling();
-
-	f >> pair->second;
-
-	return n.last_child() == f;
+	return n.last_child() == child;
 }
 
 template <class T1, class T2>

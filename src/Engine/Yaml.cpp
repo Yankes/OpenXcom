@@ -88,13 +88,35 @@ YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::Const
 	// build and use an index to avoid [] operator's O(n) complexity
 	_index.emplace();
 
-	if (_node.is_stream())
+	if (!_node.is_map())
 	{
-		throwNodeError("multi-document yaml file with splits '---'");
-	}
-	if (_node.is_seq() || (_node.has_val() && !_node.val_is_null()))
-	{
-		throwNodeError("node that is not map");
+		if (_node.is_seq())
+		{
+			if (_node.is_stream())
+			{
+				(*this)[1].throwNodeError("multi-document yaml file with splits '---'");
+			}
+			else
+			{
+				throwNodeError("sequence node as map");
+			}
+		}
+		else if (_node.has_val())
+		{
+			if (_node.val_is_null())
+			{
+				// it is `~` and we consider this as allowed empty map
+			}
+			else
+			{
+				throwNodeError("value node as map");
+
+			}
+		}
+		else
+		{
+			assert(false && "unexpected node type for index");
+		}
 	}
 
 	_index->reserve(_node.num_children());
@@ -286,7 +308,7 @@ void YamlNodeReader::throwNodeError(const std::string& what) const
 ////////////////////////////////////////////////////////////
 
 
-YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const std::string& fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
 {
 	RawData data = onlyInfoHeader ? CrossPlatform::getYamlSaveHeaderRaw(fullFilePath) : CrossPlatform::readFileRaw(fullFilePath);
 	ryml::csubstr str = ryml::csubstr((char*)data.data(), data.size());
@@ -295,25 +317,34 @@ YamlRootNodeReader::YamlRootNodeReader(std::string fullFilePath, bool onlyInfoHe
 	Parse(str, fullFilePath, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const RawData& data, std::string fileNameForError, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const RawData& data, const std::string& fileNameForError, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
 {
 	Parse(ryml::csubstr((char*)data.data(), data.size()), fileNameForError, true, resolveReferences);
 }
 
 YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
 {
-	Parse(ryml::to_csubstr(yamlString.yaml), description, false, resolveReferences);
+	Parse(ryml::to_csubstr(yamlString.yaml), std::move(description), false, resolveReferences);
 }
 
 void YamlRootNodeReader::Parse(ryml::csubstr yaml, std::string fileNameForError, bool withNodeLocations, bool resoleReferences)
 {
 	if (yaml.len > 3 && yaml.first(3) == "\xEF\xBB\xBF") // skip UTF-8 BOM
 		yaml = yaml.offs(3, 0);
+
+	{
+		// find only name of file, not whole path
+		size_t pos = fileNameForError.find_last_of('/');
+		if (pos != std::string::npos)
+			fileNameForError = std::move(fileNameForError).substr(pos + 1);
+	}
+
 	_eventHandler.reset(new ryml::EventHandlerTree(_tree->callbacks()));
 	_parser.reset(new ryml::Parser(_eventHandler.get(), ryml::ParserOptions().locations(withNodeLocations)));
-	_fileName = fileNameForError;
+
+	_fileName = std::move(fileNameForError);
 	_tree->reserve(yaml.len / 16);
-	ryml::parse_in_arena(_parser.get(), yaml, _tree.get());
+	ryml::parse_in_arena(_parser.get(), ryml::to_csubstr(_fileName), yaml, _tree.get());
 	if (resoleReferences)
 		_tree->resolve();
 	_node = _tree->crootref();
@@ -569,6 +600,59 @@ static auto dummyTestMultiDocYaml = ([]
 
 		assert_noexcept(reader[0]["foo"].isValid());
 		assert_noexcept(reader[1]["bar"].isValid());
+	}
+
+	return 0;
+})();
+
+static auto dummyIndexing = ([]
+{
+	{
+		auto reader = createRootReader("map: ~");
+
+		assert_noexcept(reader["map"].useIndex().childrenCount() == 0);
+	}
+
+	{
+		auto reader = createRootReader("map:");
+
+		assert_noexcept(reader["map"].useIndex().childrenCount() == 0);
+	}
+
+	{
+		auto reader = createRootReader("map: {}");
+
+		assert_noexcept(reader["map"].useIndex().childrenCount() == 0);
+	}
+
+	{
+		auto reader = createRootReader("map: {foo: 1}");
+
+		assert_noexcept(reader["map"].useIndex().childrenCount() == 1);
+	}
+
+	{
+		auto reader = createRootReader("map: []");
+
+		assert_exception(reader["map"].useIndex().isMap());
+	}
+
+	{
+		auto reader = createRootReader("map: [2]");
+
+		assert_exception(reader["map"].useIndex().isMap());
+	}
+
+	{
+		auto reader = createRootReader("map: 2");
+
+		assert_exception(reader["map"].useIndex().isMap());
+	}
+
+	{
+		auto reader = createRootReader("map: bar");
+
+		assert_exception(reader["map"].useIndex().isMap());
 	}
 
 	return 0;
