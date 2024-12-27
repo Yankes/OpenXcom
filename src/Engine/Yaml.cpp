@@ -336,7 +336,7 @@ void YamlRootNodeReader::Parse(ryml::csubstr yaml, std::string fileNameForError,
 		// find only name of file, not whole path
 		size_t pos = fileNameForError.find_last_of('/');
 		if (pos != std::string::npos)
-			fileNameForError = std::move(fileNameForError).substr(pos + 1);
+			fileNameForError.erase(0, pos + 1);
 	}
 
 	_eventHandler.reset(new ryml::EventHandlerTree(_tree->callbacks()));

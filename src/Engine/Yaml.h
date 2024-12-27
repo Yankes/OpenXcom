@@ -523,14 +523,12 @@ bool read(ryml::ConstNodeRef const& n, std::string* str);
 template <class T1, class T2>
 bool read(ryml::ConstNodeRef const& n, std::pair<T1, T2>* pair)
 {
-	if (!n.is_seq()) return false;
+	if (!n.is_seq() || n.num_children() != 2) return false;
 
-	auto child = n.first_child();
-	child >> pair->first;
-	child = child.next_sibling();
-	child >> pair->second;
+	n.first_child() >> pair->first;
+	n.last_child() >> pair->second;
 
-	return n.last_child() == child;
+	return true;
 }
 
 template <class T1, class T2>
