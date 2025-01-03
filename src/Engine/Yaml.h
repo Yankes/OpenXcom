@@ -540,6 +540,85 @@ void write(ryml::NodeRef* n, std::pair<T1, T2> const& pair)
 }
 
 
+// tuple should be serialized as sequences with n elements.
+template <class... T>
+bool read(ryml::ConstNodeRef const& n, std::tuple<T...>* tuple)
+{
+	if (!n.is_seq() || n.num_children() != sizeof..(T)) return false;
+
+	auto curr = n.first_child();
+
+	std::apply(
+		[&](auto&& first, auto&&... args)
+		{
+			curr >> first;
+
+			(
+				(curr = curr.next_sibling(), curr >> args), ...
+			);
+		},
+		*tuple
+	);
+
+	return true;
+}
+
+template <class... T>
+void write(ryml::NodeRef* n, std::tuple<T...> const& tuple)
+{
+	*n |= ryml::SEQ;
+
+	std::apply(
+		[&](auto&&... args)
+		{
+			(
+				(n->append_child() << args), ...
+			);
+		},
+		*tuple
+	);
+}
+
+// array.
+template <typename T, std::size_t I>
+bool read(ryml::ConstNodeRef const& n, std::array<T, I>* array)
+{
+	if (!n.is_seq() || n.num_children() != I) return false;
+
+	auto curr = n.first_child();
+
+	std::apply(
+		[&](auto&& first, auto&&... args)
+		{
+			curr >> first;
+
+			(
+				(curr = curr.next_sibling(), curr >> args), ...
+			);
+		},
+		array
+	);
+
+	return true;
+}
+
+template <typename T, std::size_t I>
+void write(ryml::NodeRef* n, std::array<T, I>const& array)
+{
+	*n |= ryml::SEQ;
+
+	std::apply(
+		[&](auto&&... args)
+		{
+			(
+				(n->append_child() << args), ...
+			);
+		},
+		array
+	);
+}
+
+
 } // namespace std
 
 
