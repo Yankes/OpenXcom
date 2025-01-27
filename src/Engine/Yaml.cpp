@@ -65,6 +65,41 @@ void setGlobalErrorHandler()
 }
 
 
+C4_NORETURN static void RootReader_error(const char* msg, size_t len, ryml::Location loc, void* this_)
+{
+	const auto& globalCallback = ryml::get_callbacks();
+	globalCallback.m_error(msg, len, loc, globalCallback.m_user_data);
+	C4_UNREACHABLE();
+}
+
+static ryml::Callbacks callbacksForRootReader(YamlRootNodeReader* root)
+{
+	return ryml::Callbacks(root, s_allocate, s_free, RootReader_error);
+}
+
+static bool isRootReaderData(const ryml::Callbacks& callbacks)
+{
+	return callbacks.m_error == RootReader_error;
+}
+
+
+C4_NORETURN static void RootWriter_error(const char* msg, size_t len, ryml::Location loc, void* this_)
+{
+	const auto& globalCallback = ryml::get_callbacks();
+	globalCallback.m_error(msg, len, loc, globalCallback.m_user_data);
+	C4_UNREACHABLE();
+}
+
+static ryml::Callbacks callbacksForRootWriter(YamlRootNodeWriter* root)
+{
+	return ryml::Callbacks(root, s_allocate, s_free, RootWriter_error);
+}
+
+static bool isRootWriterData(const ryml::Callbacks& callbacks)
+{
+	return callbacks.m_error == RootWriter_error;
+}
+
 ////////////////////////////////////////////////////////////
 //					YamlNodeReader
 ////////////////////////////////////////////////////////////
@@ -78,10 +113,13 @@ YamlNodeReader::YamlNodeReader()
 YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node)
 	: _node(node), _root(root), _invalid(node.invalid()), _nextChildId(ryml::NONE)
 {
+	if (_root == nullptr && _node.m_tree && isRootReaderData(_node.m_tree->m_callbacks))
+	{
+		_root = (const YamlRootNodeReader*)_node.m_tree->m_callbacks.m_user_data;
+	}
 }
 
-YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node, bool useIndex)
-	: _node(node), _root(root), _invalid(node.invalid()), _nextChildId(ryml::NONE)
+YamlNodeReader::YamlNodeReader(const YamlRootNodeReader* root, const ryml::ConstNodeRef& node, bool useIndex) : YamlNodeReader(root, node)
 {
 	if (_invalid || !useIndex)
 		return;
@@ -368,7 +406,7 @@ void YamlNodeReader::throwNodeError(const std::string& what) const
 ////////////////////////////////////////////////////////////
 
 
-YamlRootNodeReader::YamlRootNodeReader(const std::string& fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const std::string& fullFilePath, bool onlyInfoHeader, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree(callbacksForRootReader(this)))
 {
 	RawData data = onlyInfoHeader ? CrossPlatform::getYamlSaveHeaderRaw(fullFilePath) : CrossPlatform::readFileRaw(fullFilePath);
 	ryml::csubstr str = ryml::csubstr((char*)data.data(), data.size());
@@ -377,12 +415,12 @@ YamlRootNodeReader::YamlRootNodeReader(const std::string& fullFilePath, bool onl
 	Parse(str, fullFilePath, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const RawData& data, const std::string& fileNameForError, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const RawData& data, const std::string& fileNameForError, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree(callbacksForRootReader(this)))
 {
 	Parse(ryml::csubstr((char*)data.data(), data.size()), fileNameForError, true, resolveReferences);
 }
 
-YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree())
+YamlRootNodeReader::YamlRootNodeReader(const YamlString& yamlString, std::string description, bool resolveReferences) : YamlNodeReader(), _tree(new ryml::Tree(callbacksForRootReader(this)))
 {
 	Parse(ryml::to_csubstr(yamlString.yaml), std::move(description), false, resolveReferences);
 }
@@ -452,6 +490,10 @@ ryml::Location YamlRootNodeReader::getLocationInFile(const ryml::ConstNodeRef& n
 
 YamlNodeWriter::YamlNodeWriter(const YamlRootNodeWriter* root, ryml::NodeRef node) : _root(root), _node(node)
 {
+	if (_root == nullptr && _node.tree() && isRootWriterData(_node.tree()->m_callbacks))
+	{
+		_root = (const YamlRootNodeWriter*)_node.tree()->m_callbacks.m_user_data;
+	}
 }
 
 YamlNodeReader YamlNodeWriter::toReader()
@@ -581,12 +623,12 @@ YamlString YamlNodeWriter::emit()
 ////////////////////////////////////////////////////////////
 
 
-YamlRootNodeWriter::YamlRootNodeWriter() : YamlNodeWriter(this, {}), _tree(new ryml::Tree())
+YamlRootNodeWriter::YamlRootNodeWriter() : YamlNodeWriter(this, {}), _tree(new ryml::Tree(callbacksForRootWriter(this)))
 {
 	_node = _tree->rootref();
 }
 
-YamlRootNodeWriter::YamlRootNodeWriter(size_t bufferCapacity) : YamlNodeWriter(this, {}), _tree(new ryml::Tree(0, bufferCapacity))
+YamlRootNodeWriter::YamlRootNodeWriter(size_t bufferCapacity) : YamlNodeWriter(this, {}), _tree(new ryml::Tree(0, bufferCapacity, callbacksForRootWriter(this)))
 {
 	_node = _tree->rootref();
 }
