@@ -19,6 +19,7 @@
 
 #include "Yaml.h"
 #include "../Engine/CrossPlatform.h"
+#include "../Engine/Logger.h"
 #include <string>
 #include <c4/format.hpp>
 
@@ -113,7 +114,11 @@ YamlNodeReader::YamlNodeReader()
 YamlNodeReader::YamlNodeReader(const ryml::ConstNodeRef& node)
 	: _node(node), _nextChildId(ryml::NONE)
 {
-
+	if (_node.readable() && _node.has_val_tag() && _node.val_tag() == "!info")
+	{
+		Logger info;
+		info.get() << "Available properties '" << _node.key() << ":'";
+	}
 }
 
 YamlNodeReader::YamlNodeReader(const ryml::ConstNodeRef& node, bool useIndex) : YamlNodeReader( node)
@@ -396,6 +401,16 @@ void YamlNodeReader::throwNodeError(const std::string& what) const
 	{
 		throw Exception(c4::formatrs<std::string>("Tried to deserialize {}.", what));
 	}
+}
+
+void YamlNodeReader::logNode() const
+{
+
+}
+
+void YamlNodeReader::logNodeProperty(const ryml::csubstr& key, const ryml::cspan<char>& type) const
+{
+
 }
 
 
