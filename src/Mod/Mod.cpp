@@ -1122,7 +1122,7 @@ bool Mod::checkForSoftError(bool check, const std::string& parent, const YAML::Y
 		auto ex = LoadRuleException(parent, reader, error);
 		if (Options::oxceModValidationLevel < level && level != LOG_FATAL)
 		{
-			Log(level) << _scriptGlobal->getCurrentFile() << ": Supressed " << ex.what();
+			Log(level) << _scriptGlobal->getCurrentFile() << ": Suppressed " << ex.what();
 			return true;
 		}
 		else
@@ -1143,7 +1143,7 @@ bool Mod::checkForSoftError(bool check, const std::string &parent, const std::st
 		auto ex = LoadRuleException(parent, error);
 		if (Options::oxceModValidationLevel < level && level != LOG_FATAL)
 		{
-			Log(level) << _scriptGlobal->getCurrentFile() << ": Supressed " << ex.what();
+			Log(level) << _scriptGlobal->getCurrentFile() << ": Suppressed " << ex.what();
 			return true;
 		}
 		else
