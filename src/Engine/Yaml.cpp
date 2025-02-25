@@ -114,11 +114,6 @@ YamlNodeReader::YamlNodeReader()
 YamlNodeReader::YamlNodeReader(const ryml::ConstNodeRef& node)
 	: _node(node), _nextChildId(ryml::NONE)
 {
-	if (_node.readable() && _node.has_val_tag() && _node.val_tag() == "!info")
-	{
-		Logger info;
-		info.get() << "Available properties '" << _node.key() << ":'";
-	}
 }
 
 YamlNodeReader::YamlNodeReader(const ryml::ConstNodeRef& node, bool useIndex) : YamlNodeReader( node)
@@ -166,6 +161,11 @@ YamlNodeReader::YamlNodeReader(const ryml::ConstNodeRef& node, bool useIndex) : 
 
 YamlNodeReader YamlNodeReader::useIndex() const
 {
+	if (_node.readable() && _node.has_key() && _node.has_val_tag() && _node.val_tag() == "!info")
+	{
+		Logger info;
+		info.get() << "Available properties in '" << _node.key() << ":'";
+	}
 	return YamlNodeReader(_node, true);
 }
 
@@ -410,7 +410,9 @@ void YamlNodeReader::logNode() const
 
 void YamlNodeReader::logNodeProperty(const ryml::csubstr& key, const ryml::cspan<char>& type) const
 {
-
+	Logger info;
+	//            "Available " spaces to align with this text
+	info.get() << "          '" << std::string_view{ key.data(), key.size() } << ":' of type " << std::string_view{ type.data(), type.size() };
 }
 
 
