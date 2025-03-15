@@ -268,9 +268,9 @@ BattlescapeState::BattlescapeState() :
 	// Set palette
 	_save->setPaletteByDepth(this);
 
-	if (_game->getMod()->getInterface("battlescape")->getElement("pathfinding"))
+	if (_game->getMod()->getInterface("battlescape")->getElementOptional("pathfinding"))
 	{
-		Element *pathing = _game->getMod()->getInterface("battlescape")->getElement("pathfinding");
+		const Element *pathing = _game->getMod()->getInterface("battlescape")->getElement("pathfinding");
 
 		Pathfinding::green = pathing->color;
 		Pathfinding::yellow = pathing->color2;

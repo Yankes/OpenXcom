@@ -92,10 +92,24 @@ void RuleInterface::load(const YAML::YamlNodeReader& reader, Mod *mod)
  * Retrieves info on an element
  * @param id String defining the element.
  */
-Element *RuleInterface::getElement(const std::string &id)
+const Element *RuleInterface::getElementOptional(const std::string &id) const
 {
 	auto i = _elements.find(id);
 	if (_elements.end() != i) return &i->second; else return 0;
+}
+
+/**
+ * Retrieves info on an element
+ * @param id String defining the element.
+ */
+const Element *RuleInterface::getElement(const std::string &id) const
+{
+	auto i = getElementOptional(id);
+	if (i == nullptr)
+	{
+		throw Exception("Missing interface Element '" + id + "' in '" + _type + "'");
+	}
+	return i;
 }
 
 const std::string &RuleInterface::getPalette() const

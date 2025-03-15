@@ -53,8 +53,10 @@ public:
 	~RuleInterface();
 	/// Load from YAML.
 	void load(const YAML::YamlNodeReader& reader, Mod *mod);
+	/// Get an element. Can be `nullptr`.
+	const Element *getElementOptional(const std::string &id) const;
 	/// Get an element.
-	Element *getElement(const std::string &id);
+	const Element *getElement(const std::string &id) const;
 	/// Get palette.
 	const std::string &getPalette() const;
 	/// Get parent interface rule.
