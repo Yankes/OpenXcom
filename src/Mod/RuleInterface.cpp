@@ -56,16 +56,12 @@ void RuleInterface::load(const YAML::YamlNodeReader& reader, Mod *mod)
 	mod->loadSoundOffset(_type, _sound, reader["sound"], "GEO.CAT");
 	for (const auto& elementReader : reader["elements"].children())
 	{
-		Element element;
+		Element& element = _elements[elementReader["id"].readVal<std::string>()];
 		if (elementReader["size"])
 		{
 			std::pair<int, int> pos = elementReader["size"].readVal<std::pair<int, int> >();
 			element.w = pos.first;
 			element.h = pos.second;
-		}
-		else
-		{
-			element.w = element.h = INT_MAX;
 		}
 		if (elementReader["pos"])
 		{
@@ -73,18 +69,11 @@ void RuleInterface::load(const YAML::YamlNodeReader& reader, Mod *mod)
 			element.x = pos.first;
 			element.y = pos.second;
 		}
-		else
-		{
-			element.x = element.y = INT_MAX;
-		}
-		element.color = elementReader["color"].readVal<int>(INT_MAX);
-		element.color2 = elementReader["color2"].readVal<int>(INT_MAX);
-		element.border = elementReader["border"].readVal<int>(INT_MAX);
-		element.custom = elementReader["custom"].readVal<int>(0);
-		element.TFTDMode = elementReader["TFTDMode"].readVal(false);
-
-		std::string id = elementReader["id"].readVal<std::string>("");
-		_elements[id] = element;
+		elementReader.tryRead("color", element.color);
+		elementReader.tryRead("color2", element.color2);
+		elementReader.tryRead("border", element.border);
+		elementReader.tryRead("custom", element.custom);
+		elementReader.tryRead("TFTDMode", element.TFTDMode);
 	}
 }
 
