@@ -1651,6 +1651,11 @@ int BattleUnit::damage(Position relative, int damage, const RuleDamageType *type
 	{
 		specialDamageTransformChance = specialDamageTransform->getZombieUnitChance();
 
+		if (auto conf = attack.weapon_item ? attack.weapon_item->getActionConf(attack.type) : nullptr)
+		{
+			specialDamageTransformChance = useIntNullable(conf->ammoZombieUnitChanceOverride, specialDamageTransformChance);
+		}
+
 		if (getOriginalFaction() == FACTION_HOSTILE)
 		{
 			if (attack.attacker == nullptr || attack.attacker->getOriginalFaction() == FACTION_HOSTILE)
