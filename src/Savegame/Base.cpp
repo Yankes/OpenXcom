@@ -2558,4 +2558,289 @@ std::vector<Craft*>::iterator Base::removeCraft(Craft *craft, bool unload)
 	return c;
 }
 
-}
+
+class HangarMatcher
+{
+public:
+	static constexpr size_t MaxHangarStorage = 64;
+	static constexpr size_t MaxCrafts = 16;
+
+	using Mask = Uint64;
+
+	static_assert(sizeof(Mask) * CHAR_BIT == HangarMatcher::MaxHangarStorage, "Number of bits in mask need match max hangar storage");
+
+	struct CraftData
+	{
+		Uint64 avaiableSlots = 0;
+		Uint64 size = 0b1;
+
+		Uint64 usedSlots = 0;
+		Uint64 needSlotsForFailed = -1;
+		Uint64 needSlotsForNext = 0;
+		size_t needSlotsTotalForNext = 0;
+
+		const Craft* craft = nullptr;
+		const BaseFacility* assignedHangar = nullptr;
+	};
+
+	std::array<CraftData, MaxCrafts> crafts = {};
+
+	std::array<const BaseFacility*, MaxHangarStorage> hangars = {};
+	std::array<Uint64, MaxHangarStorage> hangarsFirstSlot = {};
+	std::array<Uint64, MaxHangarStorage> hangarsAllSlot = {};
+
+
+	static Uint64 getLowestOneBit(Uint64 b)
+	{
+		return b & ~(b - 1); // get first set bit, eg. for 10100 -> 10011 -> 01100 -> 00100
+	}
+
+	static Uint64 getLowestZeroBitsFlip(Uint64 b)
+	{
+		return b | (b - 1); // set lower 0 bits to 1, eg. 0011100 -> 0011011 -> 0011111
+	}
+
+	static Uint64 getOnlyLowestZeroBitsFlip(Uint64 b)
+	{
+		return ~b & (b - 1); // set only lower 0 bits to 1, eg. 0011100 -> 0011011 -> 0000011
+	}
+
+	static size_t getOneBitsCount(Uint64 b)
+	{
+		return std::bitset<MaxHangarStorage>(b).count(); //TODO: replace by `std::popcount` from C++20
+	}
+
+	void prepareBeforeMatch()
+	{
+//		const int limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
+//		std::sort(crafts.begin(), crafts.begin() + limit,
+//			[](const CraftData& a, const CraftData& b)
+//			{
+//				{
+//					auto ac = a.size;
+//					auto bc = b.size;
+//					if (ac > bc)
+//					{
+//						return true;
+//					}
+//					else if (ac < bc)
+//					{
+//						return false;
+//					}
+//				}
+//
+//				{
+//					auto ac = getOneBitsCount(a.avaiableSlots);
+//					auto bc = getOneBitsCount(b.avaiableSlots);
+//					if (ac < bc)
+//					{
+//						return true;
+//					}
+//					else if (ac > bc)
+//					{
+//						return false;
+//					}
+//				}
+//
+//				{
+//					auto ac = a.avaiableSlots;
+//					auto bc = b.avaiableSlots;
+//					if (ac < bc)
+//					{
+//						return true;
+//					}
+//					else if (ac > bc)
+//					{
+//						return false;
+//					}
+//				}
+//
+//				return false;
+//			}
+//		);
+	}
+
+	std::optional<std::array<Uint64, MaxCrafts>> match()
+	{
+		Uint64 freeSlots = 0;
+		size_t needSlotsTotal = 0;
+		size_t offset = 0;
+		const size_t limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
+
+		for (auto& pos : crafts)
+		{
+			if (pos.avaiableSlots) needSlotsTotal += getOneBitsCount(pos.size);
+		}
+		for (auto& pos : crafts)
+		{
+			if (pos.avaiableSlots) needSlotsTotal -= getOneBitsCount(pos.size);
+			freeSlots |= pos.avaiableSlots;
+			pos.usedSlots = 0;
+			pos.needSlotsForFailed = -1;
+			pos.needSlotsTotalForNext = needSlotsTotal;
+			for (auto& next : crafts)
+			{
+				if (&pos < &next)
+				{
+					pos.needSlotsForNext |= next.avaiableSlots;
+				}
+			}
+		}
+
+		int iterations = 0;
+		Uint64 nextHangar = -1;
+		while (offset != limit)
+		{
+			auto& pos = crafts[offset];
+
+			auto currSlots = pos.usedSlots;
+			if (currSlots)
+			{
+				freeSlots ^= currSlots; // reset free slots to previous state
+			}
+
+			do
+			{
+				auto prev = currSlots ? getLowestZeroBitsFlip(currSlots) : 0;
+
+				prev = getOnlyLowestZeroBitsFlip(nextHangar & ~prev);
+
+				auto avaiable = pos.avaiableSlots & freeSlots & ~prev;
+				currSlots = getLowestOneBit(avaiable) * pos.size;
+			}
+			while (
+				currSlots &&
+				getOneBitsCount((freeSlots ^ currSlots) & pos.needSlotsForNext) < pos.needSlotsTotalForNext
+			);
+
+			++iterations;
+			if (!currSlots) // no match
+			{
+				if (offset == 0)
+				{
+					return std::nullopt;
+				}
+
+				pos.usedSlots = 0;
+				--offset;
+			}
+			else
+			{
+				freeSlots ^= currSlots; // remove slots used by craft
+
+				pos.usedSlots = currSlots;
+				++offset;
+			}
+		}
+		std::array<Uint64, MaxCrafts> backTrackMask = { crafts[0].usedSlots, crafts[1].usedSlots, crafts[2].usedSlots };
+
+
+		return backTrackMask;
+	}
+
+
+};
+
+#ifndef NDEBUG
+
+namespace
+{
+
+[[maybe_unused]]
+static auto dummyTestBitOperations = ([]
+{
+	assert(0b0000 == HangarMatcher::getLowestOneBit(0b0000));
+	assert(0b0001 == HangarMatcher::getLowestOneBit(0b0001));
+	assert(0b0010 == HangarMatcher::getLowestOneBit(0b0010));
+	assert(0b0100 == HangarMatcher::getLowestOneBit(0b11100));
+	assert(0b1000 == HangarMatcher::getLowestOneBit(0b10101000));
+
+	assert((Uint64)-1 == HangarMatcher::getLowestZeroBitsFlip(0b0000)); //sic!
+	assert(0b0001 == HangarMatcher::getLowestZeroBitsFlip(0b0001));
+	assert(0b0011 == HangarMatcher::getLowestZeroBitsFlip(0b0010));
+	assert(0b11111 == HangarMatcher::getLowestZeroBitsFlip(0b11100));
+	assert(0b10101111 == HangarMatcher::getLowestZeroBitsFlip(0b10101000));
+	return 0;
+})();
+
+[[maybe_unused]]
+static auto dummyTestMatch = ([]
+{
+	HangarMatcher m;
+
+	{
+		m.crafts = {{ {1} }};
+		auto result = m.match();
+
+		assert(result.has_value());
+		assert(result.value()[0] == 1);
+	}
+
+	{
+		m.crafts = {{ {1}, {2} }};
+		auto result = m.match();
+
+		assert(result.has_value());
+		assert(result.value()[0] == 1);
+		assert(result.value()[1] == 2);
+	}
+
+	{
+		m.crafts = {{ {3}, {1} }};
+		auto result = m.match();
+
+		assert(result.has_value());
+		assert(result.value()[0] == 2);
+		assert(result.value()[1] == 1);
+	}
+
+	{
+		m.crafts = {{ {3}, {7}, {1} }};
+		auto result = m.match();
+
+		assert(result.has_value());
+		assert(result.value()[0] == 2);
+		assert(result.value()[1] == 4);
+		assert(result.value()[2] == 1);
+	}
+
+	{
+		m.crafts = {{ {1}, {1} }};
+		auto result = m.match();
+
+		assert(!result.has_value());
+	}
+
+	for (int j = 0; j < 1000; ++j)
+	{
+		for (int i = 0; i < 16; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << (16 - i)) - 1), };
+		}
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(result.has_value());
+	}
+
+	for (int j = 0; j < 1000; ++j)
+	{
+		for (int i = 0; i < 16; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << (16 - i)) - 1), };
+		}
+		m.crafts[14].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(!result.has_value());
+	}
+
+	return 0;
+})();
+
+} //namespace
+
+#endif //NDEBUG
+
+} //namespace OpenXcom
