@@ -2559,6 +2559,8 @@ std::vector<Craft*>::iterator Base::removeCraft(Craft *craft, bool unload)
 }
 
 
+
+
 class HangarMatcher
 {
 public:
@@ -2572,7 +2574,7 @@ public:
 	struct CraftData
 	{
 		Uint64 avaiableSlots = 0;
-		Uint64 size = 0b1;
+		Uint64 sizeSlots = 0b1;
 
 		Uint64 usedSlots = 0;
 		Uint64 needSlotsForFailed = -1;
@@ -2600,6 +2602,11 @@ public:
 		return b | (b - 1); // set lower 0 bits to 1, eg. 0011100 -> 0011011 -> 0011111
 	}
 
+	static Uint64 getLowestOneBitFlip(Uint64 b)
+	{
+		return b & (b - 1); // set lowest 1 bits to 0, eg. 0011100 -> 0011000
+	}
+
 	static Uint64 getOnlyLowestZeroBitsFlip(Uint64 b)
 	{
 		return ~b & (b - 1); // set only lower 0 bits to 1, eg. 0011100 -> 0011011 -> 0000011
@@ -2610,79 +2617,110 @@ public:
 		return std::bitset<MaxHangarStorage>(b).count(); //TODO: replace by `std::popcount` from C++20
 	}
 
+	static int compare(Uint64 a, Uint64 b)
+	{
+		if (a < b)
+		{
+			return 1;
+		}
+		else if (a > b)
+		{
+			return -1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
 	void prepareBeforeMatch()
 	{
-//		const int limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
-//		std::sort(crafts.begin(), crafts.begin() + limit,
-//			[](const CraftData& a, const CraftData& b)
-//			{
-//				{
-//					auto ac = a.size;
-//					auto bc = b.size;
-//					if (ac > bc)
-//					{
-//						return true;
-//					}
-//					else if (ac < bc)
-//					{
-//						return false;
-//					}
-//				}
-//
-//				{
-//					auto ac = getOneBitsCount(a.avaiableSlots);
-//					auto bc = getOneBitsCount(b.avaiableSlots);
-//					if (ac < bc)
-//					{
-//						return true;
-//					}
-//					else if (ac > bc)
-//					{
-//						return false;
-//					}
-//				}
-//
-//				{
-//					auto ac = a.avaiableSlots;
-//					auto bc = b.avaiableSlots;
-//					if (ac < bc)
-//					{
-//						return true;
-//					}
-//					else if (ac > bc)
-//					{
-//						return false;
-//					}
-//				}
-//
-//				return false;
-//			}
-//		);
+		// Remove duplicates, if two crafts have exactly same slots available you can remove one slot from second.
+		// This should work as if two crafts have this then you can swap they order and match result should be same.
+		// Because if first slot can't be matched for first craft, checking it for any other craft will be pointless as you could swap them.
+		// This is done to reduce complexity from `O(n^n)` to `O(n!)` in some common cases.
+		// Of corse this version is is very dumb, depending on craft order it can miss some possible reductions.
+		for (auto& pos : crafts)
+		{
+			auto reducedSlots = getLowestOneBitFlip(pos.avaiableSlots);
+			// only at least one bit is still set
+			if (reducedSlots)
+			{
+				for (auto& other : crafts)
+				{
+					if (&pos != &other && pos.avaiableSlots == other.avaiableSlots && pos.sizeSlots == other.sizeSlots)
+					{
+						other.avaiableSlots = reducedSlots;
+					}
+				}
+			}
+		}
+		const int limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
+		std::sort(crafts.begin(), crafts.begin() + limit,
+			[](const CraftData& a, const CraftData& b)
+			{
+				{
+					auto diff = compare(a.sizeSlots, b.sizeSlots);
+					if (diff > 0)
+					{
+						return true;
+					}
+					else if (diff < 0)
+					{
+						return false;
+					}
+				}
+
+				{
+					auto diff = compare(getOneBitsCount(a.avaiableSlots), getOneBitsCount(b.avaiableSlots));
+					if (diff > 0)
+					{
+						return true;
+					}
+					else if (diff < 0)
+					{
+						return false;
+					}
+				}
+
+				{
+					auto diff = compare(a.avaiableSlots, b.avaiableSlots);
+					if (diff > 0)
+					{
+						return true;
+					}
+					else if (diff < 0)
+					{
+						return false;
+					}
+				}
+
+				return false;
+			}
+		);
 	}
 
 	std::optional<std::array<Uint64, MaxCrafts>> match()
 	{
 		Uint64 freeSlots = 0;
-		size_t needSlotsTotal = 0;
 		size_t offset = 0;
 		const size_t limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
 
 		for (auto& pos : crafts)
 		{
-			if (pos.avaiableSlots) needSlotsTotal += getOneBitsCount(pos.size);
-		}
-		for (auto& pos : crafts)
-		{
-			if (pos.avaiableSlots) needSlotsTotal -= getOneBitsCount(pos.size);
 			freeSlots |= pos.avaiableSlots;
 			pos.usedSlots = 0;
 			pos.needSlotsForFailed = -1;
-			pos.needSlotsTotalForNext = needSlotsTotal;
+			pos.needSlotsTotalForNext = 0;
 			for (auto& next : crafts)
 			{
 				if (&pos < &next)
 				{
-					pos.needSlotsForNext |= next.avaiableSlots;
+					if (pos.avaiableSlots & next.avaiableSlots)
+					{
+						pos.needSlotsForNext |= next.avaiableSlots;
+						pos.needSlotsTotalForNext += getOneBitsCount(pos.sizeSlots);
+					}
 				}
 			}
 		}
@@ -2706,7 +2744,7 @@ public:
 				prev = getOnlyLowestZeroBitsFlip(nextHangar & ~prev);
 
 				auto avaiable = pos.avaiableSlots & freeSlots & ~prev;
-				currSlots = getLowestOneBit(avaiable) * pos.size;
+				currSlots = getLowestOneBit(avaiable) * pos.sizeSlots;
 			}
 			while (
 				currSlots &&
@@ -2827,9 +2865,36 @@ static auto dummyTestMatch = ([]
 	{
 		for (int i = 0; i < 16; ++i)
 		{
+			m.crafts[i] = { Uint64((1 << 16) - 1), };
+		}
+		m.crafts[15].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(result.has_value());
+	}
+
+	for (int j = 0; j < 1000; ++j)
+	{
+		for (int i = 0; i < 16; ++i)
+		{
 			m.crafts[i] = { Uint64((1 << (16 - i)) - 1), };
 		}
 		m.crafts[14].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(!result.has_value());
+	}
+
+	for (int j = 0; j < 1000; ++j)
+	{
+		for (int i = 0; i < 16; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << 16) - 1), };
+		}
+		m.crafts[14].avaiableSlots = 1;
+		m.crafts[15].avaiableSlots = 1;
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
