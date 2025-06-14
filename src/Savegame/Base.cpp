@@ -2564,6 +2564,7 @@ std::vector<Craft*>::iterator Base::removeCraft(Craft *craft, bool unload)
 class HangarMatcher
 {
 public:
+	static constexpr size_t MaxHangars = 36;
 	static constexpr size_t MaxHangarStorage = 64;
 	static constexpr size_t MaxCrafts = 16;
 
@@ -2585,11 +2586,21 @@ public:
 		const BaseFacility* assignedHangar = nullptr;
 	};
 
+	struct HangarData
+	{
+		Uint64 hangarsFirstSlot = 0;
+		Uint64 hangarsAllSlot = 0;
+
+		const BaseFacility* hangar = nullptr;
+	};
+
+	size_t craftsCount = 0;
 	std::array<CraftData, MaxCrafts> crafts = {};
 
-	std::array<const BaseFacility*, MaxHangarStorage> hangars = {};
-	std::array<Uint64, MaxHangarStorage> hangarsFirstSlot = {};
-	std::array<Uint64, MaxHangarStorage> hangarsAllSlot = {};
+	size_t hangarsCount = 0;
+	size_t hangarsAllSlots = 0;
+	size_t hangarsFirstSlots = 0;
+	std::array<HangarData, MaxHangars> hangars = {};
 
 
 	static Uint64 getLowestOneBit(Uint64 b)
@@ -2617,6 +2628,11 @@ public:
 		return std::bitset<MaxHangarStorage>(b).count(); //TODO: replace by `std::popcount` from C++20
 	}
 
+	static Uint64 getSizeSlots(size_t s)
+	{
+		return (1 << s) - 1;
+	}
+
 	static int compare(Uint64 a, Uint64 b)
 	{
 		if (a < b)
@@ -2633,8 +2649,97 @@ public:
 		}
 	}
 
+	size_t getCraftSize(const RuleCraft* craft)
+	{
+		return 1; //TODO: add rule for craft size
+	}
+	size_t getHangarSize(const RuleBaseFacility* hangar)
+	{
+		return hangar->getCrafts();
+	}
+
+	bool addHangar(const BaseFacility* hangar)
+	{
+		if (getOneBitsCount(hangarsAllSlots) + getHangarSize(hangar->getRules()) > MaxHangarStorage)
+		{
+			return false;
+		}
+
+		if (hangarsCount < MaxHangars)
+		{
+			auto& h = hangars[hangarsCount];
+
+			h.hangar = hangar;
+			h.hangarsFirstSlot = hangarsAllSlots + 1;  // should be all 1111, add one and it will be 10000
+			h.hangarsAllSlot = getSizeSlots(getHangarSize(hangar->getRules())) * h.hangarsFirstSlot; // 1110000
+
+			hangarsFirstSlots |= h.hangarsFirstSlot; // 0010101 bits where next hangar starts
+			hangarsAllSlots |= h.hangarsAllSlot; // 1110000 | 1111 = 1111111
+			++hangarsCount;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool addCraft(const Craft* craft)
+	{
+		if (craftsCount < MaxCrafts)
+		{
+			auto& c = crafts[craftsCount];
+
+
+			c.assignedHangar = nullptr;
+			c.craft = craft;
+			c.avaiableSlots = 0;
+			c.sizeSlots =  getSizeSlots(1);
+			++craftsCount;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool isCraftMaching(const RuleBaseFacility* h, const RuleCraft* c)
+	{
+		return true;
+	}
+
+	Uint64 getHangarCraftSlots(const RuleBaseFacility* h, const RuleCraft* c)
+	{
+		// Available slots are first slot that craft can occupy,
+		// this means if craft size is equal to hangar size then only one first slot is set,
+		// when craft have size 1 and hangar X then X consecutive slots will be set.
+		return getSizeSlots(1 + getHangarSize(h) - getCraftSize(c));
+	}
+
 	void prepareBeforeMatch()
 	{
+		for (auto& c : crafts)
+		{
+			if (c.craft == nullptr)
+			{
+				break;
+			}
+
+			auto* craftRule = c.craft->getRules();
+			for (auto& h : hangars)
+			{
+				if (h.hangar == nullptr)
+				{
+					break;
+				}
+
+				auto* hangarRule = h.hangar->getRules();
+				if (isCraftMaching(hangarRule, craftRule))
+				{
+					c.avaiableSlots |= getHangarCraftSlots(hangarRule, craftRule) * h.hangarsFirstSlot;
+				}
+			}
+		}
+
 		// Remove duplicates, if two crafts have exactly same slots available you can remove one slot from second.
 		// This should work as if two crafts have this then you can swap they order and match result should be same.
 		// Because if first slot can't be matched for first craft, checking it for any other craft will be pointless as you could swap them.
@@ -2655,7 +2760,8 @@ public:
 				}
 			}
 		}
-		const int limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
+
+		const int limit = craftsCount;
 		std::sort(crafts.begin(), crafts.begin() + limit,
 			[](const CraftData& a, const CraftData& b)
 			{
@@ -2704,7 +2810,7 @@ public:
 	{
 		Uint64 freeSlots = 0;
 		size_t offset = 0;
-		const size_t limit = std::count_if(crafts.begin(), crafts.end(), [](const CraftData& c) { return !!c.avaiableSlots; });
+		const size_t limit = craftsCount;
 
 		for (auto& pos : crafts)
 		{
@@ -2725,8 +2831,6 @@ public:
 			}
 		}
 
-		int iterations = 0;
-		Uint64 nextHangar = -1;
 		while (offset != limit)
 		{
 			auto& pos = crafts[offset];
@@ -2741,7 +2845,7 @@ public:
 			{
 				auto prev = currSlots ? getLowestZeroBitsFlip(currSlots) : 0;
 
-				prev = getOnlyLowestZeroBitsFlip(nextHangar & ~prev);
+				prev = getOnlyLowestZeroBitsFlip(hangarsFirstSlots & ~prev);
 
 				auto avaiable = pos.avaiableSlots & freeSlots & ~prev;
 				currSlots = getLowestOneBit(avaiable) * pos.sizeSlots;
@@ -2751,7 +2855,6 @@ public:
 				getOneBitsCount((freeSlots ^ currSlots) & pos.needSlotsForNext) < pos.needSlotsTotalForNext
 			);
 
-			++iterations;
 			if (!currSlots) // no match
 			{
 				if (offset == 0)
@@ -2806,8 +2909,11 @@ static auto dummyTestMatch = ([]
 {
 	HangarMatcher m;
 
+	m.hangarsFirstSlots = 0xFF;
+
 	{
 		m.crafts = {{ {1} }};
+		m.craftsCount = 1;
 		auto result = m.match();
 
 		assert(result.has_value());
@@ -2816,6 +2922,7 @@ static auto dummyTestMatch = ([]
 
 	{
 		m.crafts = {{ {1}, {2} }};
+		m.craftsCount = 2;
 		auto result = m.match();
 
 		assert(result.has_value());
@@ -2825,6 +2932,7 @@ static auto dummyTestMatch = ([]
 
 	{
 		m.crafts = {{ {3}, {1} }};
+		m.craftsCount = 2;
 		auto result = m.match();
 
 		assert(result.has_value());
@@ -2834,6 +2942,7 @@ static auto dummyTestMatch = ([]
 
 	{
 		m.crafts = {{ {3}, {7}, {1} }};
+		m.craftsCount = 3;
 		auto result = m.match();
 
 		assert(result.has_value());
@@ -2844,16 +2953,19 @@ static auto dummyTestMatch = ([]
 
 	{
 		m.crafts = {{ {1}, {1} }};
+		m.craftsCount = 2;
 		auto result = m.match();
 
 		assert(!result.has_value());
 	}
 
+	// performance test, if start lag this mean we need fix alg.
 	for (int j = 0; j < 1000; ++j)
 	{
-		for (int i = 0; i < 16; ++i)
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
 		{
-			m.crafts[i] = { Uint64((1 << (16 - i)) - 1), };
+			m.crafts[i] = { Uint64((1 << (m.craftsCount - i)) - 1), };
 		}
 		m.prepareBeforeMatch();
 		auto result = m.match();
@@ -2863,9 +2975,10 @@ static auto dummyTestMatch = ([]
 
 	for (int j = 0; j < 1000; ++j)
 	{
-		for (int i = 0; i < 16; ++i)
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
 		{
-			m.crafts[i] = { Uint64((1 << 16) - 1), };
+			m.crafts[i] = { Uint64((1 << m.craftsCount) - 1), };
 		}
 		m.crafts[15].avaiableSlots = 1;
 		m.prepareBeforeMatch();
@@ -2876,9 +2989,10 @@ static auto dummyTestMatch = ([]
 
 	for (int j = 0; j < 1000; ++j)
 	{
-		for (int i = 0; i < 16; ++i)
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
 		{
-			m.crafts[i] = { Uint64((1 << (16 - i)) - 1), };
+			m.crafts[i] = { Uint64((1 << (m.craftsCount - i)) - 1), };
 		}
 		m.crafts[14].avaiableSlots = 1;
 		m.prepareBeforeMatch();
@@ -2889,12 +3003,67 @@ static auto dummyTestMatch = ([]
 
 	for (int j = 0; j < 1000; ++j)
 	{
-		for (int i = 0; i < 16; ++i)
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
 		{
-			m.crafts[i] = { Uint64((1 << 16) - 1), };
+			m.crafts[i] = { Uint64((1 << m.craftsCount) - 1), };
 		}
 		m.crafts[14].avaiableSlots = 1;
 		m.crafts[15].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(!result.has_value());
+	}
+	for (int j = 0; j < 1000; ++j)
+	{
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << m.craftsCount) - 1), };
+		}
+		m.crafts[14].avaiableSlots = 1;
+		m.crafts[15].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(!result.has_value());
+	}
+	for (int j = 0; j < 1000; ++j)
+	{
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << m.craftsCount) - 1) - Uint64(1 << i), };
+		}
+		m.crafts[15].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(result.has_value());
+	}
+	for (int j = 0; j < 1000; ++j)
+	{
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << m.craftsCount) - 1) - Uint64(1 << i), };
+		}
+		m.crafts[14].avaiableSlots = 1;
+		m.crafts[15].avaiableSlots = 1;
+		m.prepareBeforeMatch();
+		auto result = m.match();
+
+		assert(!result.has_value());
+	}
+	for (int j = 0; j < 1000; ++j)
+	{
+		m.craftsCount = 16;
+		for (size_t i = 0; i < m.craftsCount - 1; ++i)
+		{
+			m.crafts[i] = { Uint64((1 << (m.craftsCount - 1)) - 1) - Uint64(1 << i), };
+		}
+		m.crafts[15].avaiableSlots = Uint64((1 << (m.craftsCount - 1)) - 1);
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
