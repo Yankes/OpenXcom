@@ -2594,6 +2594,8 @@ public:
 		const BaseFacility* hangar = nullptr;
 	};
 
+	bool matchFind = false;
+
 	size_t craftsCount = 0;
 	std::array<CraftData, MaxCrafts> crafts = {};
 
@@ -2806,7 +2808,7 @@ public:
 		);
 	}
 
-	std::optional<std::array<Uint64, MaxCrafts>> match()
+	bool match()
 	{
 		Uint64 freeSlots = 0;
 		size_t offset = 0;
@@ -2859,7 +2861,8 @@ public:
 			{
 				if (offset == 0)
 				{
-					return std::nullopt;
+					matchFind = false;
+					return false;
 				}
 
 				pos.usedSlots = 0;
@@ -2873,13 +2876,26 @@ public:
 				++offset;
 			}
 		}
-		std::array<Uint64, MaxCrafts> backTrackMask = { crafts[0].usedSlots, crafts[1].usedSlots, crafts[2].usedSlots };
 
-
-		return backTrackMask;
+		matchFind = true;
+		return true;
 	}
 
+	void finishAfterMatch()
+	{
+		assert(matchFind);
 
+		for (auto& craft : crafts)
+		{
+			if (craft.usedSlots)
+			{
+				for (auto& hangar : hangars)
+				{
+
+				}
+			}
+		}
+	}
 };
 
 #ifndef NDEBUG
@@ -2916,8 +2932,8 @@ static auto dummyTestMatch = ([]
 		m.craftsCount = 1;
 		auto result = m.match();
 
-		assert(result.has_value());
-		assert(result.value()[0] == 1);
+		assert(result);
+		assert(m.crafts[0].avaiableSlots == 1);
 	}
 
 	{
@@ -2925,9 +2941,9 @@ static auto dummyTestMatch = ([]
 		m.craftsCount = 2;
 		auto result = m.match();
 
-		assert(result.has_value());
-		assert(result.value()[0] == 1);
-		assert(result.value()[1] == 2);
+		assert(result);
+		assert(m.crafts[0].usedSlots == 1);
+		assert(m.crafts[1].usedSlots == 2);
 	}
 
 	{
@@ -2935,9 +2951,9 @@ static auto dummyTestMatch = ([]
 		m.craftsCount = 2;
 		auto result = m.match();
 
-		assert(result.has_value());
-		assert(result.value()[0] == 2);
-		assert(result.value()[1] == 1);
+		assert(result);
+		assert(m.crafts[0].usedSlots == 2);
+		assert(m.crafts[1].usedSlots == 1);
 	}
 
 	{
@@ -2945,10 +2961,10 @@ static auto dummyTestMatch = ([]
 		m.craftsCount = 3;
 		auto result = m.match();
 
-		assert(result.has_value());
-		assert(result.value()[0] == 2);
-		assert(result.value()[1] == 4);
-		assert(result.value()[2] == 1);
+		assert(result);
+		assert(m.crafts[0].usedSlots == 2);
+		assert(m.crafts[1].usedSlots == 4);
+		assert(m.crafts[2].usedSlots == 1);
 	}
 
 	{
@@ -2956,7 +2972,7 @@ static auto dummyTestMatch = ([]
 		m.craftsCount = 2;
 		auto result = m.match();
 
-		assert(!result.has_value());
+		assert(!result);
 	}
 
 	// performance test, if start lag this mean we need fix alg.
@@ -2970,7 +2986,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(result.has_value());
+		assert(result);
 	}
 
 	for (int j = 0; j < 1000; ++j)
@@ -2984,7 +3000,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(result.has_value());
+		assert(result);
 	}
 
 	for (int j = 0; j < 1000; ++j)
@@ -2998,7 +3014,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(!result.has_value());
+		assert(!result);
 	}
 
 	for (int j = 0; j < 1000; ++j)
@@ -3013,7 +3029,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(!result.has_value());
+		assert(!result);
 	}
 	for (int j = 0; j < 1000; ++j)
 	{
@@ -3027,7 +3043,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(!result.has_value());
+		assert(!result);
 	}
 	for (int j = 0; j < 1000; ++j)
 	{
@@ -3040,7 +3056,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(result.has_value());
+		assert(result);
 	}
 	for (int j = 0; j < 1000; ++j)
 	{
@@ -3054,7 +3070,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(!result.has_value());
+		assert(!result);
 	}
 	for (int j = 0; j < 1000; ++j)
 	{
@@ -3067,7 +3083,7 @@ static auto dummyTestMatch = ([]
 		m.prepareBeforeMatch();
 		auto result = m.match();
 
-		assert(!result.has_value());
+		assert(!result);
 	}
 
 	return 0;
