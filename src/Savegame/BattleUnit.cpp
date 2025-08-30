@@ -2926,6 +2926,15 @@ std::vector<BattleItem*> *BattleUnit::getInventory()
 }
 
 /**
+ * Get the pointer to the vector of inventory items.
+ * @return pointer to vector.
+ */
+const std::vector<BattleItem*> *BattleUnit::getInventory() const
+{
+	return &_inventory;
+}
+
+/**
  * Fit item into inventory slot.
  * @param slot Slot to fit.
  * @param item Item to fit.
