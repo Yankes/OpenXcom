@@ -3878,14 +3878,6 @@ void ScriptParserBase::parseCode(ScriptContainerBase& container, const std::stri
 }
 
 /**
- * Load global data from YAML.
- */
-void ScriptParserBase::load(const YAML::YamlNodeReader& reader)
-{
-
-}
-
-/**
  * Print all metadata
  */
 void ScriptParserBase::logScriptMetadata(bool haveEvents, const std::string& groupName) const
@@ -4059,10 +4051,8 @@ void ScriptParserEventsBase::parseCode(ScriptContainerEventsBase& container, con
 /**
  * Load global data from YAML.
  */
-void ScriptParserEventsBase::load(const YAML::YamlNodeReader& scripts)
+void ScriptParserEventsBase::loadEvents(const YAML::YamlNodeReader& scripts)
 {
-	ScriptParserBase::load(scripts);
-
 	// helper functions to get position in data vector
 	auto findPos = [&](const std::string& n)
 	{
@@ -4509,6 +4499,7 @@ void ScriptGlobal::pushParser(const std::string& groupName, ScriptParserEventsBa
 	parser->logScriptMetadata(true, groupName);
 	_parserNames.insert(std::make_pair(parser->getName(), parser));
 	_parserEvents.push_back(parser);
+	_parserEventsNames.insert(parser->getName());
 }
 
 /**
@@ -4634,9 +4625,23 @@ void ScriptGlobal::load(const YAML::YamlNodeReader& reader)
 	}
 	if (const YAML::YamlNodeReader& s = reader["scripts"])
 	{
-		for (auto& p : _parserNames)
+		if (s.isMap() == false)
 		{
-			p.second->load(s);
+			throw Exception("Wrong type of 'scripts' node at line " + std::to_string(s.getLocationInFile().line));
+		}
+
+		for (auto& p : s.children())
+		{
+			if (_parserEventsNames.count(p.key()) == 0)
+			{
+				throw Exception("Unknown '" + std::string(p.key()) + "' node in 'scripts' at line " + std::to_string(s.getLocationInFile().line));
+			}
+		}
+
+
+		for (auto& p : _parserEvents)
+		{
+			p->loadEvents(s);
 		}
 	}
 }

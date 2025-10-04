@@ -1363,9 +1363,6 @@ public:
 		}
 	}
 
-	/// Load global data from YAML.
-	virtual void load(const YAML::YamlNodeReader& reader);
-
 	/// Show all script informations.
 	void logScriptMetadata(bool haveEvents, const std::string& groupName) const;
 
@@ -1547,7 +1544,7 @@ public:
 	ScriptParserEventsBase(ScriptGlobal* shared, const std::string& name);
 
 	/// Load global data from YAML.
-	virtual void load(const YAML::YamlNodeReader& reader) override;
+	void loadEvents(const YAML::YamlNodeReader& reader);
 	/// Get pointer to events.
 	const ScriptContainerBase* getEvents() const;
 	/// Release event data.
@@ -1691,6 +1688,7 @@ private:
 	std::vector<std::vector<char>> _strings;
 	std::vector<std::vector<ScriptContainerBase>> _events;
 	std::map<std::string, ScriptParserBase*> _parserNames;
+	std::unordered_set<std::string_view> _parserEventsNames;
 	std::vector<ScriptParserEventsBase*> _parserEvents;
 	std::map<ArgEnum, TagData> _tagNames;
 	std::vector<TagValueType> _tagValueTypes;
