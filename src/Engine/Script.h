@@ -18,6 +18,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <map>
+#include <unordered_map>
 #include <limits>
 #include <vector>
 #include <string>
@@ -1688,8 +1689,7 @@ private:
 	std::vector<std::vector<char>> _strings;
 	std::vector<std::vector<ScriptContainerBase>> _events;
 	std::map<std::string, ScriptParserBase*> _parserNames;
-	std::unordered_set<std::string_view> _parserEventsNames;
-	std::vector<ScriptParserEventsBase*> _parserEvents;
+	std::unordered_map<std::string_view, ScriptParserEventsBase*> _parserEvents;
 	std::map<ArgEnum, TagData> _tagNames;
 	std::vector<TagValueType> _tagValueTypes;
 	std::vector<ScriptRefData> _refList;

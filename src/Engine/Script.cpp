@@ -4094,9 +4094,9 @@ void ScriptParserEventsBase::loadEvents(const YAML::YamlNodeReader& scripts)
 		return name;
 	};
 
-	if (const YAML::YamlNodeReader& curr = scripts[ryml::to_csubstr(getName())])
+	if (scripts)
 	{
-		for (const YAML::YamlNodeReader& i : curr.children())
+		for (const YAML::YamlNodeReader& i : scripts.children())
 		{
 			const auto deleteNode = getNode(i, "delete");
 			const auto newNode = getNode(i, "new");
@@ -4498,8 +4498,7 @@ void ScriptGlobal::pushParser(const std::string& groupName, ScriptParserEventsBa
 {
 	parser->logScriptMetadata(true, groupName);
 	_parserNames.insert(std::make_pair(parser->getName(), parser));
-	_parserEvents.push_back(parser);
-	_parserEventsNames.insert(parser->getName());
+	_parserEvents.insert(std::make_pair(std::string_view(parser->getName()), parser));
 }
 
 /**
@@ -4555,7 +4554,7 @@ void ScriptGlobal::endLoad()
 {
 	for (auto& p : _parserEvents)
 	{
-		_events.push_back(p->releseEvents());
+		_events.push_back(p.second->releseEvents());
 	}
 	_parserNames.clear();
 	_parserEvents.clear();
@@ -4623,25 +4622,28 @@ void ScriptGlobal::load(const YAML::YamlNodeReader& reader)
 			}
 		}
 	}
-	if (const YAML::YamlNodeReader& s = reader["scripts"])
+	if (const YAML::YamlNodeReader& scripts = reader["scripts"])
 	{
-		if (s.isMap() == false)
+		if (scripts.hasNullVal() == false && scripts.isMap() == false)
 		{
-			throw Exception("Wrong type of 'scripts' node at line " + std::to_string(s.getLocationInFile().line));
+			throw Exception("Wrong type of 'scripts' node at line " + std::to_string(scripts.getLocationInFile().line));
 		}
 
-		for (auto& p : s.children())
+		for (const auto& p : scripts.children())
 		{
-			if (_parserEventsNames.count(p.key()) == 0)
+			auto key = p.key();
+			if (key.length() > 0 && key.back() == '#')
 			{
-				throw Exception("Unknown '" + std::string(p.key()) + "' node in 'scripts' at line " + std::to_string(s.getLocationInFile().line));
+				continue;
 			}
-		}
 
+			auto event = _parserEvents.find(p.key());
+			if (event == _parserEvents.end())
+			{
+				throw Exception("Unknown '" + std::string(p.key()) + "' node in 'scripts' at line " + std::to_string(p.getLocationInFile().line));
+			}
 
-		for (auto& p : _parserEvents)
-		{
-			p->loadEvents(s);
+			event->second->loadEvents(p);
 		}
 	}
 }
