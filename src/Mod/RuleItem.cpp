@@ -2973,8 +2973,11 @@ void RuleItem::ScriptRegister(ScriptParserBase* parser)
 	ri.add<&getBattleTypeScript>("getBattleType");
 	ri.add<&RuleItem::getWaypoints>("getWaypoints");
 	ri.add<&RuleItem::isWaterOnly>("isWaterOnly");
+	ri.add<&RuleItem::isLandOnly>("isLandOnly");
 	ri.add<&RuleItem::isTwoHanded>("isTwoHanded");
 	ri.add<&RuleItem::isBlockingBothHands>("isBlockingBothHands");
+	ri.add<&RuleItem::isConsumable>("isConsumable");
+	ri.add<&RuleItem::isRecoverable>("isRecoverable");
 	ri.add<&isSingleTargetScript>("isSingleTarget");
 	ri.add<&hasCategoryScript>("hasCategory");
 
