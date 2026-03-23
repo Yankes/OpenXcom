@@ -142,8 +142,8 @@ void UnitPanicBState::think()
 		_unit->clearTimeUnits();
 		_unit->moraleChange(+15);
 	}
-	_parent->popState();
 	_parent->setupCursor();
+	return _parent->popState();
 }
 
 /**

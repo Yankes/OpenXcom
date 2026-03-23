@@ -116,7 +116,7 @@ void PsiAttackBState::think()
 	{
 		_parent->setupCursor();
 	}
-	_parent->popState();
+	return _parent->popState();
 }
 
 }

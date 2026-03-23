@@ -133,7 +133,7 @@ void UnitWalkBState::think()
 		else
 		{
 			_pf->abortPath();
-			_parent->popState();
+			return _parent->popState();
 		}
 	};
 
@@ -510,7 +510,7 @@ void UnitWalkBState::postPathProcedures()
 	_terrain->calculateLighting(LL_UNITS, _unit->getPosition());
 	_terrain->calculateFOV(_unit);
 	if (!_falling)
-		_parent->popState();
+		return _parent->popState();
 }
 
 /**

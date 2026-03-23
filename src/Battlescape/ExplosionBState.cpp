@@ -265,7 +265,7 @@ void ExplosionBState::init()
 		}
 		else
 		{
-			_parent->popState();
+			return _parent->popState();
 		}
 	}
 	else
@@ -382,7 +382,9 @@ void ExplosionBState::think()
 	if (!_parent->getMap()->getBlastFlash())
 	{
 		if (_parent->getMap()->getExplosions()->empty())
-			explode();
+		{
+			return explode();
+		}
 
 		for (auto iter = _parent->getMap()->getExplosions()->begin(); iter != _parent->getMap()->getExplosions()->end();)
 		{
@@ -393,8 +395,7 @@ void ExplosionBState::think()
 				iter = _parent->getMap()->getExplosions()->erase(iter);
 				if (_parent->getMap()->getExplosions()->empty())
 				{
-					explode();
-					return;
+					return explode();
 				}
 			}
 			else
@@ -469,15 +470,13 @@ void ExplosionBState::explode()
 		_parent->getSave()->removeItem(_attack.damage_item);
 	}
 
-	_parent->popState();
-
 	// check for terrain explosions
 	Tile *t = save->getTileEngine()->checkForTerrainExplosions();
 	if (t)
 	{
 		Position p = t->getPosition().toVoxel();
 		p += Position(8,8,0);
-		_parent->statePushFront(new ExplosionBState(_parent, p, BattleActionAttack{ BA_NONE, _attack.attacker, }, t, false, 0, _explosionCounter + 1));
+		_parent->statePushNext(new ExplosionBState(_parent, p, BattleActionAttack{ BA_NONE, _attack.attacker, }, t, false, 0, _explosionCounter + 1));
 	}
 
 	// Spawn a unit if the item does that
@@ -491,6 +490,9 @@ void ExplosionBState::explode()
 	{
 		_parent->spawnNewItem(_attack, _before.toTile());
 	}
+
+	// Can `endTurn` if it was last state
+	return _parent->popState();
 }
 
 }

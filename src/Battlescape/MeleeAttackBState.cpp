@@ -210,7 +210,8 @@ void MeleeAttackBState::think()
 			_parent->setupCursor();
 		}
 		_parent->convertInfected();
-		_parent->popState();
+		return _parent->popState();
+		
 	}
 }
 

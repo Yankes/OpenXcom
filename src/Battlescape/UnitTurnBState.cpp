@@ -88,7 +88,7 @@ void UnitTurnBState::init()
 				_action.result = "STR_NOT_ENOUGH_TIME_UNITS";
 			}
 		}
-		_parent->popState();
+		return _parent->popState();
 	}
 }
 
@@ -114,12 +114,10 @@ void UnitTurnBState::think()
 		if (_chargeTUs && _unit->getFaction() == _parent->getSave()->getSide() && _parent->getPanicHandled() && _action.type == BA_NONE && _unit->getUnitsSpottedThisTurn().size() > unitSpotted)
 		{
 			_unit->abortTurn();
-			_parent->popState();
+			return _parent->popState();
 		}
 		else if (_unit->getStatus() == STATUS_STANDING)
 		{
-			_parent->popState();
-
 			if (_action.kneel && !_unit->isFloating() && !_unit->isKneeled())
 			{
 				BattleAction kneel;
@@ -134,13 +132,15 @@ void UnitTurnBState::think()
 					_parent->getTileEngine()->checkReactionFire(_unit, kneel);
 				}
 			}
+
+			return _parent->popState();
 		}
 	}
 	else if (_parent->getPanicHandled())
 	{
 		_action.result = "STR_NOT_ENOUGH_TIME_UNITS";
 		_unit->abortTurn();
-		_parent->popState();
+		return _parent->popState();
 	}
 }
 
