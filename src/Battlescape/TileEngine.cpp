@@ -3665,11 +3665,33 @@ Tile *TileEngine::checkForTerrainExplosions()
 		return 0;
 	}
 
+	int firstTile = -1;
+	int lastTile = -1;
+	int countTile = 0;
 	for (int i = 0; i < _save->getMapSizeXYZ(); ++i)
 	{
 		if (_save->getTile(i)->getExplosive())
 		{
-			return _save->getTile(i);
+			++countTile;
+			if (firstTile == -1)
+			{
+				firstTile = i;
+			}
+			lastTile = i + 1;
+		}
+	}
+	if (countTile)
+	{
+		countTile = RNG::generate(1, countTile);
+		for (int i = firstTile; i < lastTile; ++i)
+		{
+			if (_save->getTile(i)->getExplosive())
+			{
+				if (countTile == 1){
+					return _save->getTile(i);
+				}
+				--countTile;
+			}
 		}
 	}
 	return 0;
