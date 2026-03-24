@@ -263,10 +263,6 @@ void ExplosionBState::init()
 				_parent->getMap()->getCamera()->centerOnPosition(_center.toTile(), false);
 			}
 		}
-		else
-		{
-			return _parent->popState();
-		}
 	}
 	else
 	// create a bullet hit
@@ -371,6 +367,27 @@ void ExplosionBState::init()
 			_attack.attacker->setAlreadyExploded(false);
 		}
 	}
+
+	if (_power > 0)
+	{
+		// Spawn a unit if the item does that
+		if (_attack.damage_item)
+		{
+			_parent->spawnNewUnit(_attack, _before.toTile());
+		}
+
+		// Spawn a item if the weapon does that
+		if (_attack.damage_item)
+		{
+			_parent->spawnNewItem(_attack, _before.toTile());
+		}
+	}
+
+	// Remove used grenade
+	if (_attack.damage_item && (_attack.damage_item->getRules()->getBattleType() == BT_GRENADE || _attack.damage_item->getRules()->getBattleType() == BT_PROXIMITYGRENADE))
+	{
+		_parent->getSave()->removeItem(_attack.damage_item);
+	}
 }
 
 /**
@@ -428,19 +445,16 @@ void ExplosionBState::explode()
 			_attack.attacker->aim(false);
 		}
 
-		if (_power <= 0)
+		if (_power > 0)
 		{
-			_parent->popState();
-			return;
+			int sound = _attack.weapon_item->getRules()->getMeleeHitSound();
+			if (_attack.weapon_item != _attack.damage_item)
+			{
+				// melee weapon with ammo
+				optValue(sound, _attack.damage_item->getRules()->getMeleeHitSound());
+			}
+			_parent->playSound(sound, _center.toTile());
 		}
-
-		int sound = _attack.weapon_item->getRules()->getMeleeHitSound();
-		if (_attack.weapon_item != _attack.damage_item)
-		{
-			// melee weapon with ammo
-			optValue(sound, _attack.damage_item->getRules()->getMeleeHitSound());
-		}
-		_parent->playSound(sound, _center.toTile());
 	}
 
 	if (_tile)
@@ -465,11 +479,6 @@ void ExplosionBState::explode()
 		_attack.attacker->aim(false);
 	}
 
-	if (_attack.damage_item && (_attack.damage_item->getRules()->getBattleType() == BT_GRENADE || _attack.damage_item->getRules()->getBattleType() == BT_PROXIMITYGRENADE))
-	{
-		_parent->getSave()->removeItem(_attack.damage_item);
-	}
-
 	// check for terrain explosions
 	Tile *t = save->getTileEngine()->checkForTerrainExplosions();
 	if (t)
@@ -477,18 +486,6 @@ void ExplosionBState::explode()
 		Position p = t->getPosition().toVoxel();
 		p += Position(8,8,0);
 		_parent->statePushNext(new ExplosionBState(_parent, p, BattleActionAttack{ BA_NONE, _attack.attacker, }, t, false, 0, _explosionCounter + 1));
-	}
-
-	// Spawn a unit if the item does that
-	if (_attack.damage_item)
-	{
-		_parent->spawnNewUnit(_attack, _before.toTile());
-	}
-
-	// Spawn a item if the weapon does that
-	if (_attack.damage_item)
-	{
-		_parent->spawnNewItem(_attack, _before.toTile());
 	}
 
 	// Can `endTurn` if it was last state
