@@ -333,7 +333,7 @@ bool BattleItem::fuseThrowEvent()
 	auto* event = _rules->getFuseTriggerEvent();
 	auto check = [&]
 	{
-		if (_fuseEnabled && getFuseTimer() == 0)
+		if (_fuseEnabled && getFuseTimer() >= 0)
 		{
 			if (event->throwExplode)
 			{
@@ -341,7 +341,7 @@ bool BattleItem::fuseThrowEvent()
 			}
 			else if (event->defaultBehavior)
 			{
-				return _rules->getBattleType() == BT_GRENADE && (Options::battleInstantGrenade || _rules->getFuseTimerType() == BFT_INSTANT);
+				return getFuseTimer() == 0 && _rules->getBattleType() == BT_GRENADE && (Options::battleInstantGrenade || _rules->getFuseTimerType() == BFT_INSTANT);
 			}
 		}
 		return false;
