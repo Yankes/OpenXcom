@@ -49,6 +49,37 @@ namespace OpenXcom
 UnitDieBState::UnitDieBState(BattlescapeGame *parent, BattleUnit *unit, const RuleDamageType* damageType, bool noSound) : BattleState(parent),
 	_unit(unit), _damageType(damageType), _noSound(noSound), _extraFrame(0), _overKill(unit->getOverKillDamage())
 {
+	_unit->setNextFallingStatus();
+
+	_unit->clearVisibleTiles();
+	_unit->clearVisibleUnits();
+	_unit->freePatrolTarget();
+
+	if (!_parent->getSave()->isBeforeGame() && _unit->getFaction() == FACTION_HOSTILE)
+	{
+		std::vector<Node *> *nodes = _parent->getSave()->getNodes();
+		if (!nodes) return; // this better not happen.
+
+		for (auto* node : *nodes)
+		{
+			if (!node->isDummy() && Position::distanceSq(node->getPosition(), _unit->getPosition()) < 4)
+			{
+				node->setType(node->getType() | Node::TYPE_DANGEROUS);
+			}
+		}
+	}
+}
+
+/**
+ * Deletes the UnitDieBState.
+ */
+UnitDieBState::~UnitDieBState()
+{
+
+}
+
+void UnitDieBState::init()
+{
 	// don't show the "fall to death" animation when a unit is blasted with explosives or he is already unconscious
 	if (!_damageType->isDirect() || _unit->getStatus() == STATUS_UNCONSCIOUS)
 	{
@@ -86,35 +117,6 @@ UnitDieBState::UnitDieBState(BattlescapeGame *parent, BattleUnit *unit, const Ru
 		}
 	}
 
-	_unit->clearVisibleTiles();
-	_unit->clearVisibleUnits();
-	_unit->freePatrolTarget();
-
-	if (!_parent->getSave()->isBeforeGame() && _unit->getFaction() == FACTION_HOSTILE)
-	{
-		std::vector<Node *> *nodes = _parent->getSave()->getNodes();
-		if (!nodes) return; // this better not happen.
-
-		for (auto* node : *nodes)
-		{
-			if (!node->isDummy() && Position::distanceSq(node->getPosition(), _unit->getPosition()) < 4)
-			{
-				node->setType(node->getType() | Node::TYPE_DANGEROUS);
-			}
-		}
-	}
-}
-
-/**
- * Deletes the UnitDieBState.
- */
-UnitDieBState::~UnitDieBState()
-{
-
-}
-
-void UnitDieBState::init()
-{
 	// check for presence of battlestate to ensure that we're not pre-battle
 	// check for the unit's tile to make sure we're not trying to kill a dead guy
 	if (_parent->getSave()->getBattleState() && !_unit->getTile())

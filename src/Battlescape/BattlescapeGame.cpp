@@ -838,6 +838,11 @@ void BattlescapeGame::checkForCasualties(const RuleDamageType *damageType, Battl
 		{
 			if (victim->getHealth() <= 0)
 			{
+				if (victim->getStatusNext() == STATUS_DEAD)
+				{
+					// already processed
+					continue;
+				}
 				int moraleLossModifierWhenKilled = _save->getMoraleLossModifierWhenKilled(victim);
 
 				if (murderer)
@@ -942,6 +947,11 @@ void BattlescapeGame::checkForCasualties(const RuleDamageType *damageType, Battl
 			}
 			else if (victim->getStunlevel() >= victim->getHealth() && victim->getStatus() != STATUS_UNCONSCIOUS)
 			{
+				if (victim->getStatusNext() == STATUS_UNCONSCIOUS)
+				{
+					// already processed
+					continue;
+				}
 				// morale change when an enemy is stunned (only for the first time!)
 				if (getMod()->getStunningImprovesMorale() && murderer && !victim->getStatistics()->wasUnconcious)
 				{

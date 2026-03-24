@@ -64,7 +64,7 @@ namespace OpenXcom
 BattleUnit::BattleUnit(const Mod *mod, Soldier *soldier, int depth, const RuleStartingCondition* sc) :
 	_faction(FACTION_PLAYER), _originalFaction(FACTION_PLAYER), _killedBy(FACTION_PLAYER), _id(0), _tile(0),
 	_lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0), _toDirectionTurret(0),
-	_verticalDirection(0), _status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
+	_verticalDirection(0), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0), _fallPhase(0), _kneeled(false), _floating(false),
 	_dontReselect(false), _aiMedikitUsed(false), _fire(0), _currentAIState(0), _visible(false),
 	_exp{ }, _expTmp{ },
 	_motionPoints(0), _scannedTurn(-1), _customMarker(0), _kills(0), _hitByFire(false), _hitByAnything(false), _alreadyExploded(false), _fireMaxHit(0), _smokeMaxHit(0),
@@ -414,7 +414,7 @@ void BattleUnit::prepareBannedFlag(const RuleStartingCondition* sc)
 BattleUnit::BattleUnit(const Mod *mod, const Unit *unit, UnitFaction faction, int id, const RuleEnviroEffects* enviro, const Armor *armor, StatAdjustment *adjustment, int depth, const RuleStartingCondition* sc) :
 	_faction(faction), _originalFaction(faction), _killedBy(faction), _id(id),
 	_tile(0), _lastPos(Position()), _direction(0), _toDirection(0), _directionTurret(0),
-	_toDirectionTurret(0), _verticalDirection(0), _status(STATUS_STANDING), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0),
+	_toDirectionTurret(0), _verticalDirection(0), _wantsToSurrender(false), _isSurrendering(false), _walkPhase(0),
 	_fallPhase(0), _kneeled(false), _floating(false), _dontReselect(false), _aiMedikitUsed(false), _fire(0), _currentAIState(0),
 	_visible(false), _exp{ }, _expTmp{ },
 	_motionPoints(0), _scannedTurn(-1), _customMarker(0), _kills(0), _hitByFire(false), _hitByAnything(false), _alreadyExploded(false), _fireMaxHit(0), _smokeMaxHit(0),
@@ -1044,15 +1044,6 @@ int BattleUnit::getTurretToDirection() const
 int BattleUnit::getVerticalDirection() const
 {
 	return _verticalDirection;
-}
-
-/**
- * Gets the unit's status.
- * @return the unit's status
- */
-UnitStatus BattleUnit::getStatus() const
-{
-	return _status;
 }
 
 /**
@@ -2050,12 +2041,7 @@ void BattleUnit::keepFalling()
 	if (_fallPhase == _armor->getDeathFrames())
 	{
 		_fallPhase--;
-		if (_health <= 0)
-		{
-			_status = STATUS_DEAD;
-		}
-		else
-			_status = STATUS_UNCONSCIOUS;
+		_status = _statusNext;
 	}
 }
 
@@ -2064,16 +2050,10 @@ void BattleUnit::keepFalling()
  */
 void BattleUnit::instaFalling()
 {
+	setNextFallingStatus();
 	startFalling();
 	_fallPhase =  _armor->getDeathFrames() - 1;
-	if (_health <= 0)
-	{
-		_status = STATUS_DEAD;
-	}
-	else
-	{
-		_status = STATUS_UNCONSCIOUS;
-	}
+	_status = _statusNext;
 }
 
 
@@ -4699,7 +4679,7 @@ void BattleUnit::kill()
 void BattleUnit::instaKill()
 {
 	_health = 0;
-	_status = STATUS_DEAD;
+	_statusNext = _status = STATUS_DEAD;
 	_turnsSinceStunned = 0;
 }
 
@@ -5325,6 +5305,7 @@ int BattleUnit::getTurnCost() const
 void BattleUnit::goToTimeOut()
 {
 	_status = STATUS_IGNORE_ME;
+	_statusNext = STATUS_IGNORE_ME;
 
 	// 1. Problem:
 	// Take 2 rookies to an alien colony, leave 1 behind, and teleport the other to the exit and abort.

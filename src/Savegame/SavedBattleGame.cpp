@@ -2572,6 +2572,7 @@ void SavedBattleGame::reviveUnconsciousUnits(bool noTU)
 					bu->setNotificationShown(0);
 					bu->turn(false); // makes the unit stand up again
 					bu->kneel(false);
+					bu->resetNextFallingStatus();
 					bu->setAlreadyExploded(false);
 					if (noTU)
 					{
