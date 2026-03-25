@@ -1224,6 +1224,12 @@ void BattleUnit::lookAt(Position point, bool turret)
 {
 	int dir = directionTo (point);
 
+	if (point.x == _pos.x && point.y == _pos.y)
+	{
+		// this assume that 2x2 unit calculate direction from its top tile not its center
+		dir = turret ? _directionTurret : _direction;
+	}
+
 	if (turret)
 	{
 		_toDirectionTurret = dir;
