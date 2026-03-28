@@ -97,7 +97,15 @@ private:
 	Uint8 _barHealthColor;
 	int _autosave;
 	int _numberOfDirectlyVisibleUnits, _numberOfEnemiesTotal, _numberOfEnemiesTotalPlusWounded;
+
+	Surface *_fppOverlay = nullptr;
+	std::vector<Position> _fppOverlayNextBuffer;
+	std::vector<Position> _fppOverlayCurrentBuffer;
+	int _fppOverlayVersion = 0;
+	bool _fppOverlayDirty = 0;
+
 	Uint8 _indicatorTextColor, _indicatorGreen, _indicatorBlue, _indicatorPurple;
+
 	/// Popups a context sensitive list of actions the user can choose from.
 	void handleItemClick(BattleItem *item, bool rightClick);
 	/// Shifts the red colors of the visible unit buttons backgrounds.
@@ -258,6 +266,8 @@ public:
 	void saveVoxelMap();
 	/// Saves a first-person voxel view of the battlescape.
 	void saveVoxelView();
+	/// Generates a voxel image and shows it as an overlay; toggles off if forceShow is false.
+	void updateFppOverlay(bool forceShow = false);
 	/// Handler for the mouse moving over the icons, disables the tile selection cube.
 	void mouseInIcons(Action *action);
 	/// Handler for the mouse going out of the icons, enabling the tile selection cube.

@@ -44,6 +44,7 @@
 #include "BriefingState.h"
 #include "ExtendedBattlescapeLinksState.h"
 #include "../lodepng.h"
+#include <climits>
 #include "../Geoscape/SelectMusicTrackState.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
@@ -2390,6 +2391,11 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 	}
 
 	updateUiButton(battleUnit);
+
+	if (_fppOverlay != nullptr && _fppOverlay->getVisible())
+	{
+		_fppOverlayDirty = true;
+	}
 }
 
 void BattlescapeState::updateUiButton(const BattleUnit *battleUnit)
@@ -2543,6 +2549,7 @@ void BattlescapeState::animate()
 	{
 		drawHandsItems();
 	}
+	if (_fppOverlay && _fppOverlay->getVisible()) updateFppOverlay(true);
 }
 
 /**
@@ -3145,10 +3152,24 @@ inline void BattlescapeState::handle(Action *action)
 					}
 				}
 
-				// voxel view dump
+				// voxel view dump / display
 				if (key == Options::keyBattleVoxelView)
 				{
-					saveVoxelView();
+					if (shiftPressed)
+					{
+						if (_fppOverlay && _fppOverlay->getVisible())
+						{
+							++_fppOverlayVersion;
+						}
+						else
+						{
+							saveVoxelView(); // save PNG for external viewer
+						}
+					}
+					else
+					{
+						updateFppOverlay(); // toggle overlay, no file I/O
+					}
 				}
 			}
 		}
@@ -3414,6 +3435,346 @@ void BattlescapeState::saveVoxelView()
 	}
 	CrossPlatform::writeFile(ss.str(), out);
 	return;
+}
+
+/**
+ * Generates a voxel image, converts it to the screen palette, and shows it
+ * as an overlay on the battlescape. Toggles off if already visible (unless
+ * forceShow is true). No file I/O.
+ */
+void BattlescapeState::updateFppOverlay(bool forceShow)
+{
+	// Create the overlay surface once and register it with the State
+	if (_fppOverlay == nullptr)
+	{
+		const int size = Screen::ORIGINAL_HEIGHT / 0.7; // 200
+		const int x    = (Screen::ORIGINAL_WIDTH * 0.10);
+		const int y    = (Screen::ORIGINAL_HEIGHT * 0.10);
+		_fppOverlay = new Surface(size, size, x, y);
+		_fppOverlay->setVisible(false);
+		add(_fppOverlay);
+		_fppOverlayCurrentBuffer.resize(size * size, TileEngine::invalid);
+		_fppOverlayNextBuffer.reserve(size * size);
+		_fppOverlayDirty = true;
+	}
+
+	// Without forceShow: toggle off if already visible
+	if (!forceShow && _fppOverlay->getVisible())
+	{
+		_fppOverlay->clear();
+		_fppOverlay->setVisible(false);
+		return;
+	}
+
+	if (_save->getSide() != FACTION_PLAYER)
+	{
+		_fppOverlay->clear();
+		_fppOverlayDirty = true;
+		return;
+	}
+	if (_battleGame->isBusy())
+	{
+		_fppOverlayDirty = true;
+		return;
+	}
+
+	// Render first-person voxel view into a raw RGB buffer
+	static const unsigned char pal[30]=
+	//			ground		west wall	north wall		object		enemy unit						xcom unit	neutral unit
+	{0,0,0, 224,224,224,  192,224,255,  255,224,192, 128,255,128, 255,0,64,  0,0,0, 255,255,255,  0,64,255,  255,64,128 };
+
+	BattleUnit *bu = _save->getSelectedUnit();
+	if (bu == nullptr || bu->getFaction() != FACTION_PLAYER)
+	{
+		_fppOverlay->clear();
+		_fppOverlayDirty = true;
+		return;
+	}
+
+	// Build palette lookup table once per call: palLut[colorIdx][brightness 0..255] -> screen palette index.
+	// This replaces the O(256) nearest-color search per pixel with a simple array lookup.
+	const SDL_Color *screenPal = _game->getScreen()->getPalette();
+	Uint8 palLut[10][256];
+	for (int ci = 0; ci < 10; ++ci)
+	{
+		for (int bi = 0; bi < 256; ++bi)
+		{
+			const int r = (pal[ci*3+0] * bi) / 255;
+			const int g = (pal[ci*3+1] * bi) / 255;
+			const int b = (pal[ci*3+2] * bi) / 255;
+			int bestIdx = 1, bestDist = INT_MAX;
+			for (int c = 1; c < 256; ++c)
+			{
+				const int dr = (int)screenPal[c].r - r;
+				const int dg = (int)screenPal[c].g - g;
+				const int db = (int)screenPal[c].b - b;
+				const int d = dr*dr + dg*dg + db*db;
+				if (d < bestDist) { bestDist = d; bestIdx = c; if (d == 0) break; }
+			}
+			palLut[ci][bi] = (Uint8)bestIdx;
+		}
+	}
+
+	std::vector<Position> _trajectory;
+	_trajectory.reserve(1);
+
+	bool black;
+	Tile *tile = 0;
+	int test;
+	Position originVoxel = _save->getTileEngine()->getSightOriginVoxel(bu);
+	Position targetVoxel, hitPos;
+	double dist = 0;
+	bool _debug = _save->getDebugMode();
+	double dir = ((double)bu->getDirection()+4)/4*M_PI;
+
+	// Precompute orthographic direction constants (invariant over the whole frame)
+	const double sinDirP = sin(dir + M_PI_2);
+	const double cosDirP = cos(dir + M_PI_2);
+
+	SDL_Surface *dst = _fppOverlay->getSurface();
+	const int imgSize = _fppOverlay->getWidth();
+
+	{
+		if (_fppOverlayDirty)
+		{
+			_fppOverlayNextBuffer.clear();
+			_fppOverlayDirty = false;
+		}
+		const int partSize = imgSize / 4;
+		const int start = _fppOverlayNextBuffer.size() / imgSize;
+		const int end = std::min(start + partSize + 1, imgSize);
+		bool updated = false;
+
+		// fill part of buffer each frame
+		for (int oy = start; oy < end; ++oy)
+		{
+			updated = true;
+
+			const int y = (-256 + 32) + oy * 512 / imgSize;
+			double sinAngY = 0, cosAngY = 0;
+			if (Options::oxceFirstPersonViewFisheyeProjection)
+			{
+				// Hoist sin/cos(ang_y) out of the inner loop; ang_y depends only on y
+				const double ang_y = ((double)y / 640 * M_PI + M_PI / 2);
+				sinAngY = sin(ang_y);
+				cosAngY = cos(ang_y);
+			}
+
+			for (int ox = 0; ox < imgSize; ++ox)
+			{
+				const int x = -256 + ox * 512 / imgSize;
+
+				if (Options::oxceFirstPersonViewFisheyeProjection)
+				{
+					const double ang_x = ((double)x / 1024) * M_PI + dir;
+					targetVoxel.x = originVoxel.x + (int)(-sin(ang_x) * 1024 * sinAngY);
+					targetVoxel.y = originVoxel.y + (int)(cos(ang_x) * 1024 * sinAngY);
+					targetVoxel.z = originVoxel.z + (int)(cosAngY * 1024);
+				}
+				else
+				{
+					// sinDirP/cosDirP are precomputed once per frame
+					targetVoxel.x = originVoxel.x + (int)(-sinDirP * (x * 4) + cosDirP * (1024 + 512));
+					targetVoxel.y = originVoxel.y + (int)(cosDirP * (x * 4) + sinDirP * (1024 + 512));
+					targetVoxel.z = originVoxel.z + -y * 4;
+				}
+
+				_trajectory.clear();
+				test = _save->getTileEngine()->calculateLineVoxel(originVoxel, targetVoxel, false, &_trajectory, bu, nullptr, !_debug);
+				if (test != V_OUTOFBOUNDS && test != V_EMPTY)
+				{
+					_fppOverlayNextBuffer.push_back(_trajectory.front());
+				}
+				else
+				{
+					_fppOverlayNextBuffer.push_back(targetVoxel);
+				}
+			}
+		}
+		if (updated)
+		{
+			if (_fppOverlayNextBuffer.size() == _fppOverlayCurrentBuffer.size())
+			{
+				// when we have last part updated we swap buffers
+				std::swap(_fppOverlayCurrentBuffer, _fppOverlayNextBuffer);
+			}
+			else
+			{
+				// screen is updating, skip all animations to avoid glitches
+				_fppOverlay->setVisible(true);
+				return;
+			}
+		}
+	}
+
+	// Render directly at output resolution (imgSize x imgSize) instead of 512x512,
+	// mapping each output pixel to the equivalent ray in the original coordinate space.
+	for (int oy = 0; oy < imgSize; ++oy)
+	{
+		for (int ox = 0; ox < imgSize; ++ox)
+		{
+			targetVoxel = _fppOverlayCurrentBuffer[imgSize * oy + ox];
+			test = _save->getTileEngine()->voxelCheck(targetVoxel, bu, false, !_debug) +1;
+			black = true;
+			if (test!=0 && test!=6)
+			{
+				tile = _save->getTile(targetVoxel.toTile());
+				if (_debug
+					|| (tile->isDiscovered(O_WESTWALL) && test == 2)
+					|| (tile->isDiscovered(O_NORTHWALL) && test == 3)
+					|| (tile->isDiscovered(O_FLOOR) && (test == 1 || test == 4))
+					|| test==5
+					)
+				{
+					if (test==5)
+					{
+						if (tile->getUnit())
+						{
+							if (tile->getUnit()->getFaction()==FACTION_NEUTRAL) test=9;
+							else
+							if (tile->getUnit()->getFaction()==FACTION_PLAYER) test=8;
+						}
+						else
+						{
+							tile = _save->getBelowTile(tile);
+							if (tile && tile->getUnit())
+							{
+								if (tile->getUnit()->getFaction()==FACTION_NEUTRAL) test=9;
+								else
+								if (tile->getUnit()->getFaction()==FACTION_PLAYER) test=8;
+							}
+						}
+					}
+					hitPos = targetVoxel;
+					dist = Position::distance(hitPos, originVoxel);
+					black = false;
+				}
+				Position screen;
+				Position v = targetVoxel.clipVoxel();
+				screen.x = (v.x - v.y) + (v.x > v.y ? 15 : 16);
+				screen.y = 26 + (v.x / 2 + v.y / 2) - v.z;
+
+				auto setColor = [&](Uint8 color)
+				{
+					auto shade = tile->getShade();
+					if (color == 0)
+					{
+						color = 15;
+					}
+					else if ((color & 15) + shade > 15)
+					{
+						color = 15;
+					}
+					else
+					{
+						color += shade;
+					}
+					static_cast<Uint8*>(dst->pixels)[oy * dst->pitch + ox] = color;
+				};
+
+				if (_fppOverlayVersion & 4)
+				{
+					// no textures
+				}
+				else if (test == 3)
+				{
+					auto image = tile->getSprite(TilePart::O_NORTHWALL);
+
+					if (image)
+					{
+						setColor(image.getBuffer()[screen.x + image.getPitch() * screen.y]);
+						continue;
+					}
+				}
+				else if (test == 2)
+				{
+					auto image = tile->getSprite(TilePart::O_WESTWALL);
+
+					if (image)
+					{
+						setColor(image.getBuffer()[screen.x + image.getPitch() * screen.y]);
+						continue;
+					}
+				}
+				else if (test == 4)
+				{
+					auto image = tile->getSprite(TilePart::O_OBJECT);
+
+					if (image)
+					{
+						setColor(image.getBuffer()[screen.x + image.getPitch() * screen.y]);
+						continue;
+					}
+				}
+				else if (test == 1)
+				{
+					auto image = tile->getSprite(TilePart::O_FLOOR);
+
+					if (image)
+					{
+						setColor(image.getBuffer()[screen.x + image.getPitch() * screen.y]);
+						continue;
+					}
+				}
+			}
+
+			if (black)
+			{
+				dist = targetVoxel.z >= originVoxel.z ? 208 + _save->getGlobalShade() : 48 + 15 - (1 * imgSize / (-targetVoxel.z + originVoxel.z) );
+			}
+			else
+			{
+				if (_fppOverlayVersion & 1)
+				{
+					if (test == 5 || test == 8 || test == 9)
+					{
+						dist += RNG::seedless(0, 16);
+					}
+					else
+					{
+						dist += RNG::seedless(0, 4);
+					}
+				}
+				if (_fppOverlayVersion & 8)
+				{
+					int temp = 10000 + dist - 3 * _save->getAnimFrame();
+					temp %= 100;
+					if ((test == 5 || test == 8 || test == 9) && temp > 2 && temp < 16)
+					{
+						dist = dist * (temp - 2) / 50.; // ok
+					}
+					else if (temp > 12 && temp < 18)
+					{
+						dist = dist * (temp - 12) / 6.; // ok
+					}
+					else
+					{
+						dist = 1000;
+					}
+				}
+				if (dist>1000) dist=1000;
+				if (dist<1) dist=1;
+				dist=(1000-(log(dist))*140)/700;//140
+
+				if (hitPos.x%16==15) dist*=0.9;
+				if (hitPos.y%16==15) dist*=0.9;
+				if (hitPos.z%24==23) dist*=0.9;
+				if (dist > 1) dist = 1;
+				if (tile) dist *= (16 - (double)tile->getShade())/16;
+				if ((_fppOverlayVersion & 2) && (test == 5 || test == 8 || test == 9))
+				{
+					// add pulsing
+					dist *= 0.8 + 0.04 * abs((_save->getAnimFrame() % 10) - 5);
+				}
+				dist = palLut[test][(int)(dist * 255)];
+			}
+
+			// Write palette index directly using precomputed LUT
+			static_cast<Uint8*>(dst->pixels)[oy * dst->pitch + ox] = dist;
+		}
+	}
+
+	_fppOverlay->setVisible(true);
 }
 
 /**
