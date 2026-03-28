@@ -2047,7 +2047,7 @@ void BattleUnit::keepFalling()
 	if (_fallPhase == _armor->getDeathFrames())
 	{
 		_fallPhase--;
-		_status = _statusNext;
+		_status = _statusFallingNext;
 	}
 }
 
@@ -2059,18 +2059,9 @@ void BattleUnit::instaFalling()
 	setNextFallingStatus();
 	startFalling();
 	_fallPhase =  _armor->getDeathFrames() - 1;
-	_status = _statusNext;
+	_status = _statusFallingNext;
 }
 
-
-/**
- * Returns the phase of the falling sequence.
- * @return phase
- */
-int BattleUnit::getFallingPhase() const
-{
-	return _fallPhase;
-}
 
 /**
  * Returns whether the soldier is out of combat, dead or unconscious.
@@ -4685,7 +4676,7 @@ void BattleUnit::kill()
 void BattleUnit::instaKill()
 {
 	_health = 0;
-	_statusNext = _status = STATUS_DEAD;
+	_statusFallingNext = _status = STATUS_DEAD;
 	_turnsSinceStunned = 0;
 }
 
@@ -5311,7 +5302,7 @@ int BattleUnit::getTurnCost() const
 void BattleUnit::goToTimeOut()
 {
 	_status = STATUS_IGNORE_ME;
-	_statusNext = STATUS_IGNORE_ME;
+	_statusFallingNext = STATUS_IGNORE_ME;
 
 	// 1. Problem:
 	// Take 2 rookies to an alien colony, leave 1 behind, and teleport the other to the exit and abort.

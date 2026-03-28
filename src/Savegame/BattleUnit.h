@@ -100,7 +100,7 @@ private:
 	int _verticalDirection;
 	Position _destination;
 	UnitStatus _status = STATUS_STANDING;
-	UnitStatus _statusNext = STATUS_STANDING;
+	UnitStatus _statusFallingNext = STATUS_STANDING;
 	bool _wantsToSurrender, _isSurrendering;
 	int _walkPhase, _fallPhase;
 	std::vector<BattleUnit *> _visibleUnits, _unitsSpottedThisTurn;
@@ -273,8 +273,6 @@ public:
 	int getVerticalDirection() const;
 	/// Gets the unit's status.
 	UnitStatus getStatus() const { return _status; }
-	/// Gets the unit's next status when game stop processing current one.
-	UnitStatus getStatusNext() const { return _statusNext; }
 	/// Does the unit want to surrender?
 	bool wantsToSurrender() const;
 	/// Is the unit surrendering this turn?
@@ -341,10 +339,12 @@ public:
 	/// Knocks the unit out instantly.
 	void knockOut(BattlescapeGame *battle);
 
+	/// Gets the unit's next status when falling ends.
+	UnitStatus getNextFallingStatus() const { return _statusFallingNext; }
 	/// Sets the unit's next falling status.
-	void setNextFallingStatus() { _statusNext = (_health <= 0) ? STATUS_DEAD : STATUS_UNCONSCIOUS; }
+	void setNextFallingStatus() { _statusFallingNext = (_health <= 0) ? STATUS_DEAD : STATUS_UNCONSCIOUS; }
 	/// Cancel the unit's next falling status.
-	void resetNextFallingStatus() { _statusNext = STATUS_STANDING; }
+	void resetNextFallingStatus() { _statusFallingNext = STATUS_STANDING; _fallPhase = 0; }
 	/// Start falling sequence.
 	void startFalling();
 	/// Increment the falling sequence.
@@ -352,7 +352,7 @@ public:
 	/// Set final falling state.
 	void instaFalling();
 	/// Get falling sequence.
-	int getFallingPhase() const;
+	int getFallingPhase() const { return _fallPhase; }
 
 	/// The unit is out - either dead or unconscious.
 	bool isOut() const;
@@ -870,7 +870,7 @@ public:
 	/// Should this AI unit (alien or civilian) be ignored by other AI units?
 	bool isIgnoredByAI() const;
 	/// Marks this unit as resummoned fake civilian and therefore won't count for civilian scoring in the Debriefing.
-	void markAsResummonedFakeCivilian() { _resummonedFakeCivilian = true; _status = STATUS_IGNORE_ME; _statusNext = STATUS_IGNORE_ME;}
+	void markAsResummonedFakeCivilian() { _resummonedFakeCivilian = true; _status = STATUS_IGNORE_ME; _statusFallingNext = STATUS_IGNORE_ME;}
 	/// Is this unit a resummoned fake civilian?
 	bool isResummonedFakeCivilian() const { return _resummonedFakeCivilian; }
 	/// Marks this unit as VIP.

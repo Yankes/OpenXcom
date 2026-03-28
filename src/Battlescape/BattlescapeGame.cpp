@@ -838,7 +838,7 @@ void BattlescapeGame::checkForCasualties(const RuleDamageType *damageType, Battl
 		{
 			if (victim->getHealth() <= 0)
 			{
-				if (victim->getStatusNext() == STATUS_DEAD)
+				if (victim->getNextFallingStatus() == STATUS_DEAD)
 				{
 					// already processed
 					continue;
@@ -906,7 +906,14 @@ void BattlescapeGame::checkForCasualties(const RuleDamageType *damageType, Battl
 						}
 					}
 				}
-				if (damageType)
+
+
+				if (victim->getNextFallingStatus() == STATUS_UNCONSCIOUS)
+				{
+					// already collapsing, change final state to death
+					victim->setNextFallingStatus();
+				}
+				else if (damageType)
 				{
 					statePushNext(new UnitDieBState(this, victim, damageType, noSound));
 				}
@@ -932,6 +939,7 @@ void BattlescapeGame::checkForCasualties(const RuleDamageType *damageType, Battl
 						}
 					}
 				}
+
 				// one of our own died, record the murderer instead of the victim
 				if (victim->getGeoscapeSoldier())
 				{
@@ -947,7 +955,7 @@ void BattlescapeGame::checkForCasualties(const RuleDamageType *damageType, Battl
 			}
 			else if (victim->getStunlevel() >= victim->getHealth() && victim->getStatus() != STATUS_UNCONSCIOUS)
 			{
-				if (victim->getStatusNext() == STATUS_UNCONSCIOUS)
+				if (victim->getNextFallingStatus() == STATUS_UNCONSCIOUS)
 				{
 					// already processed
 					continue;
