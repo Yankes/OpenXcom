@@ -1388,33 +1388,6 @@ const std::vector<std::pair<Uint8, Uint8> > &BattleUnit::getRecolor() const
 }
 
 /**
- * Kneel down.
- * @param kneeled to kneel or to stand up
- */
-void BattleUnit::kneel(bool kneeled)
-{
-	_kneeled = kneeled;
-}
-
-/**
- * Is kneeled down?
- * @return true/false
- */
-bool BattleUnit::isKneeled() const
-{
-	return _kneeled;
-}
-
-/**
- * Is floating? A unit is floating when there is no ground under him/her.
- * @return true/false
- */
-bool BattleUnit::isFloating() const
-{
-	return _floating;
-}
-
-/**
  * Aim. (shows the right hand sprite and weapon holding)
  * @param aiming true/false
  */
@@ -3335,6 +3308,7 @@ bool BattleUnit::getVisible() const
  */
 void BattleUnit::updateTileFloorState(SavedBattleGame *saveBattleGame)
 {
+	auto voxelHeight = 0;
 	if (_tile)
 	{
 		_haveNoFloorBelow = true;
@@ -3353,8 +3327,8 @@ void BattleUnit::updateTileFloorState(SavedBattleGame *saveBattleGame)
 						if (!t->hasNoFloor(saveBattleGame))
 						{
 							_haveNoFloorBelow = false;
-							return;
 						}
+						voxelHeight = std::max(newPos.z*Position::TileZ - t->getTerrainLevel(), voxelHeight);
 					}
 				}
 			}
@@ -3362,12 +3336,14 @@ void BattleUnit::updateTileFloorState(SavedBattleGame *saveBattleGame)
 		else
 		{
 			_haveNoFloorBelow &= _tile->hasNoFloor(saveBattleGame) && !_tile->hasLadder();
+			voxelHeight = std::max(_tile->getPosition().z*Position::TileZ - _tile->getTerrainLevel(), voxelHeight);
 		}
 	}
 	else
 	{
 		_haveNoFloorBelow = false;
 	}
+	_voxelFloatHeight = voxelHeight + getFloatHeight();
 }
 /**
  * Sets the unit's tile it's standing on
@@ -3908,15 +3884,6 @@ bool BattleUnit::isInExitArea(SpecialTileType stt) const
 bool BattleUnit::liesInExitArea(Tile *tile, SpecialTileType stt) const
 {
 	return tile && tile->getFloorSpecialTileType() == stt;
-}
-
-/**
- * Gets the unit height taking into account kneeling/standing.
- * @return Unit's height.
- */
-int BattleUnit::getHeight() const
-{
-	return isKneeled()?getKneelHeight():getStandHeight();
 }
 
 /**

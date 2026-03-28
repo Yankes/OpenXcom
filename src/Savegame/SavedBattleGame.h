@@ -74,6 +74,7 @@ private:
 	BattlescapeState *_battleState;
 	Mod *_rule;
 	int _mapsize_x, _mapsize_y, _mapsize_z;
+	Position _mapsize;
 	std::vector<MapDataSet*> _mapDataSets;
 	std::vector<Tile> _tiles;
 	BattleUnit *_selectedUnit, *_undoUnit, *_lastSelectedUnit;
@@ -231,6 +232,8 @@ public:
 	int getMapSizeZ() const { return _mapsize_z; }
 	/// Gets terrain x*y*z
 	int getMapSizeXYZ() const { return _mapsize_x * _mapsize_y * _mapsize_z; }
+	/// Gets terrian size as Position of its axes sizes.
+	Position getMapSize() const { return _mapsize; }
 
 	/// Is this just a craft or base deployment preview?
 	bool isPreview() const { return _isPreview; }
@@ -270,8 +273,7 @@ public:
 	 */
 	inline Tile *getTile(Position pos)
 	{
-		if (pos.x < 0 || pos.y < 0 || pos.z < 0
-			|| pos.x >= _mapsize_x || pos.y >= _mapsize_y || pos.z >= _mapsize_z)
+		if (!pos.isBoundedBy(_mapsize))
 			return 0;
 
 		return &_tiles[getTileIndex(pos)];
@@ -286,8 +288,7 @@ public:
 	 */
 	inline const Tile *getTile(Position pos) const
 	{
-		if (pos.x < 0 || pos.y < 0 || pos.z < 0
-			|| pos.x >= _mapsize_x || pos.y >= _mapsize_y || pos.z >= _mapsize_z)
+		if (!pos.isBoundedBy(_mapsize))
 			return 0;
 
 		return &_tiles[getTileIndex(pos)];

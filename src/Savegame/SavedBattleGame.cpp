@@ -646,6 +646,7 @@ void SavedBattleGame::initMap(int mapsize_x, int mapsize_y, int mapsize_z, bool 
 	_mapsize_x = mapsize_x;
 	_mapsize_y = mapsize_y;
 	_mapsize_z = mapsize_z;
+	_mapsize = { _mapsize_x, _mapsize_y, _mapsize_z };
 
 	_tiles.clear();
 	_tiles.reserve(_mapsize_z * _mapsize_y * _mapsize_x);

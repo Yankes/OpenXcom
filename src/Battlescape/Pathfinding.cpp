@@ -89,7 +89,7 @@ void Pathfinding::calculate(BattleUnit *unit, Position endPosition, BattleAction
 	const int size = bam != BAM_MISSILE ? unit->getArmor()->getSize() : 1;
 
 	// i'm DONE with these out of bounds errors.
-	if (endPosition.x > _save->getMapSizeX() - size || endPosition.y > _save->getMapSizeY() - size || endPosition.x < 0 || endPosition.y < 0) return;
+	if (!endPosition.isBoundedBy(_save->getMapSize() - Position(size - 1, size - 1, 0))) return;
 
 	bool sneak = Options::sneakyAI && unit->getFaction() == FACTION_HOSTILE;
 

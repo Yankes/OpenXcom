@@ -153,7 +153,7 @@ private:
 	std::string _race;
 	std::string _name;
 	UnitStats _stats;
-	int _standHeight, _kneelHeight, _floatHeight;
+	Sint16 _standHeight, _kneelHeight, _floatHeight, _voxelFloatHeight = 0;
 	int _lastReloadSound;
 	std::vector<int> _deathSound, _aggroSound;
 	std::vector<int> _selectUnitSound, _startMovingSound, _selectWeaponSound, _annoyedSound;
@@ -303,17 +303,36 @@ public:
 	UnitFaction getFaction() const;
 	/// Gets unit sprite recolors values.
 	const std::vector<std::pair<Uint8, Uint8> > &getRecolor() const;
+
+
 	/// Kneel down.
-	void kneel(bool kneeled);
+	void kneel(bool kneeled) { _kneeled = kneeled; }
 	/// Is kneeled?
-	bool isKneeled() const;
+	bool isKneeled() const { return _kneeled; }
 	/// Is floating?
-	bool isFloating() const;
+	bool isFloating() const { return _floating; }
 	/// Have unit floor below?
 	bool haveNoFloorBelow() const { return _haveNoFloorBelow; }
-
+	/// Gets the unit height taking into account kneeling/standing.
+	int getHeight() const
+	{
+		return isKneeled()?getKneelHeight():getStandHeight();
+	}
+	/// Get the unit's stand height.
+	int getStandHeight() const;
+	/// Get the unit's kneel height.
+	int getKneelHeight() const;
+	/// Gets the unit floating elevation.
+	int getFloatHeight() const;
+	/// Gets voxel height of bottum part of unit.
+	int getVoxelBottomHeight() const { return _voxelFloatHeight; }
+	/// Gets voxel height of top part of unit.
+	int getVoxelTopHeight() const { return _voxelFloatHeight + getHeight(); }
 	/// Aim.
 	void aim(bool aiming);
+
+
+
 	/// Get direction to a certain point
 	int directionTo(Position point) const;
 	/// Gets the unit's time units.
@@ -510,10 +529,6 @@ public:
 	/// Check if this unit is in the exit area
 	bool isInExitArea(SpecialTileType stt) const;
 	bool liesInExitArea(Tile *tile, SpecialTileType stt) const;
-	/// Gets the unit height taking into account kneeling/standing.
-	int getHeight() const;
-	/// Gets the unit floating elevation.
-	int getFloatHeight() const;
 	/// Adds one to the bravery exp counter.
 	void addBraveryExp();
 	/// Adds one to the reaction exp counter.
@@ -586,10 +601,6 @@ public:
 	UnitStats *getBaseStats();
 	/// Gets the unit's stats.
 	const UnitStats *getBaseStats() const;
-	/// Get the unit's stand height.
-	int getStandHeight() const;
-	/// Get the unit's kneel height.
-	int getKneelHeight() const;
 	/// Get the unit's loft ID.
 	int getLoftemps(int entry = 0) const;
 	/// Get the unit's value.

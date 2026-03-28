@@ -73,20 +73,29 @@ public:
 		return x != pos.x || y != pos.y || z != pos.z;
 	}
 
+	/// Check if current point is in box created by ranges [0, max.x), [0, max.y), [0, max.z)
+	constexpr bool isBoundedBy(Position max) const
+	{
+		return
+			(((unsigned)x) < ((unsigned)max.x)) & //Sic! no &&
+			(((unsigned)y) < ((unsigned)max.y)) &
+			(((unsigned)z) < ((unsigned)max.z));
+	}
+
 	/// Convert tile position to voxel position.
 	constexpr Position toVoxel() const
 	{
 		return Position(x * TileXY, y * TileXY, z * TileZ);
 	}
-	/// Convert voxel position to tile position.
+	/// Convert voxel position to tile position. Require valid postion in bounds of map.
 	constexpr Position toTile() const
 	{
-		return Position(x / TileXY, y / TileXY, z / TileZ);
+		return Position(((unsigned)x) / TileXY, ((unsigned)y) / TileXY, ((unsigned)z) / TileZ);
 	}
-	/// Clip voxel values to position relative to containing tile.
+	/// Clip voxel values to position relative to containing tile. Require valid postion in bounds of map.
 	constexpr Position clipVoxel() const
 	{
-		return Position(x % TileXY, y % TileXY, z % TileZ);
+		return Position(((unsigned)x) % TileXY, ((unsigned)y) % TileXY, ((unsigned)z) % TileZ);
 	}
 
 	/// Calculates the distance in 3d.

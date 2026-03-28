@@ -894,16 +894,12 @@ constexpr Position TileEngine::voxelTileCenter;
  * @param maxDarknessToSeeUnits Threshold of darkness for LoS calculation.
  */
 TileEngine::TileEngine(SavedBattleGame *save, Mod *mod) :
-	_save(save), _voxelData(mod->getVoxelData()), _inventorySlotGround(mod->getInventoryGround()), _personalLighting(true), _cacheTile(0), _cacheTileBelow(0),
-	_maxViewDistance(mod->getMaxViewDistance()), _maxViewDistanceSq(_maxViewDistance * _maxViewDistance),
-	_maxVoxelViewDistance(_maxViewDistance * 16), _maxDarknessToSeeUnits(mod->getMaxDarknessToSeeUnits()),
-	_maxStaticLightDistance(mod->getMaxStaticLightDistance()), _maxDynamicLightDistance(mod->getMaxDynamicLightDistance()),
-	_enhancedLighting(mod->getEnhancedLighting())
+	_save(save), _voxelData(mod->getVoxelData()->data()), _inventorySlotGround(mod->getInventoryGround()), _personalLighting(true), _maxViewDistance(mod->getMaxViewDistance()), _maxViewDistanceSq(_maxViewDistance * _maxViewDistance), _maxVoxelViewDistance(_maxViewDistance * 16), _maxDarknessToSeeUnits(mod->getMaxDarknessToSeeUnits()), _maxStaticLightDistance(mod->getMaxStaticLightDistance()), _maxDynamicLightDistance(mod->getMaxDynamicLightDistance()), _enhancedLighting(mod->getEnhancedLighting())
 {
+	_lineOfFireTileVoxelTemplateIndexCache.resize(save->getMapSizeXYZ());
 	_blockVisibility.resize(save->getMapSizeXYZ());
 	_lightPropagationTerrainBlocking.resize(save->getMapSizeXYZ());
 	_lightPropagationTempNeedUpdate.resize(save->getMapSizeXYZ());
-	_cacheTilePos = invalid;
 
 	if (Options::oxceTogglePersonalLightType == 2)
 	{
@@ -1132,6 +1128,91 @@ void TileEngine::calculateLighting(LightLayers layer, Position position, int eve
 		gsDynamic = mapArea(position, eventRadius + getMaxDynamicLightDistance());
 		gsStatic = mapArea(position, eventRadius + getMaxStaticLightDistance());
 	}
+
+	// Update unit cache for LoF
+	iterateTiles(
+		_save,
+		position != invalid ? mapArea(position, eventRadius + 1) : gsMap,
+		[&](Tile* tile)
+		{
+			const auto currPos = tile->getPosition();
+			const auto index = _save->getTileIndex(currPos);
+			auto& cacheTileVoxelLof = _lineOfFireTileVoxelTemplateIndexCache[index];
+
+			// clear tile data
+			cacheTileVoxelLof = {};
+
+
+			const BattleUnit* unit = tile->getOverlappingUnit(_save);
+			int unitMinZ = 0;
+			int unitMaxZ = 0;
+			if (unit != 0 && !unit->isOut())
+			{
+				unitMinZ = unit->getVoxelBottomHeight() - currPos.z * Position::TileZ;
+				unitMaxZ = unit->getVoxelTopHeight() - currPos.z * Position::TileZ;
+			}
+			else
+			{
+				unit = nullptr;
+			}
+
+			for (int z = 0; z < Position::TileZ; ++z)
+			{
+				int usedParts = 0;
+				auto cacheTemplate = [&](int offset, VoxelType type)
+				{
+					if (offset)
+					{
+						cacheTileVoxelLof[z/2][usedParts] = offset;
+						cacheTileVoxelLof[z/2][5 + (usedParts >> 1)] |= type << (4 * (usedParts & 1));
+						usedParts++;
+					}
+				};
+
+				for (TilePart i = O_FLOOR; i < O_MAX; i = (TilePart)(i + 1))
+				{
+					auto* data = tile->getMapData(i);
+					if (data)
+					{
+						auto id = data->getLoftID(z/2);
+
+						// opened door do not block bullets
+						if (((i == O_WESTWALL) || (i == O_NORTHWALL)) && tile->isUfoDoorOpen(i))
+							continue;
+
+						// we consider it solid floor if we do not have another lower
+						if (i == O_FLOOR && z < 2 && tile->hasGravLiftFloor())
+						{
+							auto* tileBelow = _save->getBelowTile(tile);
+							if (!(tileBelow && tileBelow->hasGravLiftFloor()))
+							{
+								id = 6; // solid floor
+							}
+						}
+
+						// if there was some voxels, update it
+						cacheTemplate(id, (VoxelType)i);
+					}
+				}
+
+				if (unit)
+				{
+					Position tilepos = tile->getPosition();
+					Position unitpos = unit->getPosition();
+					if ((z > unitMinZ) && (z <= unitMaxZ))
+					{
+						int part = 0;
+						if (unit->isBigUnit())
+						{
+							const static int parts[] = {1,0,3,2}; // Change order 0,1,2,3 -> 1,0,3,2  (read commit 1c188b9af2576fd7 description)
+							part = parts[tilepos.x - unitpos.x + (tilepos.y - unitpos.y)*2];
+						}
+						cacheTemplate(unit->getLoftemps(part), V_UNIT);
+					}
+				}
+			}
+		}
+	);
 
 	if (terrianChanged)
 	{
@@ -2333,7 +2414,6 @@ bool TileEngine::canTargetTile(Position *originVoxel, Tile *tile, int part, Posi
 	{
 		return false;
 	}
-	voxelCheckFlush();
 // find out height range
 
 	if (!minZfound)
@@ -3228,7 +3308,6 @@ void TileEngine::hit(BattleActionAttack attack, Position center, int power, cons
 		return;
 	}
 
-	voxelCheckFlush();
 	const VoxelType part = (terrainMeleeTilePart > 0) ? (VoxelType)terrainMeleeTilePart : voxelCheck(center, attack.attacker);
 	const int damage = type->getRandomDamage(power);
 	const int tileFinalDamage = type->getTileFinalDamage(type->getRandomDamageForTile(power, damage));
@@ -4388,17 +4467,74 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		excludeAllUnits = true; // don't start unit spotting before pre-game inventory stuff (large units on the craftInventory tile will cause a crash if they're "spotted")
 	}
 
-	bool hit = calculateLineHelper(origin, target,
+
+	const Position maxMapTile = _save->getMapSize();
+	const Position maxMapVoxel = _save->getMapSize().toVoxel();
+	const Position offsetsTiles = Position(1, maxMapTile.x, maxMapTile.x * maxMapTile.y);
+	if (!origin.isBoundedBy(maxMapVoxel)) // check if we start out of bunds
+	{
+		return V_OUTOFBOUNDS;
+	}
+	auto tempTarget = target;
+	if (!tempTarget.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
+	{
+		const int scale = 2;
+		auto findBegin = origin * scale;
+		auto findEnd = tempTarget * scale;
+		const auto bund = maxMapVoxel * scale;
+
+		// binary serch for last point in map bounds
+		for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
+		{
+			auto middle = (findEnd + findBegin) / 2;
+			if (middle.isBoundedBy(bund))
+			{
+				findBegin = middle;
+			}
+			else
+			{
+				findEnd = middle;
+			}
+		}
+		tempTarget = findBegin / scale;
+	}
+
+	int tileSkip = -1;
+	bool hit = calculateLineHelper(origin, tempTarget,
 		[&](Position point)
 		{
 			if (storeTrajectory && trajectory)
 			{
 				trajectory->push_back(point);
 			}
+			const Position pos = point.toTile();
+			const Position clip = point.clipVoxel();
+			const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
 
-			result = voxelCheck(point, excludeUnit, excludeAllUnits, onlyVisible, excludeAllBut);
-			if (result != V_EMPTY)
+			result = voxelCheckCached(tileIndex, clip);
+			if (result > V_EMPTY)
 			{
+				if (result == V_UNIT)
+				{
+					if (tileSkip == tileIndex)
+					{
+						return false;
+					}
+					auto unit = _save->getTile(tileIndex)->getOverlappingUnit(_save);
+					if (!(
+						!excludeAllUnits &&
+						unit != excludeUnit &&
+						(!excludeAllBut || unit == excludeAllBut) &&
+						(!onlyVisible || unit->getVisible() )))
+					{
+						tileSkip = tileIndex;
+						return false;
+					}
+					if (unit->getVoxelBottomHeight() >= point.z || unit->getVoxelTopHeight() < point.z)
+					{
+						return false;
+					}
+				}
 				if (trajectory)
 				{ // store the position of impact
 					trajectory->push_back(point);
@@ -4409,10 +4545,35 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		},
 		[&](Position point)
 		{
+			const Position pos = point.toTile();
+			const Position clip = point.clipVoxel();
+			const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
+
 			//check for xy diagonal intermediate voxel step
-			result = voxelCheck(point, excludeUnit, excludeAllUnits, onlyVisible, excludeAllBut);
-			if (result != V_EMPTY)
+			result = voxelCheckCached(tileIndex, clip);
+			if (result > V_EMPTY)
 			{
+				if (result == V_UNIT)
+				{
+					if (tileSkip == tileIndex)
+					{
+						return false;
+					}
+					auto unit = _save->getTile(tileIndex)->getOverlappingUnit(_save);
+					if (!(
+						unit != excludeUnit &&
+						!excludeAllUnits &&
+						(!excludeAllBut || unit == excludeAllBut) &&
+						(!onlyVisible || unit->getVisible() )))
+					{
+						tileSkip = tileIndex;
+						return false;
+					}
+					if (unit->getVoxelBottomHeight() >= point.z || unit->getVoxelTopHeight() < point.z)
+					{
+						return false;
+					}
+				}
 				if (trajectory != 0)
 				{ // store the position of impact
 					trajectory->push_back(point);
@@ -4425,6 +4586,10 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	if (hit)
 	{
 		return result;
+	}
+	if (!target.isBoundedBy(maxMapVoxel)) // check if we end out of bunds
+	{
+		return V_OUTOFBOUNDS;
 	}
 	return V_EMPTY;
 }
@@ -4502,7 +4667,6 @@ int TileEngine::castedShade(Position voxel)
 	Position tmpVoxel = voxel;
 	int z;
 
-	voxelCheckFlush();
 	for (z = zstart; z>0; z--)
 	{
 		tmpVoxel.z = z;
@@ -4517,7 +4681,7 @@ int TileEngine::castedShade(Position voxel)
  * @return True if visible.
  */
 
-bool TileEngine::isVoxelVisible(Position voxel)
+bool TileEngine::isVoxelVisible(Position voxel) const
 {
 	int zstart = voxel.z+3; // slight Z adjust
 	if ((zstart/24)!=(voxel.z/24))
@@ -4525,7 +4689,6 @@ bool TileEngine::isVoxelVisible(Position voxel)
 	Position tmpVoxel = voxel;
 	int zend = (zstart/24)*24 +24;
 
-	voxelCheckFlush();
 	for (int z = zstart; z<zend; z++)
 	{
 		tmpVoxel.z=z;
@@ -4539,6 +4702,80 @@ bool TileEngine::isVoxelVisible(Position voxel)
 	return true;
 }
 
+VoxelType TileEngine::voxelCheckUnitRaw(int tileIndex, Position clip, const BattleUnit *excludeUnit, bool excludeAllUnits, bool onlyVisible, const BattleUnit *excludeAllBut) const
+{
+	//if (excludeAllUnits)
+	{
+		return V_EMPTY;
+	}
+
+	const Tile *tile = _save->getTile(tileIndex);
+	const BattleUnit *unit = tile->getOverlappingUnit(_save);
+
+	if (unit != 0 && !unit->isOut() && unit != excludeUnit && (!excludeAllBut || unit == excludeAllBut) && (!onlyVisible || unit->getVisible() ) )
+	{
+		Position tilepos = tile->getPosition();
+		Position unitpos = unit->getPosition();
+		int terrainHeight = 0;
+		for (int x = 0; x < unit->getArmor()->getSize(); ++x)
+		{
+			for (int y = 0; y < unit->getArmor()->getSize(); ++y)
+			{
+				Tile *tempTile = _save->getTile(unitpos + Position(x,y,0));
+				if (tempTile->getTerrainLevel() < terrainHeight)
+				{
+					terrainHeight = tempTile->getTerrainLevel();
+				}
+			}
+		}
+		int tz = (unitpos.z - tilepos.z)*24 + unit->getFloatHeight() - terrainHeight; //bottom most voxel, terrain heights are negative, so we subtract.
+		if ((clip.z > tz) && (clip.z <= tz + unit->getHeight()) )
+		{
+			const int x = 1 << (15 - clip.x);
+			const int y = clip.y;
+			int part = 0;
+			if (unit->isBigUnit())
+			{
+				const static int parts[] = {1,0,3,2}; // Change order 0,1,2,3 -> 1,0,3,2  (read commit description)
+				part = parts[tilepos.x - unitpos.x + (tilepos.y - unitpos.y)*2];
+			}
+			int idx = (unit->getLoftemps(part) * 16) + y;
+			if (_voxelData[idx] & x)
+			{
+				return V_UNIT;
+			}
+		}
+	}
+	return V_EMPTY;
+}
+
+/**
+ * Checks if we hit a voxel in cache.
+ * @param tileIndex Offset of tile where hit happened.
+ * @param clip Offset of voxel in given tile.
+ * @return The objectnumber(0-3) or unit(4) or out of map (5) or -1 (hit nothing).
+ */
+VoxelType TileEngine::voxelCheckCached(int tileIndex, Position clip) const
+{
+	const auto& indexCache = _lineOfFireTileVoxelTemplateIndexCache[tileIndex][clip.z/2];
+	const int x = 1 << (15 - clip.x);
+	const int y = clip.y;
+
+	for (int i = 0; i < 5; ++i)
+	{
+		const Uint8 tempOff = indexCache[i];
+		if (!tempOff) return V_EMPTY;
+
+		int idx = (tempOff*16) + y;
+		if (_voxelData[idx] & x)
+		{
+			return (VoxelType)((indexCache[5 + (i >> 1)] >> (4 * (i & 1))) & 0xF); //extract type of hit part
+		}
+	}
+
+	return V_EMPTY;
+}
+
 /**
  * Checks if we hit a voxel.
  * @param voxel The voxel to check.
@@ -4548,31 +4785,19 @@ bool TileEngine::isVoxelVisible(Position voxel)
  * @param excludeAllBut If set, the only unit to be considered for ray hits.
  * @return The objectnumber(0-3) or unit(4) or out of map (5) or -1 (hit nothing).
  */
-VoxelType TileEngine::voxelCheck(Position voxel, BattleUnit *excludeUnit, bool excludeAllUnits, bool onlyVisible, BattleUnit *excludeAllBut)
+VoxelType TileEngine::voxelCheck(Position voxel, const BattleUnit *excludeUnit, bool excludeAllUnits, bool onlyVisible, const BattleUnit *excludeAllBut) const
 {
 	if (voxel.x < 0 || voxel.y < 0 || voxel.z < 0) //preliminary out of map
 	{
 		return V_OUTOFBOUNDS;
 	}
 	Position pos = voxel.toTile();
-	Tile *tile, *tileBelow;
-	if (_cacheTilePos == pos)
+	const Tile *tile = _save->getTile(pos);
+	if (!tile) // check if we are not out of the map
 	{
-		tile = _cacheTile;
-		tileBelow = _cacheTileBelow;
+		return V_OUTOFBOUNDS; //not even cache
 	}
-	else
-	{
-		tile = _save->getTile(pos);
-		if (!tile) // check if we are not out of the map
-		{
-			return V_OUTOFBOUNDS; //not even cache
-		}
-		tileBelow = _save->getBelowTile(tile);
-		_cacheTilePos = pos;
-		_cacheTile = tile;
-		_cacheTileBelow = tileBelow;
- 	}
+	const Tile *tileBelow = _save->getBelowTile(tile);
 
 	if (tile->isVoid() && tile->getUnit() == 0 && (!tileBelow || tileBelow->getUnit() == 0))
 	{
@@ -4591,7 +4816,7 @@ VoxelType TileEngine::voxelCheck(Position voxel, BattleUnit *excludeUnit, bool e
 	for (int i = V_FLOOR; i <= V_OBJECT; ++i)
 	{
 		TilePart tp = (TilePart)i;
-		MapData *mp = tile->getMapData(tp);
+		const MapData *mp = tile->getMapData(tp);
 		if (((tp == O_WESTWALL) || (tp == O_NORTHWALL)) && tile->isUfoDoorOpen(tp))
 			continue;
 		if (mp != 0)
@@ -4599,7 +4824,7 @@ VoxelType TileEngine::voxelCheck(Position voxel, BattleUnit *excludeUnit, bool e
 			int x = 15 - voxel.x%16;
 			int y = voxel.y%16;
 			int idx = (mp->getLoftID((voxel.z%24)/2)*16) + y;
-			if (_voxelData->at(idx) & (1 << x))
+			if (_voxelData[idx] & (1 << x))
 			{
 				return (VoxelType)i;
 			}
@@ -4639,7 +4864,7 @@ VoxelType TileEngine::voxelCheck(Position voxel, BattleUnit *excludeUnit, bool e
 					part = parts[tilepos.x - unitpos.x + (tilepos.y - unitpos.y)*2];
 				}
 				int idx = (unit->getLoftemps(part) * 16) + y;
-				if (_voxelData->at(idx) & (1 << x))
+				if (_voxelData[idx] & (1 << x))
 				{
 					return V_UNIT;
 				}
@@ -4649,12 +4874,6 @@ VoxelType TileEngine::voxelCheck(Position voxel, BattleUnit *excludeUnit, bool e
 	return V_EMPTY;
 }
 
-void TileEngine::voxelCheckFlush()
-{
-	_cacheTilePos = invalid;
-	_cacheTile = 0;
-	_cacheTileBelow = 0;
-}
 
 /**
  * Toggles personal lighting on / off.

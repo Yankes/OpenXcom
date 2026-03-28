@@ -103,7 +103,10 @@ private:
 	};
 
 	SavedBattleGame *_save;
-	const std::vector<Uint16> *_voxelData;
+	const Uint16* const _voxelData;
+
+	/// Packed voxel tile part data for faster access in loops.
+	std::vector<std::array<std::array<Uint8, 8>, Position::TileZ / 2>> _lineOfFireTileVoxelTemplateIndexCache;
 
 	/// Cache for tile visibility and light propagation.
 	std::vector<VisibilityBlockCache> _blockVisibility;
@@ -115,9 +118,6 @@ private:
 	const RuleInventory *_inventorySlotGround;
 	constexpr static int heightFromCenter[11] = {0,-2,+2,-4,+4,-6,+6,-8,+8,-12,+12};
 	bool _personalLighting;
-	Tile *_cacheTile;
-	Tile *_cacheTileBelow;
-	Position _cacheTilePos;
 	const int _maxViewDistance;        // 20 tiles by default
 	const int _maxViewDistanceSq;      // 20 * 20
 	const int _maxVoxelViewDistance;   // maxViewDistance * 16
@@ -272,11 +272,13 @@ public:
 	/// Calculates the z voxel for shadows.
 	int castedShade(Position voxel);
 	/// Checks the visibility of a given voxel.
-	bool isVoxelVisible(Position voxel);
+	bool isVoxelVisible(Position voxel) const;
+	/// Checks what type of voxel occupies this space. Do not make any checks for bounds!
+	VoxelType voxelCheckCached(int tileIndex, Position clip) const;
+	/// Checks what type of voxel occupies this space. Do not make any checks for bounds!
+	VoxelType voxelCheckUnitRaw(int tileIndex, Position clip, const BattleUnit *excludeUnit, bool excludeAllUnits = false, bool onlyVisible = false, const BattleUnit *excludeAllBut = 0) const;
 	/// Checks what type of voxel occupies this space.
-	VoxelType voxelCheck(Position voxel, BattleUnit *excludeUnit, bool excludeAllUnits = false, bool onlyVisible = false, BattleUnit *excludeAllBut = 0);
-	/// Flushes cache of voxel check
-	void voxelCheckFlush();
+	VoxelType voxelCheck(Position voxel, const BattleUnit *excludeUnit, bool excludeAllUnits = false, bool onlyVisible = false, const BattleUnit *excludeAllBut = 0) const;
 	/// Blows this tile up.
 	bool detonate(Tile* tile, int power);
 	/// Validates a throwing action.
