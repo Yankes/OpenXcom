@@ -25,62 +25,79 @@
 namespace OpenXcom
 {
 
-/**
- * Easy handling of X-Y-Z coordinates.
- */
-class Position
-{
-public:
-	constexpr static int TileXY = 16;
-	constexpr static int TileZ = 24;
 
-	Sint16 x, y, z;
+template<typename Parent, typename T>
+struct Vector3dImpl
+{
+	T x, y, z;
 
 	/// Null position constructor.
-	constexpr Position() noexcept : x(0), y(0), z(0) {};
+	constexpr Vector3dImpl() noexcept : x{}, y{}, z{}  {};
 	/// X Y Z position constructor.
-	constexpr Position(int x_, int y_, int z_) noexcept : x(x_), y(y_), z(z_) {};
+	constexpr Vector3dImpl(int x_, int y_, int z_) noexcept : x(x_), y(y_), z(z_) {};
 	/// Copy constructor.
-	constexpr Position(const Position& pos) = default;
+	constexpr Vector3dImpl(const Vector3dImpl& pos) = default;
 
 	/// Assignment
-	constexpr Position& operator=(const Position& pos) = default;
+	constexpr Vector3dImpl& operator=(const Vector3dImpl& pos) = default;
 
-	constexpr Position operator+(const Position& pos) const { return Position(x + pos.x, y + pos.y, z + pos.z); }
-	constexpr Position& operator+=(const Position& pos) { x+=pos.x; y+=pos.y; z+=pos.z; return *this; }
+	constexpr Parent operator+(const Parent& pos) const { return Parent(x + pos.x, y + pos.y, z + pos.z); }
+	constexpr Parent& operator+=(const Parent& pos) { x+=pos.x; y+=pos.y; z+=pos.z; return *static_cast<Parent*>(this); }
 
-	constexpr Position operator-(const Position& pos) const { return Position(x - pos.x, y - pos.y, z - pos.z); }
-	constexpr Position& operator-=(const Position& pos) { x-=pos.x; y-=pos.y; z-=pos.z; return *this; }
+	constexpr Parent operator-(const Parent& pos) const { return Parent(x - pos.x, y - pos.y, z - pos.z); }
+	constexpr Parent& operator-=(const Parent& pos) { x-=pos.x; y-=pos.y; z-=pos.z; return *static_cast<Parent*>(this); }
 
-	constexpr Position operator*(const Position& pos) const { return Position(x * pos.x, y * pos.y, z * pos.z); }
-	constexpr Position& operator*=(const Position& pos) { x*=pos.x; y*=pos.y; z*=pos.z; return *this; }
-	constexpr Position operator*(const int v) const { return Position(x * v, y * v, z * v); }
-	constexpr Position& operator*=(const int v) { x*=v; y*=v; z*=v; return *this; }
+	constexpr Parent operator*(const Parent& pos) const { return Parent(x * pos.x, y * pos.y, z * pos.z); }
+	constexpr Parent& operator*=(const Parent& pos) { x*=pos.x; y*=pos.y; z*=pos.z; return *static_cast<Parent*>(this); }
+	constexpr Parent operator*(const int v) const { return Parent(x * v, y * v, z * v); }
+	constexpr Parent& operator*=(const int v) { x*=v; y*=v; z*=v; return *static_cast<Parent*>(this); }
 
-	constexpr Position operator/(const Position& pos) const { return Position(x / pos.x, y / pos.y, z / pos.z); }
-	constexpr Position& operator/=(const Position& pos) { x/=pos.x; y/=pos.y; z/=pos.z; return *this; }
+	constexpr Parent operator/(const Parent& pos) const { return Parent(x / pos.x, y / pos.y, z / pos.z); }
+	constexpr Parent& operator/=(const Parent& pos) { x/=pos.x; y/=pos.y; z/=pos.z; return *static_cast<Parent*>(this); }
 
-	constexpr Position operator/(const int v) const { return Position(x / v, y / v, z / v); }
+	constexpr Parent operator/(const int v) const { return Parent(x / v, y / v, z / v); }
 
 	/// == operator
-	constexpr bool operator== (const Position& pos) const
+	constexpr bool operator== (const Parent& pos) const
 	{
 		return x == pos.x && y == pos.y && z == pos.z;
 	}
 	/// != operator
-	constexpr bool operator!= (const Position& pos) const
+	constexpr bool operator!= (const Parent& pos) const
 	{
 		return x != pos.x || y != pos.y || z != pos.z;
 	}
 
 	/// Check if current point is in box created by ranges [0, max.x), [0, max.y), [0, max.z)
-	constexpr bool isBoundedBy(Position max) const
+	constexpr bool isBoundedBy(Parent max) const
 	{
 		return
 			(((unsigned)x) < ((unsigned)max.x)) & //Sic! no &&
 			(((unsigned)y) < ((unsigned)max.y)) &
 			(((unsigned)z) < ((unsigned)max.z));
 	}
+
+	template<typename Other>
+	constexpr Other castTo() const
+	{
+		return Other{ x, y, z };
+	}
+};
+
+/**
+ * Easy handling of X-Y-Z coordinates.
+ */
+class Position : public Vector3dImpl<Position, Sint16>
+{
+public:
+	constexpr static int TileXY = 16;
+	constexpr static int TileZ = 24;
+
+	/// Null position constructor.
+	constexpr Position() noexcept = default;
+	/// X Y Z position constructor.
+	constexpr Position(int x_, int y_, int z_) noexcept : Vector3dImpl{ x_, y_, z_ } {};
+
 
 	/// Convert tile position to voxel position.
 	constexpr Position toVoxel() const
@@ -148,8 +165,6 @@ inline std::ostream& operator<<(std::ostream& out, const Position& pos)
 	out << "(" << pos.x << "," << pos.y << ","<< pos.z << ")";
 	return out;
 }
-
-typedef Position Vector3i;
 
 
 /**
