@@ -4447,6 +4447,14 @@ int TileEngine::calculateLineTile(Position origin, Position target, std::vector<
 	return 0;
 }
 
+
+struct ExtendedPosition : Vector3dImpl<ExtendedPosition, int>
+{
+	ExtendedPosition() = default;
+
+	ExtendedPosition(int ax, int ay, int az) : Vector3dImpl{ ax, ay, az} { }
+};
+
 /**
  * Calculates a line trajectory, using bresenham algorithm in 3D.
  * @param origin Origin in voxel.
@@ -4478,10 +4486,10 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	auto tempTarget = target;
 	if (!tempTarget.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
 	{
-		const int scale = 2;
-		auto findBegin = origin * scale;
-		auto findEnd = tempTarget * scale;
-		const auto bund = maxMapVoxel * scale;
+		const int scale = 128*256; // one bit less than 16 that we never overflow in calculation avg
+		auto findBegin = origin.castTo<ExtendedPosition>() * scale;
+		auto findEnd = tempTarget.castTo<ExtendedPosition>() * scale;
+		const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
 
 		// binary serch for last point in map bounds
 		for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
@@ -4496,7 +4504,7 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 				findEnd = middle;
 			}
 		}
-		tempTarget = findBegin / scale;
+		tempTarget = (findBegin / scale).castTo<Position>();
 	}
 
 	int tileSkip = -1;
