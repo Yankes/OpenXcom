@@ -4564,31 +4564,52 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	auto tempTarget = target;
 	if (!tempTarget.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
 	{
-		const int scale = 128*256; // one bit less than 16 that we never overflow in calculation avg
-		auto findBegin = origin.castTo<ExtendedPosition>() * scale;
-		auto findEnd = tempTarget.castTo<ExtendedPosition>() * scale;
-		const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
+		// const int scale = 128*256; // one bit less than 16 that we never overflow in calculation avg
+		// auto findBegin = origin.castTo<ExtendedPosition>() * scale;
+		// auto findEnd = tempTarget.castTo<ExtendedPosition>() * scale;
+		// const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
+    //
+		// // binary serch for last point in map bounds
+		// for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
+		// {
+		// 	auto middle = (findEnd + findBegin) / 2;
+		// 	if (middle.isBoundedBy(bund))
+		// 	{
+		// 		findBegin = middle;
+		// 	}
+		// 	else
+		// 	{
+		// 		findEnd = middle;
+		// 	}
+		// }
+		//tempTarget = (findBegin / scale).castTo<Position>();
 
-		// binary serch for last point in map bounds
-		for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
-		{
-			auto middle = (findEnd + findBegin) / 2;
-			if (middle.isBoundedBy(bund))
-			{
-				findBegin = middle;
-			}
-			else
-			{
-				findEnd = middle;
-			}
-		}
-		tempTarget = (findBegin / scale).castTo<Position>();
+		// auto temp = origin;
+		// calculateLineHelper(origin, tempTarget,
+		// 	[&](Position point)
+		// 	{
+		// 		if (!point.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
+		// 		{
+		// 			return true;
+		// 		}
+		// 		temp = point;
+		// 		return false;
+		// 	},
+		// 	[](Position) { return false; }
+		// );
+		// tempTarget = temp;
 	}
 
 	int tileSkip = -1;
 	bool hit = calculateLineHelper(origin, tempTarget,
 		[&](Position point)
 		{
+			if (!point.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
+			{
+				result = V_OUTOFBOUNDS;
+				return true;
+			}
+
 			if (storeTrajectory && trajectory)
 			{
 				trajectory->push_back(point);
@@ -4631,6 +4652,11 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		},
 		[&](Position point)
 		{
+			if (!point.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
+			{
+				result = V_OUTOFBOUNDS;
+				return true;
+			}
 			const Position pos = point.toTile();
 			const Position clip = point.clipVoxel();
 			const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
