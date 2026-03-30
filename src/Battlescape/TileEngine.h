@@ -275,8 +275,6 @@ public:
 	bool isVoxelVisible(Position voxel) const;
 	/// Checks what type of voxel occupies this space. Do not make any checks for bounds!
 	VoxelType voxelCheckCached(int tileIndex, Position clip) const;
-	/// Checks what type of voxel occupies this space. Do not make any checks for bounds!
-	VoxelType voxelCheckUnitRaw(int tileIndex, Position clip, const BattleUnit *excludeUnit, bool excludeAllUnits = false, bool onlyVisible = false, const BattleUnit *excludeAllBut = 0) const;
 	/// Checks what type of voxel occupies this space.
 	VoxelType voxelCheck(Position voxel, const BattleUnit *excludeUnit, bool excludeAllUnits = false, bool onlyVisible = false, const BattleUnit *excludeAllBut = 0) const;
 	/// Blows this tile up.
