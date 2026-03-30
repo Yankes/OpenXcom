@@ -3716,6 +3716,21 @@ void BattlescapeState::updateFppOverlay(bool forceShow)
 						continue;
 					}
 				}
+				else if (test == 5) // alien
+				{
+					setColor(0x20 + ((_fppOverlayVersion & 2) ? 4 - (_save->getAnimFrame() % 4) : 0));
+					continue;
+				}
+				else if (test == 8) // player
+				{
+					setColor(0x10 + ((_fppOverlayVersion & 2) ? 4 - (_save->getAnimFrame() % 4) : 0));
+					continue;
+				}
+				else if (test == 9) // civ
+				{
+					setColor(0x80 + ((_fppOverlayVersion & 2) ? 4 - (_save->getAnimFrame() % 4) : 0));
+					continue;
+				}
 			}
 
 			if (black)
