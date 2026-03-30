@@ -4710,53 +4710,6 @@ bool TileEngine::isVoxelVisible(Position voxel) const
 	return true;
 }
 
-VoxelType TileEngine::voxelCheckUnitRaw(int tileIndex, Position clip, const BattleUnit *excludeUnit, bool excludeAllUnits, bool onlyVisible, const BattleUnit *excludeAllBut) const
-{
-	//if (excludeAllUnits)
-	{
-		return V_EMPTY;
-	}
-
-	const Tile *tile = _save->getTile(tileIndex);
-	const BattleUnit *unit = tile->getOverlappingUnit(_save);
-
-	if (unit != 0 && !unit->isOut() && unit != excludeUnit && (!excludeAllBut || unit == excludeAllBut) && (!onlyVisible || unit->getVisible() ) )
-	{
-		Position tilepos = tile->getPosition();
-		Position unitpos = unit->getPosition();
-		int terrainHeight = 0;
-		for (int x = 0; x < unit->getArmor()->getSize(); ++x)
-		{
-			for (int y = 0; y < unit->getArmor()->getSize(); ++y)
-			{
-				Tile *tempTile = _save->getTile(unitpos + Position(x,y,0));
-				if (tempTile->getTerrainLevel() < terrainHeight)
-				{
-					terrainHeight = tempTile->getTerrainLevel();
-				}
-			}
-		}
-		int tz = (unitpos.z - tilepos.z)*24 + unit->getFloatHeight() - terrainHeight; //bottom most voxel, terrain heights are negative, so we subtract.
-		if ((clip.z > tz) && (clip.z <= tz + unit->getHeight()) )
-		{
-			const int x = 1 << (15 - clip.x);
-			const int y = clip.y;
-			int part = 0;
-			if (unit->isBigUnit())
-			{
-				const static int parts[] = {1,0,3,2}; // Change order 0,1,2,3 -> 1,0,3,2  (read commit description)
-				part = parts[tilepos.x - unitpos.x + (tilepos.y - unitpos.y)*2];
-			}
-			int idx = (unit->getLoftemps(part) * 16) + y;
-			if (_voxelData[idx] & x)
-			{
-				return V_UNIT;
-			}
-		}
-	}
-	return V_EMPTY;
-}
-
 /**
  * Checks if we hit a voxel in cache.
  * @param tileIndex Offset of tile where hit happened.
