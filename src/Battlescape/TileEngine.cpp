@@ -1761,7 +1761,7 @@ bool TileEngine::calculateFOV(BattleUnit *unit, bool doTileRecalc, bool doUnitRe
  * @param currentUnit The watcher.
  * @return Approximately an eyeball voxel.
  */
-Position TileEngine::getSightOriginVoxel(BattleUnit *currentUnit)
+Position TileEngine::getSightOriginVoxel(BattleUnit *currentUnit) const
 {
 	const Position pos = currentUnit->getPosition();
 	auto* tile = currentUnit->getTile();
@@ -4408,7 +4408,7 @@ int TileEngine::closeUfoDoors()
  * @param trajectory A vector of positions in which the trajectory is stored.
  * @return 0 or some value greater than .
  */
-int TileEngine::calculateLineTile(Position origin, Position target, std::vector<Position> &trajectory)
+int TileEngine::calculateLineTile(Position origin, Position target, std::vector<Position> &trajectory) const
 {
 	Position lastPoint = origin;
 	int steps = 0;
@@ -4466,7 +4466,7 @@ struct ExtendedPosition : Vector3dImpl<ExtendedPosition, int>
  * @param excludeAllBut [Optional] The only unit to be considered for ray hits.
  * @return the objectnumber(0-3) or unit(4) or out of map (5) or -1(hit nothing).
  */
-VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, BattleUnit *excludeAllBut, bool onlyVisible)
+VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, BattleUnit *excludeAllBut, bool onlyVisible) const
 {
 	VoxelType result;
 	bool excludeAllUnits = false;
@@ -4613,7 +4613,7 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
  * @param delta Is the deviation of the angles it should take into account, 0,0,0 is perfection.
  * @return The objectnumber(0-3) or unit(4) or out of map (5) or -1(hit nothing).
  */
-int TileEngine::calculateParabolaVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, double curvature, const Position delta)
+int TileEngine::calculateParabolaVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, double curvature, const Position delta) const
 {
 	if (target == origin) return V_EMPTY;//just in case
 

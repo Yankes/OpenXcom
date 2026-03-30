@@ -204,13 +204,13 @@ public:
 	/// Closes ufo doors.
 	int closeUfoDoors();
 	/// Calculates a line trajectory in tile space.
-	int calculateLineTile(Position origin, Position target, std::vector<Position> &trajectory);
+	int calculateLineTile(Position origin, Position target, std::vector<Position> &trajectory) const;
 	/// Calculates a line trajectory in voxel space.
-	VoxelType calculateLineVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, BattleUnit *excludeAllBut = 0, bool onlyVisible = false);
+	VoxelType calculateLineVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, BattleUnit *excludeAllBut = 0, bool onlyVisible = false) const;
 	/// Calculates a parabola trajectory.
-	int calculateParabolaVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, double curvature, const Position delta);
+	int calculateParabolaVoxel(Position origin, Position target, bool storeTrajectory, std::vector<Position> *trajectory, BattleUnit *excludeUnit, double curvature, const Position delta) const;
 	/// Gets the origin voxel of a unit's eyesight.
-	Position getSightOriginVoxel(BattleUnit *currentUnit);
+	Position getSightOriginVoxel(BattleUnit *currentUnit) const;
 	/// Checks visibility of a unit on this tile.
 	bool visible(BattleUnit *currentUnit, Tile *tile);
 	/// Checks visibility of a tile.
