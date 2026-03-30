@@ -702,7 +702,7 @@ static void ModsAvailableAdd(std::unique_ptr<ModRecord>&& mrec)
 {
 	auto [it, ok] = ModsAvailable.insert(std::make_pair(mrec->modInfo.getId(), mrec.get()));
 	if (ok) {
-		mrec.release();
+		std::ignore = mrec.release();
 		return;
 	}
 
