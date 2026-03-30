@@ -56,15 +56,14 @@ namespace
  * @param posFunc Function call for each step in primary direction of line.
  * @param driftFunc Function call for each side step of line.
  */
-template<typename FuncNewPosition, typename FuncDrift>
-bool calculateLineHelper(const Position& origin, const Position& target, FuncNewPosition posFunc, FuncDrift driftFunc)
+template<int InputScale = 1, typename PointType, typename FuncNewPosition, typename FuncDrift>
+bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition posFunc, FuncDrift driftFunc)
 {
 	int x, x0, x1, delta_x, step_x;
 	int y, y0, y1, delta_y, step_y;
 	int z, z0, z1, delta_z, step_z;
 	int swap_xy, swap_xz;
 	int drift_xy, drift_xz;
-	int cx, cy, cz;
 
 	//start and end points
 	x0 = origin.x;	 x1 = target.x;
@@ -88,9 +87,9 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	}
 
 	//delta is Length in each plane
-	delta_x = abs(x1 - x0);
-	delta_y = abs(y1 - y0);
-	delta_z = abs(z1 - z0);
+	delta_x = abs(x1 - x0) * 4;
+	delta_y = abs(y1 - y0); // quarter step compared to plane x
+	delta_z = abs(z1 - z0); // quarter step compared to plane x
 
 	//drift controls when to step in 'shallow' planes
 	//starting value keeps Line centred
@@ -103,57 +102,111 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	step_z = 1;  if (z0 > z1) {  step_z = -1; }
 
 	//starting point
-	y = y0;
-	z = z0;
+	y = y0 / InputScale;
+	z = z0 / InputScale;
+	x = x0 / InputScale;
 
-	//step through longest delta (which we have swapped to x)
-	for (x = x0; ; x += step_x)
+	//end point
+	auto x_end = x + step_x * abs(x1 - x0) / InputScale;
+
+
+	auto posFuncCall = [&](int cx, int cy, int cz)
 	{
-		//copy position
-		cx = x;	cy = y;	cz = z;
-
 		//unswap (in reverse)
 		if (swap_xz) std::swap(cx, cz);
 		if (swap_xy) std::swap(cx, cy);
-		if (posFunc(Position(cx, cy, cz)))
+		return posFunc(Position(cx, cy, cz));
+	};
+
+	auto driftFuncCall = [&](int cx, int cy, int cz)
+	{
+		//unswap (in reverse)
+		if (swap_xz) std::swap(cx, cz);
+		if (swap_xy) std::swap(cx, cy);
+		return driftFunc(Position(cx, cy, cz));
+	};
+
+	auto stepX = [&]()
+	{
+		x += step_x;
+	};
+	auto checkStepY = [&]()
+	{
+		if (drift_xy < 0)
+		{
+			y += step_y;
+			drift_xy += delta_x;
+			return true;
+		}
+		return false;
+	};
+	auto checkStepZ = [&]()
+	{
+		if (drift_xz < 0)
+		{
+			z += step_z;
+			drift_xz += delta_x;
+			return true;
+		}
+		return false;
+	};
+	auto driftYZ = [&]()
+	{
+		drift_xy -= delta_y;
+		drift_xz -= delta_z;
+	};
+
+	//step through longest delta (which we have swapped to x)
+	while (true)
+	{
+		if (posFuncCall(x, y, z))
 		{
 			return true;
 		}
 
-		if (x == x1) break;
+		if (x == x_end) break;
 
-		//update progress in other planes
-		drift_xy = drift_xy - delta_y;
-		drift_xz = drift_xz - delta_z;
-
-		//step in y plane
-		if (drift_xy < 0)
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y, z))
 		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
-
-			cx = x;	cz = z; cy = y;
-			if (swap_xz) std::swap(cx, cz);
-			if (swap_xy) std::swap(cx, cy);
-			if (driftFunc(Position(cx, cy, cz)))
-			{
-				return true;
-			}
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z))
+		{
+			return true;
 		}
 
-		//same in z
-		if (drift_xz < 0)
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y, z))
 		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z))
+		{
+			return true;
+		}
 
-			cx = x;	cz = z; cy = y;
-			if (swap_xz) std::swap(cx, cz);
-			if (swap_xy) std::swap(cx, cy);
-			if (driftFunc(Position(cx, cy, cz)))
-			{
-				return true;
-			}
+		//main step in X plane
+		stepX();
+
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y - step_y, z))
+		{
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z - step_z))
+		{
+			return true;
+		}
+
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y - step_y, z))
+		{
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z - step_z))
+		{
+			return true;
 		}
 	}
 	return false;
@@ -4483,13 +4536,15 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	{
 		return V_OUTOFBOUNDS;
 	}
-	auto tempTarget = target;
-	if (!tempTarget.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
+	constexpr int scale = 256;
+	const ExtendedPosition halfVoxel = { scale / 2, scale / 2, scale / 2 };
+	auto subVoxelBegin = origin.castTo<ExtendedPosition>() * scale + halfVoxel;
+	auto subVoxelEnd = target.castTo<ExtendedPosition>() * scale + halfVoxel;
+	const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
+	if (!subVoxelEnd.isBoundedBy(bund)) // clip to bunds if outside
 	{
-		const int scale = 128*256; // one bit less than 16 that we never overflow in calculation avg
-		auto findBegin = origin.castTo<ExtendedPosition>() * scale;
-		auto findEnd = tempTarget.castTo<ExtendedPosition>() * scale;
-		const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
+		auto findBegin = subVoxelBegin;
+		auto findEnd = subVoxelEnd;
 
 		// binary serch for last point in map bounds
 		for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
@@ -4504,11 +4559,11 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 				findEnd = middle;
 			}
 		}
-		tempTarget = (findBegin / scale).castTo<Position>();
+		subVoxelEnd = findBegin;
 	}
 
 	int tileSkip = -1;
-	bool hit = calculateLineHelper(origin, tempTarget,
+	bool hit = calculateLineHelper<scale>(subVoxelBegin, subVoxelEnd,
 		[&](Position point)
 		{
 			if (storeTrajectory && trajectory)
