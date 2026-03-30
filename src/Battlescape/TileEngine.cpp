@@ -110,7 +110,7 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	for (x = x0; ; x += step_x)
 	{
 		//copy position
-		cx = x;	cy = y;	cz = z;
+		cx = x; cy = y; cz = z;
 
 		//unswap (in reverse)
 		if (swap_xz) std::swap(cx, cz);
@@ -126,13 +126,24 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 		drift_xy = drift_xy - delta_y;
 		drift_xz = drift_xz - delta_z;
 
-		//step in y plane
-		if (drift_xy < 0)
+		const bool change_xy = (drift_xy < 0);
+		const bool change_xz = (drift_xz < 0);
+
+		//step in only y plane
+		if (change_xy && !change_xz)
 		{
+			cx = x + step_x; cz = z; cy = y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
 			y = y + step_y;
 			drift_xy = drift_xy + delta_x;
 
-			cx = x;	cz = z; cy = y;
+			cx = x; cz = z; cy = y;
 			if (swap_xz) std::swap(cx, cz);
 			if (swap_xy) std::swap(cx, cy);
 			if (driftFunc(Position(cx, cy, cz)))
@@ -141,19 +152,86 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 			}
 		}
 
-		//same in z
-		if (drift_xz < 0)
+		//step in only z plane
+		if (!change_xy && change_xz)
 		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
-
-			cx = x;	cz = z; cy = y;
+			cx = x + step_x; cz = z; cy = y;
 			if (swap_xz) std::swap(cx, cz);
 			if (swap_xy) std::swap(cx, cy);
 			if (driftFunc(Position(cx, cy, cz)))
 			{
 				return true;
 			}
+
+			z = z + step_z;
+			drift_xz = drift_xz + delta_x;
+
+			cx = x; cz = z; cy = y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+		}
+
+		//step in both y and z planes
+		if (change_xy && change_xz)
+		{
+			cx = x + step_x; cz = z; cy = y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
+			cx = x; cz = z + step_z; cy = y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
+			cx = x; cz = z; cy = y + step_y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
+
+			cx = x; cz = z + step_z; cy = y + step_y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
+			cx = x + step_x; cz = z; cy = y + step_y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
+			cx = x + step_x; cz = z + step_z; cy = y;
+			if (swap_xz) std::swap(cx, cz);
+			if (swap_xy) std::swap(cx, cy);
+			if (driftFunc(Position(cx, cy, cz)))
+			{
+				return true;
+			}
+
+			y = y + step_y;
+			drift_xy = drift_xy + delta_x;
+
+			z = z + step_z;
+			drift_xz = drift_xz + delta_x;
 		}
 	}
 	return false;
