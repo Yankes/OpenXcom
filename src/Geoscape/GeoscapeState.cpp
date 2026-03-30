@@ -17,12 +17,10 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "GeoscapeState.h"
-#include <set>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <climits>
-#include <functional>
 #include "../Engine/RNG.h"
 #include "../Engine/Game.h"
 #include "../Engine/Action.h"
@@ -4160,8 +4158,8 @@ void GeoscapeState::determineAlienMissions(bool isNewMonth, const RuleEvent* eve
 				}
 				if (!possibleSeqEvents.empty())
 				{
-					auto* eventRules = mod->getEvent(possibleSeqEvents.front(), true); // take first
-					toBeGenerated.push_back(eventRules);
+					auto* rule = mod->getEvent(possibleSeqEvents.front(), true); // take first
+					toBeGenerated.push_back(rule);
 				}
 			}
 
@@ -4177,24 +4175,24 @@ void GeoscapeState::determineAlienMissions(bool isNewMonth, const RuleEvent* eve
 				}
 				if (!possibleRngEvents.empty())
 				{
-					auto* eventRules = mod->getEvent(possibleRngEvents.choose(), true); // take random
-					toBeGenerated.push_back(eventRules);
+					auto* rule = mod->getEvent(possibleRngEvents.choose(), true); // take random
+					toBeGenerated.push_back(rule);
 				}
 			}
 
 			// 3. randomly generated repeatable events
 			{
-				auto* eventRules = mod->getEvent(eventCommand->generate(save->getMonthsPassed()), false);
-				if (eventRules)
+				auto* rule = mod->getEvent(eventCommand->generate(save->getMonthsPassed()), false);
+				if (rule)
 				{
-					toBeGenerated.push_back(eventRules);
+					toBeGenerated.push_back(rule);
 				}
 			}
 
 			// 4. generate
-			for (auto* eventRules : toBeGenerated)
+			for (auto* rule : toBeGenerated)
 			{
-				save->spawnEvent(eventRules);
+				save->spawnEvent(rule);
 			}
 		}
 	}
@@ -4277,7 +4275,7 @@ bool GeoscapeState::attemptAlienRaceEvolution(int month, AlienBase* ab) const
 {
 	for (const auto& tuple : ab->getDeployment()->getAlienRaceEvolution())
 	{
-		if (std::get<0>(tuple) <= month && std::get<1>(tuple) == ab->getAlienRace())
+		if ((int)std::get<0>(tuple) <= month && std::get<1>(tuple) == ab->getAlienRace())
 		{
 			auto* newRace = _game->getMod()->getAlienRace(std::get<2>(tuple), false);
 			if (newRace)
