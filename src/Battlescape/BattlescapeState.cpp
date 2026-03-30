@@ -3597,6 +3597,7 @@ void BattlescapeState::updateFppOverlay(bool forceShow)
 			{
 				// when we have last part updated we swap buffers
 				std::swap(_fppOverlayCurrentBuffer, _fppOverlayNextBuffer);
+				_fppOverlayNextBuffer.clear();
 			}
 			else
 			{
