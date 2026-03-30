@@ -97,8 +97,6 @@ public:
 	constexpr Position() noexcept = default;
 	/// X Y Z position constructor.
 	constexpr Position(int x_, int y_, int z_) noexcept : Vector3dImpl{ x_, y_, z_ } {};
-	/// Copy constructor.
-	constexpr Position(const Position& pos) = default;
 
 
 	/// Convert tile position to voxel position.
