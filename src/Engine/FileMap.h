@@ -83,6 +83,9 @@ namespace FileMap
 	/// if we have the file
 	bool fileExists(const std::string &relativeFilePath);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+
 	/// Returns the set of files in a virtual folder.  The virtual folder contains files from all active mods
 	/// that are in similarly-named subdirectories.
 	/// level select the layer in the VFS cake. Useful value is 0 for the bottommost aka 'dataFolder/common'
@@ -94,6 +97,8 @@ namespace FileMap
 	NameSet filterFiles(const std::vector<std::string> &files, const std::string &ext);
 	NameSet filterFiles(const std::set<std::string>    &files, const std::string &ext);
 	NameSet filterFiles(const NameSet &files, const std::string &ext);
+
+#pragma GCC diagnostic pop
 
 	/// Returns the ruleset files found, grouped by mod, while mapping resources.  The highest-priority mod
 	/// will be last in the returned vector.
