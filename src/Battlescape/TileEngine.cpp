@@ -122,6 +122,36 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 		return driftFunc(Position(cx, cy, cz));
 	};
 
+	auto stepX = [&]()
+	{
+		x += step_x;
+	};
+	auto checkStepY = [&]()
+	{
+		if (drift_xy < 0)
+		{
+			y = y + step_y;
+			drift_xy = drift_xy + delta_x;
+			return true;
+		}
+		return false;
+	};
+	auto checkStepZ = [&]()
+	{
+		if (drift_xz < 0)
+		{
+			z = z + step_z;
+			drift_xz = drift_xz + delta_x;
+			return true;
+		}
+		return false;
+	};
+	auto driftYZ = [&]()
+	{
+		drift_xy -= delta_y;
+		drift_xz -= delta_z;
+	};
+
 	//step through longest delta (which we have swapped to x)
 	while (true)
 	{
@@ -132,114 +162,47 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 
 		if (x == x1) break;
 
-		//fist quarter step in progress in other planes
-		drift_xy = drift_xy - delta_y;
-		drift_xz = drift_xz - delta_z;
-
-		if (drift_xy < 0)
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y, z))
 		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z))
+		{
+			return true;
 		}
 
-		if (drift_xz < 0)
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y, z))
 		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z))
+		{
+			return true;
 		}
 
-		drift_xy = drift_xy - delta_y;
-		drift_xz = drift_xz - delta_z;
+		//main step in X plane
+		stepX();
 
-		if (drift_xy < 0)
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y - step_y, z))
 		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
+			return true;
+		}
+		if (checkStepZ() && driftFuncCall(x, y, z - step_z))
+		{
+			return true;
 		}
 
-		if (drift_xz < 0)
+		driftYZ();
+		if (checkStepY() && driftFuncCall(x, y - step_y, z))
 		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
+			return true;
 		}
-
-		//step in x plane
-		x += step_x;
-
-		//second half step in progress in other planes
-		drift_xy = drift_xy - delta_y;
-		drift_xz = drift_xz - delta_z;
-
-		//half step in y plane
-		if (drift_xy < 0)
+		if (checkStepZ() && driftFuncCall(x, y, z - step_z))
 		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
-		}
-
-		//half step in z plane
-		if (drift_xz < 0)
-		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
-		}
-
-		//second half step in progress in other planes
-		drift_xy = drift_xy - delta_y;
-		drift_xz = drift_xz - delta_z;
-
-		//half step in y plane
-		if (drift_xy < 0)
-		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
-		}
-
-		//half step in z plane
-		if (drift_xz < 0)
-		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
-
-			if (driftFuncCall(x, y, z))
-			{
-				return true;
-			}
+			return true;
 		}
 	}
 	return false;
