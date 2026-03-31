@@ -87,9 +87,9 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	}
 
 	//delta is Length in each plane
-	delta_x = abs(x1 - x0) * 2;
-	delta_y = abs(y1 - y0); // half step compared to plane x
-	delta_z = abs(z1 - z0); // half step compared to plane x
+	delta_x = abs(x1 - x0) * 4;
+	delta_y = abs(y1 - y0); // quarter step compared to plane x
+	delta_z = abs(z1 - z0); // quarter step compared to plane x
 
 	//drift controls when to step in 'shallow' planes
 	//starting value keeps Line centred
@@ -132,7 +132,61 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 
 		if (x == x1) break;
 
-		//fist half step in progress in other planes
+		//fist quarter step in progress in other planes
+		drift_xy = drift_xy - delta_y;
+		drift_xz = drift_xz - delta_z;
+
+		if (drift_xy < 0)
+		{
+			y = y + step_y;
+			drift_xy = drift_xy + delta_x;
+
+			if (driftFuncCall(x, y, z))
+			{
+				return true;
+			}
+		}
+
+		if (drift_xz < 0)
+		{
+			z = z + step_z;
+			drift_xz = drift_xz + delta_x;
+
+			if (driftFuncCall(x, y, z))
+			{
+				return true;
+			}
+		}
+
+		drift_xy = drift_xy - delta_y;
+		drift_xz = drift_xz - delta_z;
+
+		if (drift_xy < 0)
+		{
+			y = y + step_y;
+			drift_xy = drift_xy + delta_x;
+
+			if (driftFuncCall(x, y, z))
+			{
+				return true;
+			}
+		}
+
+		if (drift_xz < 0)
+		{
+			z = z + step_z;
+			drift_xz = drift_xz + delta_x;
+
+			if (driftFuncCall(x, y, z))
+			{
+				return true;
+			}
+		}
+
+		//step in x plane
+		x += step_x;
+
+		//second half step in progress in other planes
 		drift_xy = drift_xy - delta_y;
 		drift_xz = drift_xz - delta_z;
 
@@ -159,9 +213,6 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 				return true;
 			}
 		}
-
-		//step in x plane
-		x += step_x;
 
 		//second half step in progress in other planes
 		drift_xy = drift_xy - delta_y;
