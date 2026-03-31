@@ -56,8 +56,8 @@ namespace
  * @param posFunc Function call for each step in primary direction of line.
  * @param driftFunc Function call for each side step of line.
  */
-template<typename FuncNewPosition, typename FuncDrift>
-bool calculateLineHelper(const Position& origin, const Position& target, FuncNewPosition posFunc, FuncDrift driftFunc)
+template<int InputScale = 1, typename PointType, typename FuncNewPosition, typename FuncDrift>
+bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition posFunc, FuncDrift driftFunc)
 {
 	int x, x0, x1, delta_x, step_x;
 	int y, y0, y1, delta_y, step_y;
@@ -102,9 +102,12 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	step_z = 1;  if (z0 > z1) {  step_z = -1; }
 
 	//starting point
-	y = y0;
-	z = z0;
-	x = x0;
+	y = y0 / InputScale;
+	z = z0 / InputScale;
+	x = x0 / InputScale;
+
+	//end point
+	auto x_end = x1 / InputScale;
 
 	auto posFuncCall = [&](int cx, int cy, int cz)
 	{
@@ -160,7 +163,7 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 			return true;
 		}
 
-		if (x == x1) break;
+		if (x == x_end) break;
 
 		driftYZ();
 		if (checkStepY() && driftFuncCall(x, y, z))
@@ -4532,55 +4535,35 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	{
 		return V_OUTOFBOUNDS;
 	}
-	auto tempTarget = target;
-	if (!tempTarget.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
+	constexpr int scale = 256;
+	auto subVoxelBegin = origin.castTo<ExtendedPosition>() * scale;
+	auto subVoxelEnd = target.castTo<ExtendedPosition>() * scale;
+	const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
+	if (!subVoxelEnd.isBoundedBy(bund)) // clip to bunds if outside
 	{
-		// const int scale = 128*256; // one bit less than 16 that we never overflow in calculation avg
-		// auto findBegin = origin.castTo<ExtendedPosition>() * scale;
-		// auto findEnd = tempTarget.castTo<ExtendedPosition>() * scale;
-		// const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
-    //
-		// // binary serch for last point in map bounds
-		// for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
-		// {
-		// 	auto middle = (findEnd + findBegin) / 2;
-		// 	if (middle.isBoundedBy(bund))
-		// 	{
-		// 		findBegin = middle;
-		// 	}
-		// 	else
-		// 	{
-		// 		findEnd = middle;
-		// 	}
-		// }
-		//tempTarget = (findBegin / scale).castTo<Position>();
+		auto findBegin = subVoxelBegin;
+		auto findEnd = subVoxelEnd;
 
-		// auto temp = origin;
-		// calculateLineHelper(origin, tempTarget,
-		// 	[&](Position point)
-		// 	{
-		// 		if (!point.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
-		// 		{
-		// 			return true;
-		// 		}
-		// 		temp = point;
-		// 		return false;
-		// 	},
-		// 	[](Position) { return false; }
-		// );
-		// tempTarget = temp;
+		// binary serch for last point in map bounds
+		for (size_t i = 0; i < CHAR_BIT * sizeof(Sint16); ++i)
+		{
+			auto middle = (findEnd + findBegin) / 2;
+			if (middle.isBoundedBy(bund))
+			{
+				findBegin = middle;
+			}
+			else
+			{
+				findEnd = middle;
+			}
+		}
+		subVoxelEnd = findBegin;
 	}
 
 	int tileSkip = -1;
-	bool hit = calculateLineHelper(origin, tempTarget,
+	bool hit = calculateLineHelper<scale>(subVoxelBegin, subVoxelEnd,
 		[&](Position point)
 		{
-			if (!point.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
-			{
-				result = V_OUTOFBOUNDS;
-				return true;
-			}
-
 			if (storeTrajectory && trajectory)
 			{
 				trajectory->push_back(point);
@@ -4623,11 +4606,6 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		},
 		[&](Position point)
 		{
-			if (!point.isBoundedBy(maxMapVoxel)) // clip to bunds if outside
-			{
-				result = V_OUTOFBOUNDS;
-				return true;
-			}
 			const Position pos = point.toTile();
 			const Position clip = point.clipVoxel();
 			const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
