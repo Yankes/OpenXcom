@@ -64,7 +64,6 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	int z, z0, z1, delta_z, step_z;
 	int swap_xy, swap_xz;
 	int drift_xy, drift_xz;
-	int cx, cy, cz;
 
 	//start and end points
 	x0 = origin.x;	 x1 = target.x;
@@ -88,9 +87,9 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	}
 
 	//delta is Length in each plane
-	delta_x = abs(x1 - x0);
-	delta_y = abs(y1 - y0);
-	delta_z = abs(z1 - z0);
+	delta_x = abs(x1 - x0) * 2;
+	delta_y = abs(y1 - y0); // half step compared to plane x
+	delta_z = abs(z1 - z0); // half step compared to plane x
 
 	//drift controls when to step in 'shallow' planes
 	//starting value keeps Line centred
@@ -105,52 +104,88 @@ bool calculateLineHelper(const Position& origin, const Position& target, FuncNew
 	//starting point
 	y = y0;
 	z = z0;
+	x = x0;
 
-	//step through longest delta (which we have swapped to x)
-	for (x = x0; ; x += step_x)
+	auto posFuncCall = [&](int cx, int cy, int cz)
 	{
-		//copy position
-		cx = x;	cy = y;	cz = z;
-
 		//unswap (in reverse)
 		if (swap_xz) std::swap(cx, cz);
 		if (swap_xy) std::swap(cx, cy);
-		if (posFunc(Position(cx, cy, cz)))
+		return posFunc(Position(cx, cy, cz));
+	};
+
+	auto driftFuncCall = [&](int cx, int cy, int cz)
+	{
+		//unswap (in reverse)
+		if (swap_xz) std::swap(cx, cz);
+		if (swap_xy) std::swap(cx, cy);
+		return driftFunc(Position(cx, cy, cz));
+	};
+
+	//step through longest delta (which we have swapped to x)
+	while (true)
+	{
+		if (posFuncCall(x, y, z))
 		{
 			return true;
 		}
 
 		if (x == x1) break;
 
-		//update progress in other planes
+		//fist half step in progress in other planes
 		drift_xy = drift_xy - delta_y;
 		drift_xz = drift_xz - delta_z;
 
-		//step in y plane
+		//half step in y plane
 		if (drift_xy < 0)
 		{
 			y = y + step_y;
 			drift_xy = drift_xy + delta_x;
 
-			cx = x;	cz = z; cy = y;
-			if (swap_xz) std::swap(cx, cz);
-			if (swap_xy) std::swap(cx, cy);
-			if (driftFunc(Position(cx, cy, cz)))
+			if (driftFuncCall(x, y, z))
 			{
 				return true;
 			}
 		}
 
-		//same in z
+		//half step in z plane
 		if (drift_xz < 0)
 		{
 			z = z + step_z;
 			drift_xz = drift_xz + delta_x;
 
-			cx = x;	cz = z; cy = y;
-			if (swap_xz) std::swap(cx, cz);
-			if (swap_xy) std::swap(cx, cy);
-			if (driftFunc(Position(cx, cy, cz)))
+			if (driftFuncCall(x, y, z))
+			{
+				return true;
+			}
+		}
+
+		//step in x plane
+		x += step_x;
+
+		//second half step in progress in other planes
+		drift_xy = drift_xy - delta_y;
+		drift_xz = drift_xz - delta_z;
+
+		//half step in y plane
+		if (drift_xy < 0)
+		{
+			y = y + step_y;
+			drift_xy = drift_xy + delta_x;
+
+			if (driftFuncCall(x, y, z))
+			{
+				return true;
+			}
+		}
+
+		//half step in z plane
+		if (drift_xz < 0)
+		{
+			z = z + step_z;
+			drift_xz = drift_xz + delta_x;
+
+			if (driftFuncCall(x, y, z))
 			{
 				return true;
 			}
