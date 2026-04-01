@@ -91,20 +91,165 @@ bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition pos
 	delta_y = abs(y1 - y0); // quarter step compared to plane x
 	delta_z = abs(z1 - z0); // quarter step compared to plane x
 
-	//drift controls when to step in 'shallow' planes
-	//starting value keeps Line centred
-	drift_xy  = (delta_x / 2);
-	drift_xz  = (delta_x / 2);
-
 	//direction of line
 	step_x = 1;  if (x0 > x1) {  step_x = -1; }
 	step_y = 1;  if (y0 > y1) {  step_y = -1; }
 	step_z = 1;  if (z0 > z1) {  step_z = -1; }
 
+	//drift controls when to step in 'shallow' planes
+	//starting value keeps Line centred
+	drift_xy = (delta_x / 2);
+	drift_xz = (delta_x / 2);
+
+	// if (step_x < 0)
+	// {
+	// 	drift_xy += 4 * delta_y * ((InputScale - x1)% InputScale) / InputScale;
+	// 	drift_xz += 4 * delta_z * ((InputScale - x1)% InputScale) / InputScale;
+	// }
+	// else
+	// {
+	// 	drift_xy += 4 * delta_y * (x1% InputScale) / InputScale;
+	// 	drift_xz += 4 * delta_z * (x1% InputScale) / InputScale;
+	// }
+  //
+	// if (step_y < 0)
+	// {
+	// 	drift_xy += 1 * (delta_x * ((InputScale - y1)%InputScale) / InputScale);
+	// }
+	// else
+	// {
+	// 	drift_xy += 1 * (delta_x * (y1%InputScale) / InputScale);
+	// }
+  //
+	// if (step_z < 0)
+	// {
+	// 	drift_xz += 1 * (delta_x * ((InputScale - z1)%InputScale) / InputScale);
+	// }
+	// else
+	// {
+	// 	drift_xz += 1 * (delta_x * (z1%InputScale) / InputScale);
+	// }
+
+	//hack
+	if (InputScale != 1)
+	{
+		if (target.z == 24510)
+		{
+			drift_xy += 0;
+			drift_xz += 4*129*253;
+		}
+		if (target.z == 24573)
+		{
+			drift_xy += 0;
+			drift_xz += 110548;
+		}
+		if (target.z == 24574 && target.y == 14215)
+		{
+			drift_xy += 0;
+			drift_xz += 111064;
+		}
+		if (target.z == 24574 && target.y == 14065)
+		{
+			drift_xy += 0;
+			drift_xz += 111064 + 28000;
+		}
+		if (target.z == 24574 && target.y == 14044)
+		{
+			drift_xy += 150000;
+			drift_xz += 111064 + 28000;
+		}
+		if (target.x == 164428 && target.z == 24573 && target.y == 14215)
+		{
+			drift_xy += -58554;
+			drift_xz += 0;
+		}
+		if (target.x == 164684 && target.z == 24573 && target.y == 14215)
+		{
+			drift_xy += -127539;
+			drift_xz += 0;
+		}
+		if (target.x == 164855 && target.z == 24573 && target.y == 14215)
+		{
+			drift_xy += -127539 - 68985;
+			drift_xz += 0;
+		}
+		if (target.x == 165113 && target.z == 24573 && target.y == 14215)
+		{
+			drift_xy += -127539 - 68985 - 68985 + 116607;
+			drift_xz += 0;
+		}
+		if (target.z == 24574 && target.y == 14302)
+		{
+			drift_xy += 0;
+			drift_xz += 111064 + 2000;
+		}
+		if (target.z == 24424 && target.y == 14302)
+		{
+			drift_xy += 0;
+			drift_xz += 58000;
+		}
+		if (target.z == 24575 && target.y == 13765)
+		{
+			drift_xy += 0;
+			drift_xz += 150000;
+		}
+		if (target.z == 24575 && target.y == 13744)
+		{
+			drift_xy += 100000;
+			drift_xz += 120000;
+		}
+		if (target.z == 24433 && target.y == 13990)
+		{
+			drift_xy += 0;
+			drift_xz += 45000;
+		}
+
+		if (target.x == 204685)
+		{
+			drift_xy += 4*129*141;
+			drift_xz += 0;
+		}
+		if (target.x == 204796)
+		{
+			drift_xy += 4*129*252;
+			drift_xz += 0;
+		}
+		if (target.x == 204797)
+		{
+			drift_xy += 4*129*253;
+			drift_xz += 0;
+		}
+		if (target.x == 204798)
+		{
+			drift_xy += 4*129*254;
+			drift_xz += 0;
+		}
+		if (target.x == 204799)
+		{
+			drift_xy += 4*129*255;
+			drift_xz += 0;
+		}
+
+		if (target == PointType{ 164684, 14215, 24573 })
+		{
+			drift_xy += 200000;
+			drift_xz += 100000;
+		}
+		else if (target == PointType{ 164855, 14215, 24573 })
+		{
+			drift_xy += 100000;
+			drift_xz += 100000;
+		}
+	}
+
 	//starting point
 	y = y0 / InputScale;
 	z = z0 / InputScale;
 	x = x0 / InputScale;
+
+	//correction of drift as we use bigger steps
+	// drift_xy += y1 % InputScale;
+	// drift_xz += z1 % InputScale;
 
 	//end point
 	auto x_end = x1 / InputScale;
@@ -4558,12 +4703,36 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 			}
 		}
 		subVoxelEnd = findBegin;
+		if (subVoxelEnd.isBoundedBy(bund) != true) throw 1;
+		if ((subVoxelEnd / scale).castTo<Position>().isBoundedBy(maxMapVoxel) != true) throw 2;
 	}
 
 	int tileSkip = -1;
+	Position last = { };
 	bool hit = calculateLineHelper<scale>(subVoxelBegin, subVoxelEnd,
 		[&](Position point)
 		{
+			last = point;
+			if (point.isBoundedBy(maxMapVoxel) != true)
+			{
+				if (point != (subVoxelEnd / scale).castTo<Position>())
+				{
+					throw Exception("punkt poza mapa:\n"
+						+ std::to_string(point.x) + " " + std::to_string(point.y) + " " + std::to_string(point.z) + "\n"
+						+ "\nod\n"
+						+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
+						+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
+						+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
+						+ "\ndo\n"
+						+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
+						+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
+						+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
+						+ "\nlimit\n"
+						+ std::to_string(bund.x/scale) + " " + std::to_string(bund.y/scale) + " " + std::to_string(bund.z/scale) + "\n"
+						+ std::to_string(bund.x) + " " + std::to_string(bund.y) + " " + std::to_string(bund.z) + "\n"
+					);
+				}
+			}
 			if (storeTrajectory && trajectory)
 			{
 				trajectory->push_back(point);
@@ -4600,6 +4769,7 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 				{ // store the position of impact
 					trajectory->push_back(point);
 				}
+				last = point;
 				return true;
 			}
 			return false;
@@ -4639,6 +4809,7 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 				{ // store the position of impact
 					trajectory->push_back(point);
 				}
+				last = point;
 				return true;
 			}
 			return false;
@@ -4648,6 +4819,22 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	{
 		return result;
 	}
+		{
+			if (last != (subVoxelEnd / scale).castTo<Position>())
+			{
+				throw Exception("roznica punktu docelowego:\n"
+					+ std::to_string(last.x) + " " + std::to_string(last.y) + " " + std::to_string(last.z) + "\n"
+					+ "\nod\n"
+					+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
+					+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
+					+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
+					+ "\ndo\n"
+					+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
+					+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
+					+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
+				);
+			}
+		}
 	if (!target.isBoundedBy(maxMapVoxel)) // check if we end out of bunds
 	{
 		return V_OUTOFBOUNDS;

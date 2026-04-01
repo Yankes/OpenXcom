@@ -853,6 +853,8 @@ void BattlescapeState::init()
 			_game->pushState(new SaveGameState(OPT_BATTLESCAPE, SAVE_AUTO_BATTLESCAPE, _palette, currentTurn));
 		}
 	}
+
+	updateFppOverlay();
 }
 
 /**
