@@ -18,6 +18,7 @@
  */
 #include <assert.h>
 #include <set>
+#include <string>
 #include "TileEngine.h"
 #include "AIModule.h"
 #include "Map.h"
@@ -131,116 +132,155 @@ bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition pos
 	// }
 
 	//hack
-	if (InputScale != 1)
-	{
-		if (target.z == 24510)
-		{
-			drift_xy += 0;
-			drift_xz += 4*129*253;
-		}
-		if (target.z == 24573)
-		{
-			drift_xy += 0;
-			drift_xz += 110548;
-		}
-		if (target.z == 24574 && target.y == 14215)
-		{
-			drift_xy += 0;
-			drift_xz += 111064;
-		}
-		if (target.z == 24574 && target.y == 14065)
-		{
-			drift_xy += 0;
-			drift_xz += 111064 + 28000;
-		}
-		if (target.z == 24574 && target.y == 14044)
-		{
-			drift_xy += 150000;
-			drift_xz += 111064 + 28000;
-		}
-		if (target.x == 164428 && target.z == 24573 && target.y == 14215)
-		{
-			drift_xy += -58554;
-			drift_xz += 0;
-		}
-		if (target.x == 164684 && target.z == 24573 && target.y == 14215)
-		{
-			drift_xy += -127539;
-			drift_xz += 0;
-		}
-		if (target.x == 164855 && target.z == 24573 && target.y == 14215)
-		{
-			drift_xy += -127539 - 68985;
-			drift_xz += 0;
-		}
-		if (target.x == 165113 && target.z == 24573 && target.y == 14215)
-		{
-			drift_xy += -127539 - 68985 - 68985 + 116607;
-			drift_xz += 0;
-		}
-		if (target.z == 24574 && target.y == 14302)
-		{
-			drift_xy += 0;
-			drift_xz += 111064 + 2000;
-		}
-		if (target.z == 24424 && target.y == 14302)
-		{
-			drift_xy += 0;
-			drift_xz += 58000;
-		}
-		if (target.z == 24575 && target.y == 13765)
-		{
-			drift_xy += 0;
-			drift_xz += 150000;
-		}
-		if (target.z == 24575 && target.y == 13744)
-		{
-			drift_xy += 100000;
-			drift_xz += 120000;
-		}
-		if (target.z == 24433 && target.y == 13990)
-		{
-			drift_xy += 0;
-			drift_xz += 45000;
-		}
+	// if (InputScale != 1)
+	// {
+	// 	if (target.z == 24510)
+	// 	{
+	// 		drift_xy += 0;
+	// 		drift_xz += 4*129*253;
+	// 	}
+	// 	if (target.z == 24573)
+	// 	{
+	// 		drift_xy += 0;
+	// 		drift_xz += 110548;
+	// 	}
+	// 	if (target.z == 24574 && target.y == 14215)
+	// 	{
+	// 		drift_xy += 0;
+	// 		drift_xz += 111064;
+	// 	}
+	// 	if (target.z == 24574 && target.y == 14065)
+	// 	{
+	// 		drift_xy += 0;
+	// 		drift_xz += 111064 + 28000;
+	// 	}
+	// 	if (target.z == 24574 && target.y == 14044)
+	// 	{
+	// 		// drift_xy += 150000;
+	// 		drift_xz += 111064 + 28000;
+	// 	}
+  //
+		// if (target.x == 643 * 256 + 247 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	drift_xy += -58'554;
+		// 	drift_xz += 0;
+		// }
+		// else if (target.x == 644 * 256 + 249 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	drift_xy += -24'063;
+		// 	drift_xz += 0;
+		// }
+		// else if (target.x == 645 * 256 + 164 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	drift_xy += 0;
+		// 	drift_xz += 0;
+		// }
+		// else if (target.x == 646 * 256 + 251 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	drift_xy += -148'902;
+		// 	drift_xz += 0;
+		// }
+		// else if (target.x == 647 * 256 + 252 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	drift_xy += -20'515;
+		// 	drift_xz += 0;
+		// }
+		// else if (target.x == 648 * 256 + 167 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	drift_xy += 0;
+		// 	drift_xz += 0;
+		// }
+		// else if (target.x == 1 && target.y == 14215 && target.z == 24573)
+		// {
+		// 	if (target.x != y1) throw 1;
+		// 	if (target.y != x1) throw 1;
+		// 	if (target.z != z1) throw 1;
+		// 	// drift_xy += -19459;
+		// 	drift_xy += -20'515;
+		// 	drift_xz += 0;
+		// }
 
-		if (target.x == 204685)
-		{
-			drift_xy += 4*129*141;
-			drift_xz += 0;
-		}
-		if (target.x == 204796)
-		{
-			drift_xy += 4*129*252;
-			drift_xz += 0;
-		}
-		if (target.x == 204797)
-		{
-			drift_xy += 4*129*253;
-			drift_xz += 0;
-		}
-		if (target.x == 204798)
-		{
-			drift_xy += 4*129*254;
-			drift_xz += 0;
-		}
-		if (target.x == 204799)
-		{
-			drift_xy += 4*129*255;
-			drift_xz += 0;
-		}
+		// if (target.z == 24574 && target.y == 14302)
+		// {
+		// 	drift_xy += 0;
+		// 	drift_xz += 111064 + 2000;
+		// }
+		// if (target.z == 24424 && target.y == 14302)
+		// {
+		// 	drift_xy += 0;
+		// 	drift_xz += 58000;
+		// }
+		// if (target.z == 24575 && target.y == 13765)
+		// {
+		// 	drift_xy += 0;
+		// 	drift_xz += 150000;
+		// }
+		// if (target.z == 24575 && target.y == 13744)
+		// {
+		// 	drift_xy += 100000;
+		// 	drift_xz += 120000;
+		// }
+		// if (target.z == 24433 && target.y == 13990)
+		// {
+		// 	drift_xy += 0;
+		// 	drift_xz += 45000;
+		// }
+    //
+		// if (target.x == 204685)
+		// {
+		// 	drift_xy += 4*129*141;
+		// 	drift_xz += 0;
+		// }
+		// if (target.x == 204796)
+		// {
+		// 	drift_xy += 4*129*252;
+		// 	drift_xz += 0;
+		// }
+		// if (target.x == 204797)
+		// {
+		// 	drift_xy += 4*129*253;
+		// 	drift_xz += 0;
+		// }
+		// if (target.x == 204798)
+		// {
+		// 	drift_xy += 4*129*254;
+		// 	drift_xz += 0;
+		// }
+		// if (target.x == 204799)
+		// {
+		// 	drift_xy += 4*129*255;
+		// 	drift_xz += 0;
+		// }
 
-		if (target == PointType{ 164684, 14215, 24573 })
-		{
-			drift_xy += 200000;
-			drift_xz += 100000;
-		}
-		else if (target == PointType{ 164855, 14215, 24573 })
-		{
-			drift_xy += 100000;
-			drift_xz += 100000;
-		}
-	}
+		// if (target == PointType{ 164684, 14215, 24573 })
+		// {
+		// 	drift_xy += 200000;
+		// 	drift_xz += 100000;
+		// }
+		// else if (target == PointType{ 164855, 14215, 24573 })
+		// {
+		// 	drift_xy += 100000;
+		// 	drift_xz += 100000;
+		// }
+	// }
 
 	//starting point
 	y = y0 / InputScale;
@@ -252,7 +292,19 @@ bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition pos
 	// drift_xz += z1 % InputScale;
 
 	//end point
-	auto x_end = x1 / InputScale;
+	// auto x_end = step_x < 0 ? (x1 + InputScale - 1) / InputScale : x1 / InputScale;
+	// if (InputScale != 1 && x1 % InputScale)
+	// {
+	// 		x_end -= step_x;
+	// }
+	
+
+	// auto x_end = x1 / InputScale;
+
+	// auto diff = abs(x1 - x0) % InputScale;
+	// drift_xy -= (4 * delta_y * diff) / InputScale;
+	// drift_xz -= (4 * delta_z * diff) / InputScale;
+
 
 	auto posFuncCall = [&](int cx, int cy, int cz)
 	{
@@ -4715,22 +4767,26 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 			last = point;
 			if (point.isBoundedBy(maxMapVoxel) != true)
 			{
+				// return false;
 				if (point != (subVoxelEnd / scale).castTo<Position>())
 				{
-					throw Exception("punkt poza mapa:\n"
-						+ std::to_string(point.x) + " " + std::to_string(point.y) + " " + std::to_string(point.z) + "\n"
-						+ "\nod\n"
-						+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
-						+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
-						+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
-						+ "\ndo\n"
-						+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
-						+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
-						+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
-						+ "\nlimit\n"
-						+ std::to_string(bund.x/scale) + " " + std::to_string(bund.y/scale) + " " + std::to_string(bund.z/scale) + "\n"
-						+ std::to_string(bund.x) + " " + std::to_string(bund.y) + " " + std::to_string(bund.z) + "\n"
-					);
+					// throw Exception("punkt poza mapa:\n\n"
+					// 	+ std::to_string(point.x) + " " + std::to_string(point.y) + " " + std::to_string(point.z) + "\n"
+					// 	+ "\nod\n"
+					// 	+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
+					// 	+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
+					// 	+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
+					// 	+ "\ndo\n"
+					// 	+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
+					// 	+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
+					// 	+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
+					// 	+ "\nlimit\n"
+					// 	+ std::to_string(bund.x/scale) + " " + std::to_string(bund.y/scale) + " " + std::to_string(bund.z/scale) + "\n"
+					// 	+ std::to_string(bund.x) + " " + std::to_string(bund.y) + " " + std::to_string(bund.z) + "\n"
+					// 	+ "\norignaly zakres\n"
+					// 	+ std::to_string(origin.x) + " " + std::to_string(origin.y) + " " + std::to_string(origin.z) + "\n"
+					// 	+ std::to_string(target.x) + " " + std::to_string(target.y) + " " + std::to_string(target.z) + "\n"
+					// );
 				}
 			}
 			if (storeTrajectory && trajectory)
@@ -4820,20 +4876,20 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		return result;
 	}
 		{
-			if (last != (subVoxelEnd / scale).castTo<Position>())
-			{
-				throw Exception("roznica punktu docelowego:\n"
-					+ std::to_string(last.x) + " " + std::to_string(last.y) + " " + std::to_string(last.z) + "\n"
-					+ "\nod\n"
-					+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
-					+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
-					+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
-					+ "\ndo\n"
-					+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
-					+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
-					+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
-				);
-			}
+			// if (last != (subVoxelEnd / scale).castTo<Position>())
+			// {
+			// 	throw Exception("roznica punktu docelowego:\n"
+			// 		+ std::to_string(last.x) + " " + std::to_string(last.y) + " " + std::to_string(last.z) + "\n"
+			// 		+ "\nod\n"
+			// 		+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
+			// 		+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
+			// 		+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
+			// 		+ "\ndo\n"
+			// 		+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
+			// 		+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
+			// 		+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
+			// 	);
+			// }
 		}
 	if (!target.isBoundedBy(maxMapVoxel)) // check if we end out of bunds
 	{

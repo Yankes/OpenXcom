@@ -90,6 +90,7 @@
 #include "../Mod/RuleSoldier.h"
 #include "../Mod/RuleVideo.h"
 #include <algorithm>
+#include <vector>
 
 namespace OpenXcom
 {
@@ -3599,7 +3600,7 @@ void BattlescapeState::updateFppOverlay(bool forceShow)
 			{
 				// when we have last part updated we swap buffers
 				std::swap(_fppOverlayCurrentBuffer, _fppOverlayNextBuffer);
-				_fppOverlayNextBuffer.clear();
+				// _fppOverlayNextBuffer.clear();
 			}
 			else
 			{
@@ -3792,6 +3793,46 @@ void BattlescapeState::updateFppOverlay(bool forceShow)
 		}
 	}
 
+	{
+		auto x = _game->getCursor()->getX();
+		auto y = _game->getCursor()->getY();
+		auto tile2 = getBattleGame()->getTileEngine();
+		int off = 0;
+		_fppOverlay->drawLine(10 + 184 - 55 + x,0, 10 + 184 - 55 + x, 400, 0x10);
+		{
+			auto path = std::vector<Position>{};
+			tile2->calculateLineVoxel({728,184,21}, {649 + y, 55 - x, 95}, true, &path, bu);
+			
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, p.z + 10 + off - 21, 0x1F-off);
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, 728 - p.x + 110 + off, 0x1F-off);
+			off += 4;
+		}
+		{
+			auto path = std::vector<Position>{};
+			tile2->calculateLineVoxel({728,184,21}, {649 + y + (649 + y - 728), 55 - x + (55 - x - 184), 95 + (95 - 21)}, true, &path, bu);
+			
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, p.z + 10 + off - 21, 0x1F-off);
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, 728 - p.x + 110 + off, 0x1F-off);
+			off += 4;
+		}
+		{
+			auto path = std::vector<Position>{};
+			tile2->calculateLineVoxel({728,184,21}, {649 + y + 2*(649 + y - 728), 55 - x + 2*(55 - x - 184), 95 + 2*(95 - 21)}, true, &path, bu);
+			
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, p.z + 10 + off - 21, 0x1F-off);
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, 728 - p.x + 110 + off, 0x1F-off);
+			off += 4;
+		}
+		{
+			auto path = std::vector<Position>{};
+			tile2->calculateLineVoxel({728,184,21}, {649 + y + 3*(649 + y - 728), 55 - x + 3*(55 - x - 184), 95 + 3*(95 - 21)}, true, &path, bu);
+			
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, p.z + 10 + off - 21, 0x1F-off);
+			for (auto& p : path) _fppOverlay->setPixel(184 - p.y + 10, 728 - p.x + 110 + off, 0x1F-off);
+			off += 4;
+		}
+		_fppOverlay->drawLine(10,8, 10 + x, 8 + y, 0x10);
+	}
 	_fppOverlay->setVisible(true);
 }
 
