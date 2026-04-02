@@ -298,6 +298,7 @@ bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition pos
 	// 		x_end -= step_x;
 	// }
 	
+	auto x_end = x + step_x * abs(x1 - x0) / InputScale;
 
 	// auto x_end = x1 / InputScale;
 
@@ -330,8 +331,8 @@ bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition pos
 	{
 		if (drift_xy < 0)
 		{
-			y = y + step_y;
-			drift_xy = drift_xy + delta_x;
+			y += step_y;
+			drift_xy += delta_x;
 			return true;
 		}
 		return false;
@@ -340,8 +341,8 @@ bool calculateLineHelper(PointType origin, PointType target, FuncNewPosition pos
 	{
 		if (drift_xz < 0)
 		{
-			z = z + step_z;
-			drift_xz = drift_xz + delta_x;
+			z += step_z;
+			drift_xz += delta_x;
 			return true;
 		}
 		return false;
@@ -4733,8 +4734,9 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		return V_OUTOFBOUNDS;
 	}
 	constexpr int scale = 256;
-	auto subVoxelBegin = origin.castTo<ExtendedPosition>() * scale;
-	auto subVoxelEnd = target.castTo<ExtendedPosition>() * scale;
+	const ExtendedPosition halfVoxel = { scale / 2, scale / 2, scale / 2 };
+	auto subVoxelBegin = origin.castTo<ExtendedPosition>() * scale + halfVoxel;
+	auto subVoxelEnd = target.castTo<ExtendedPosition>() * scale + halfVoxel;
 	const auto bund = maxMapVoxel.castTo<ExtendedPosition>() * scale;
 	if (!subVoxelEnd.isBoundedBy(bund)) // clip to bunds if outside
 	{
