@@ -4772,23 +4772,23 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 				// return false;
 				if (point != (subVoxelEnd / scale).castTo<Position>())
 				{
-					// throw Exception("punkt poza mapa:\n\n"
-					// 	+ std::to_string(point.x) + " " + std::to_string(point.y) + " " + std::to_string(point.z) + "\n"
-					// 	+ "\nod\n"
-					// 	+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
-					// 	+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
-					// 	+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
-					// 	+ "\ndo\n"
-					// 	+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
-					// 	+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
-					// 	+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
-					// 	+ "\nlimit\n"
-					// 	+ std::to_string(bund.x/scale) + " " + std::to_string(bund.y/scale) + " " + std::to_string(bund.z/scale) + "\n"
-					// 	+ std::to_string(bund.x) + " " + std::to_string(bund.y) + " " + std::to_string(bund.z) + "\n"
-					// 	+ "\norignaly zakres\n"
-					// 	+ std::to_string(origin.x) + " " + std::to_string(origin.y) + " " + std::to_string(origin.z) + "\n"
-					// 	+ std::to_string(target.x) + " " + std::to_string(target.y) + " " + std::to_string(target.z) + "\n"
-					// );
+					throw Exception("punkt poza mapa:\n\n"
+						+ std::to_string(point.x) + " " + std::to_string(point.y) + " " + std::to_string(point.z) + "\n"
+						+ "\nod\n"
+						+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
+						+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
+						+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
+						+ "\ndo\n"
+						+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
+						+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
+						+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
+						+ "\nlimit\n"
+						+ std::to_string(bund.x/scale) + " " + std::to_string(bund.y/scale) + " " + std::to_string(bund.z/scale) + "\n"
+						+ std::to_string(bund.x) + " " + std::to_string(bund.y) + " " + std::to_string(bund.z) + "\n"
+						+ "\norignaly zakres\n"
+						+ std::to_string(origin.x) + " " + std::to_string(origin.y) + " " + std::to_string(origin.z) + "\n"
+						+ std::to_string(target.x) + " " + std::to_string(target.y) + " " + std::to_string(target.z) + "\n"
+					);
 				}
 			}
 			if (storeTrajectory && trajectory)
@@ -4878,20 +4878,23 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 		return result;
 	}
 		{
-			// if (last != (subVoxelEnd / scale).castTo<Position>())
-			// {
-			// 	throw Exception("roznica punktu docelowego:\n"
-			// 		+ std::to_string(last.x) + " " + std::to_string(last.y) + " " + std::to_string(last.z) + "\n"
-			// 		+ "\nod\n"
-			// 		+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
-			// 		+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
-			// 		+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
-			// 		+ "\ndo\n"
-			// 		+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
-			// 		+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
-			// 		+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
-			// 	);
-			// }
+			if ((last - (subVoxelEnd / scale).castTo<Position>() + Position{1,1,1} ).isBoundedBy({3, 3, 3}) == false)
+			{
+				throw Exception("roznica punktu docelowego:\n"
+					+ std::to_string(last.x) + " " + std::to_string(last.y) + " " + std::to_string(last.z) + "\n"
+					+ "\nod\n"
+					+ std::to_string(subVoxelBegin.x/scale) + " " + std::to_string(subVoxelBegin.y/scale) + " " + std::to_string(subVoxelBegin.z/scale) + "\n"
+					+ std::to_string(subVoxelBegin.x%scale) + " " + std::to_string(subVoxelBegin.y%scale) + " " + std::to_string(subVoxelBegin.z%scale) + "\n"
+					+ std::to_string(subVoxelBegin.x) + ", " + std::to_string(subVoxelBegin.y) + ", " + std::to_string(subVoxelBegin.z) + "\n"
+					+ "\ndo\n"
+					+ std::to_string(subVoxelEnd.x/scale) + " " + std::to_string(subVoxelEnd.y/scale) + " " + std::to_string(subVoxelEnd.z/scale) + "\n"
+					+ std::to_string(subVoxelEnd.x%scale) + " " + std::to_string(subVoxelEnd.y%scale) + " " + std::to_string(subVoxelEnd.z%scale) + "\n"
+					+ std::to_string(subVoxelEnd.x) + ", " + std::to_string(subVoxelEnd.y) + ", " + std::to_string(subVoxelEnd.z) + "\n"
+					+ "\norignaly zakres\n"
+					+ std::to_string(origin.x) + " " + std::to_string(origin.y) + " " + std::to_string(origin.z) + "\n"
+					+ std::to_string(target.x) + " " + std::to_string(target.y) + " " + std::to_string(target.z) + "\n"
+				);
+			}
 		}
 	if (!target.isBoundedBy(maxMapVoxel)) // check if we end out of bunds
 	{
