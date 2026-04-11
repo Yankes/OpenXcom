@@ -4563,89 +4563,77 @@ VoxelType TileEngine::calculateLineVoxel(Position origin, Position target, bool 
 	}
 
 	int tileSkip = -1;
-	bool hit = calculateLineHelper<scale>(subVoxelBegin, subVoxelEnd,
-		[&](Position point)
-		{
-			if (storeTrajectory && trajectory)
-			{
-				trajectory->push_back(point);
-			}
-			const Position pos = point.toTile();
-			const Position clip = point.clipVoxel();
-			const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
+	auto last = (subVoxelEnd / scale).castTo<Position>();
+	auto checkVoxel = [&](Position point)
+	{
+		const Position pos = point.toTile();
+		const Position clip = point.clipVoxel();
+		const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
 
-			result = voxelCheckCached(tileIndex, clip);
-			if (result > V_EMPTY)
-			{
-				if (result == V_UNIT)
-				{
-					if (tileSkip == tileIndex)
-					{
-						return false;
-					}
-					auto unit = _save->getTile(tileIndex)->getOverlappingUnit(_save);
-					if (!(
-						!excludeAllUnits &&
-						unit != excludeUnit &&
-						(!excludeAllBut || unit == excludeAllBut) &&
-						(!onlyVisible || unit->getVisible() )))
-					{
-						tileSkip = tileIndex;
-						return false;
-					}
-					if (unit->getVoxelBottomHeight() >= point.z || unit->getVoxelTopHeight() < point.z)
-					{
-						return false;
-					}
-				}
-				if (trajectory)
-				{ // store the position of impact
-					trajectory->push_back(point);
-				}
-				return true;
-			}
-			return false;
-		},
-		[&](Position point)
+		result = voxelCheckCached(tileIndex, clip);
+		if (result > V_EMPTY)
 		{
-			const Position pos = point.toTile();
-			const Position clip = point.clipVoxel();
-			const int tileIndex = VectDotProduct(pos, offsetsTiles); // same as `_save->getTileIndex(pos);`
-
-			//check for xy diagonal intermediate voxel step
-			result = voxelCheckCached(tileIndex, clip);
-			if (result > V_EMPTY)
+			if (result == V_UNIT)
 			{
-				if (result == V_UNIT)
+				if (tileSkip == tileIndex)
 				{
-					if (tileSkip == tileIndex)
-					{
-						return false;
-					}
-					auto unit = _save->getTile(tileIndex)->getOverlappingUnit(_save);
-					if (!(
-						unit != excludeUnit &&
-						!excludeAllUnits &&
-						(!excludeAllBut || unit == excludeAllBut) &&
-						(!onlyVisible || unit->getVisible() )))
-					{
-						tileSkip = tileIndex;
-						return false;
-					}
-					if (unit->getVoxelBottomHeight() >= point.z || unit->getVoxelTopHeight() < point.z)
-					{
-						return false;
-					}
+					return false;
 				}
-				if (trajectory != 0)
-				{ // store the position of impact
-					trajectory->push_back(point);
+				auto unit = _save->getTile(tileIndex)->getOverlappingUnit(_save);
+				if (!(
+					!excludeAllUnits &&
+					unit != excludeUnit &&
+					(!excludeAllBut || unit == excludeAllBut) &&
+					(!onlyVisible || unit->getVisible()) ))
+				{
+					tileSkip = tileIndex;
+					return false;
 				}
-				return true;
+				if (unit->getVoxelBottomHeight() >= point.z || unit->getVoxelTopHeight() < point.z)
+				{
+					return false;
+				}
 			}
-			return false;
+
+			last = point;
+			return true;
 		}
+		return false;
+	};
+
+	bool hit = calculateLineHelper<scale>(subVoxelBegin, subVoxelEnd,
+		checkVoxel,
+		checkVoxel
 	);
+
+	if (trajectory)
+	{
+		if (storeTrajectory)
+		{
+			calculateLineHelper<scale>(subVoxelBegin, subVoxelEnd,
+				[&](Position point)
+				{
+					trajectory->push_back(point);
+					return last == point;
+				},
+				[&](Position point)
+				{
+					if (last == point)
+					{
+						trajectory->push_back(point);
+						return true;
+					}
+
+					return false;
+				}
+			);
+		}
+		else if (hit)
+		{
+			trajectory->push_back(last);
+		}
+	}
+
 	if (hit)
 	{
 		return result;
