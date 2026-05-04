@@ -21,6 +21,7 @@
 #include <list>
 #include <unordered_map>
 #include <algorithm>
+#include <cstring>
 #include "Exception.h"
 
 namespace OpenXcom
@@ -480,6 +481,16 @@ public:
 	static Range<ValueIterator<T>> rangeValueLess(T end)
 	{
 		return rangeValue(T{}, end);
+	}
+
+	static Range<char*> rangeFromString(char* begin)
+	{
+		return { begin, begin + std::strlen(begin) };
+	}
+
+	static Range<const char*> rangeFromString(const char* begin)
+	{
+		return { begin, begin + std::strlen(begin) };
 	}
 
 	template<typename It>

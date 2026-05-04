@@ -20,6 +20,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 #include "CrossPlatform.h"
+#include <utility>
 #include <exception>
 #include <algorithm>
 #include <sstream>
@@ -35,6 +36,7 @@
 #include "Exception.h"
 #include "Options.h"
 #include "Unicode.h"
+#include "Collections.h"
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -303,15 +305,22 @@ std::vector<std::string> findDataFolders()
 	char const *const xdg_data_dirs = getenv("XDG_DATA_DIRS");
 	if (xdg_data_dirs && *xdg_data_dirs)
 	{
-		char xdg_data_dirs_copy[strlen(xdg_data_dirs)+1];
-		strcpy(xdg_data_dirs_copy, xdg_data_dirs);
-		char *dir = strtok(xdg_data_dirs_copy, ":");
-		while (dir != 0)
+		auto* prev = xdg_data_dirs;
+		auto range = Collections::rangeFromString(xdg_data_dirs);
+		auto gather = [&](const char* c)
 		{
-			snprintf(path, MAXPATHLEN, "%s/openxcom/", dir);
-			list.push_back(path);
-			dir = strtok(0, ":");
+			auto* n = std::exchange(prev, c + 1);
+			if (c != n)
+			{
+				list.push_back(std::string(c, n) + "/openxcom/");
+			}
+		};
+
+		for (auto& split : Collections::filter(range, [](char r) { return r == ':'; }))
+		{
+			gather(&split);
 		}
+		gather(range.end());
 	}
 	else
 	{
