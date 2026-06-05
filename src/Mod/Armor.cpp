@@ -200,6 +200,10 @@ void Armor::load(const YAML::YamlNodeReader& node, Mod *mod, const ModScript &pa
 	reader.tryRead("forcedTorso", _forcedTorso);
 	if (reader.tryRead("size", _size))
 	{
+		if (_size <= 0 || _size > MaxArmorSize)
+		{
+			throw Exception("Wrong armor size");
+		}
 		if (_size != 1) //TODO: Add handling for opposite case too
 		{
 			_fearImmune = 1;

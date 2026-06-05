@@ -97,6 +97,7 @@ public:
 	static void ScriptRegister(ScriptParserBase* parser);
 
 	static const std::string NONE;
+	static const int MaxArmorSize = 2;
 private:
 	std::string _ufopediaType;
 	std::string _type, _spriteSheet, _spriteInv, _corpseGeoName, _storeItemName, _selfDestructItemName, _specWeaponName;
